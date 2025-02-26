@@ -10,7 +10,7 @@ return [
      |
      */
 
-    'video-model' => 'App\Models\Video',
+    'video-model' => 'App\Models\Ckeditor\Video',
 
     /*
      |--------------------------------------------------------------------------
@@ -21,7 +21,7 @@ return [
      |
      */
 
-    'image-model' => 'App\Models\Image',
+    'image-model' => 'App\Models\Ckeditor\Image',
 
 
     /*

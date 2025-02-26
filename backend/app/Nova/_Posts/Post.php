@@ -3,6 +3,7 @@
 namespace App\Nova\_Posts;
 
 use Laravel\Nova\Resource;
+use Illuminate\Support\Facades\Storage;
 
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
@@ -35,9 +36,9 @@ use Laravel\Nova\Fields\Repeater;
 
 use Whitecube\NovaFlexibleContent\Flexible;
 
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Ebess\AdvancedNovaMediaLibrary\Fields\Files;
-use Ebess\AdvancedNovaMediaLibrary\Fields\Images;
+// use Spatie\MediaLibrary\MediaCollections\Models\Media;
+// use Ebess\AdvancedNovaMediaLibrary\Fields\Files;
+// use Ebess\AdvancedNovaMediaLibrary\Fields\Images;
 
 
 use Laravel\Nova\Http\Requests\NovaRequest;
@@ -130,11 +131,6 @@ abstract class Post extends Resource
     }
 
     public function fields(Request $request) {
-        // if (static::getPostType() !== $this->type) {
-        //     $resourceClass = Nova::resourceForModel($this->model());
-        //     return redirect(config('nova.path') . '/resources/' . $resourceClass::uriKey() . '/' . $this->id . '/edit')
-        //         ->send();
-        // }
 
         $general = [
             Text::make(__('Type'), 'type')
@@ -149,13 +145,6 @@ abstract class Post extends Resource
                 ->default('draft')
                 ->displayUsingLabels()
                 ->onlyOnForms(),
-
-            // Badge::make(__('Status'), 'status')->map([
-            //         'draft' => 'danger',
-            //         'published' => 'success',
-            //     ])->label(function ($value) {
-            //         return __($value);
-            //     }),
 
             DateTimeSplit::make(__('Publication date'), 'published_at')
                 ->onlyOnForms()
@@ -218,8 +207,6 @@ abstract class Post extends Resource
         }
 
         $content = [
-            // static::getPostType() !== PostTypes::ONLINE
-            //     ? 
                 
             Flexible::make(__('Blocks'), 'content')
                 ->hideFromDetail()
@@ -260,7 +247,7 @@ abstract class Post extends Resource
 
                     Select::make(__('Embed type'), 'embed_type')
                         ->options([
-                            'hidden' => 'Hidden',
+                            'hidden' => __('Hidden'),
                             'telegram' => 'Telegram',
                             'twitter' => 'Twitter',
                             'facebook' => 'Facebook',
@@ -317,9 +304,6 @@ abstract class Post extends Resource
                 ? BelongsTo::make(__('Columnist'), 'columnist', UserColumnist::class)
                     ->hideFromDetail()
                     ->default($request->user()->getKey())
-                    // ->withMeta([
-                    //     'belongsToId' => $this->columnist_id
-                    // ])
                     ->immutable(function ($request) {
                         return !$request->user()->canViewAll();
                     })
@@ -327,16 +311,17 @@ abstract class Post extends Resource
                     ->belongsToMany(User::class, true)
                     ->reorderable()
                     ->default(auth()->user())
-                    ->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
-                        $authors = $request->{$requestAttribute};
-                
-                        $syncData = [];
-                        if ($authors)
-                            foreach ($authors as $index => $authorId) {
-                                $syncData[$authorId] = ['position' => $index + 1];
+                    ->when($this->exists, function($field) {
+                        return $field->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
+                            $authors = $request->{$requestAttribute};
+                            $syncData = [];
+                            if ($authors) {
+                                foreach ($authors as $index => $authorId) {
+                                    $syncData[$authorId] = ['position' => $index + 1];
+                                }
+                                $model->authors()->sync($syncData);
                             }
-                            
-                        $model->authors()->sync($syncData);
+                        });
                     }),
 
                 // TagField::make(__('Authors'), 'authors', User::class)
@@ -377,19 +362,19 @@ abstract class Post extends Resource
                     return static::getPostType() == PostTypes::OPINION;
                 }),
 
-            Image::make(__('Image file'), 'image')
+            Image::make(__('Image file'), 'image') 
                 ->hideFromDetail()
                 ->hideFromIndex()
-                ->disk('public'),
-                // ->nullable()
-                // ->path(ImageService::getImageUrl($value, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
-                // ->rules('image', 'max:1024')
-                // ->thumbnail(function ($value, $disk) {
-                //     return ImageService::getImageUrl($value, ImageService::TYPE_POST_COVER, ImageService::SIZE_SMALL, $disk);
-                // })
-                // ->preview(function ($value, $disk) {
-                //     return ImageService::getImageUrl($value, ImageService::TYPE_POST_COVER, ImageService::SIZE_MEDIUM, $disk);
-                // }),
+                ->disk('public')
+                ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
+                ->nullable()
+                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
+                ->preview(function ($value, $disk) {
+                    return $value ? Storage::disk($disk)->url($value) : null;
+                })
+                ->thumbnail(function ($value, $disk) {
+                    return $value ? Storage::disk($disk)->url($value) : null;
+                }),
 
             Text::make(__('Image description'), 'image_description')
                 ->hideFromDetail()

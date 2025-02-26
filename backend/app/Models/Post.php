@@ -20,14 +20,15 @@ use App\Services\ChangeDetectorService;
 use App\Services\ImageService;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\MediaLibrary\InteractsWithMedia;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
+// use Spatie\MediaLibrary\HasMedia;
+// use Spatie\MediaLibrary\InteractsWithMedia;
+// use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Post extends Model implements HasMedia {
+class Post extends Model { //implements HasMedia {
 
-    use InteractsWithMedia;
+    //use InteractsWithMedia;
 
     protected $table = 'posts';
 
@@ -87,10 +88,20 @@ class Post extends Model implements HasMedia {
 
         static::created(function ($post) use ($createHistory) {
             $createHistory($post, [], $post->getAttributes(), 'created');
+            
+            if (!empty($post->image)) {
+                $post->createImageVariants();
+            }
         });
 
         static::updating(function ($post) use ($createHistory) {
             $createHistory($post, $post->getOriginal(), $post->getAttributes(), 'updated');
+        });
+        
+        static::updated(function ($post) {
+            if ($post->wasChanged('image') && !empty($post->image)) {
+                $post->createImageVariants();
+            }
         });
 
         static::deleting(function ($post) use ($createHistory) {
@@ -253,23 +264,13 @@ class Post extends Model implements HasMedia {
         $this->timestamps = true;
     }
 
-    public function registerMediaCollections(): void
+    public function createImageVariants()
     {
-        $this->addMediaCollection('images')
-             ->useDisk('public')
-             ->singleFile()
-             ->usePathGenerator(function (Media $media) {
-                 return ImageService::getImageUrl($media->id, ImageService::TYPE_POST_COVER, $media->size, 'public');
-             });
+        ImageService::createImageVariants($this->id, $this->image);
     }
 
-    public function registerMediaConversions(Media $media = null): void
+    public function getImageUrl($size = ImageService::SIZE_ORIGINAL)
     {
-        $this->addMediaConversion(ImageService::SIZE_SMALL)
-              ->width(768);
-
-        $this->addMediaConversion(ImageService::SIZE_MEDIUM)
-              ->width(1536);
+        return ImageService::getImageUrl($this->id, $this->image, ImageService::TYPE_POST_COVER, $size);
     }
-
 }

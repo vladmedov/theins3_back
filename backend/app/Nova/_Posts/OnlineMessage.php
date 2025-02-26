@@ -63,7 +63,7 @@ class OnlineMessage extends Resource
                     ->stacked()
                     ->sortable()
                     ->rules('boolean')
-                    ->help('The event text will be emphasized with increased font size and bold styling. A corresponding link will be incorporated into the table of contents for enhanced navigation.'),
+                    ->help(__('The event text will be emphasized with increased font size and bold styling. A corresponding link will be incorporated into the table of contents for enhanced navigation.')),
 
                 Badge::make(__('Enable'), 'is_key_event')->types([
                         false => 'font-medium text-gray-600',
@@ -162,7 +162,7 @@ class OnlineMessage extends Resource
                     ->stacked()
                     ->nullable()
                     ->options([
-                        'hidden' => 'Hidden',
+                        'hidden' => __('Hidden'),
                         'telegram' => 'Telegram',
                         'twitter' => 'Twitter',
                         'facebook' => 'Facebook',
@@ -198,6 +198,14 @@ class OnlineMessage extends Resource
     public static function redirectAfterUpdate(NovaRequest $request, Resource $resource)
     {
         return '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';
+    }
+
+    public static function label() {
+        return __('Online Messages');
+    }
+
+    public static function singularLabel() {
+        return __('Online Message');
     }
 
     public static function indexQuery(NovaRequest $request, $query) {
