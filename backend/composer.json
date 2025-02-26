@@ -11,7 +11,19 @@
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "laravel/nova": "^5.0",
+        "medov/custom-flexible-menu": "@dev",
+        "medov/date-time-split": "@dev",
+        "medov/image-gallery": "@dev",
+        "medov/news-calendar": "@dev",
+        "medov/post-history": "@dev",
+        "medov/top-users-card": "@dev",
+        "mostafaznv/nova-ckeditor": "^7.7",
+        "outl1ne/nova-multiselect-field": "^5.0",
+        "outl1ne/nova-sortable": "^4.0",
+        "spatie/laravel-medialibrary": "^11.12",
+        "whitecube/nova-flexible-content": "^2.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -75,6 +87,30 @@
         "nova": {
             "type": "composer",
             "url": "https://nova.laravel.com"
+        },
+        "0": {
+            "type": "path",
+            "url": "./nova-components/NewsCalendar"
+        },
+        "1": {
+            "type": "path",
+            "url": "./nova-components/CustomFlexibleMenu"
+        },
+        "2": {
+            "type": "path",
+            "url": "./nova-components/DateTimeSplit"
+        },
+        "3": {
+            "type": "path",
+            "url": "./nova-components/ImageGallery"
+        },
+        "4": {
+            "type": "path",
+            "url": "./nova-components/PostHistory"
+        },
+        "5": {
+            "type": "path",
+            "url": "./nova-components/TopUsersCard"
         }
     }
 }
