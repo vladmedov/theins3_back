@@ -1,0 +1,12 @@
+{
+    "novaMultiselect.maxElements": "Максимум из :max выбрано.",
+    "novaMultiselect.noResult": "Ничего не найдено.",
+    "novaMultiselect.noOptions": "Список пуст.",
+    "novaMultiselect.limitText": "и :count ещё",
+    "novaMultiselect.placeholder": "Выберите",
+    "novaMultiselect.nItemsSelected": "Выбрано: :count",
+    "novaMultiselect.reorder": "Сортировать",
+    "novaMultiselect.doneReordering": "Сохранить сортировку",
+    "novaMultiSelect.startTypingForOptions": "Начните печатать для поиска"
+  }
+  
