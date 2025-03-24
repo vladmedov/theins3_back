@@ -192,6 +192,33 @@ abstract class Post extends Resource
                                 ->where('type', CategoryTypes::getCategoryTypeByPostType(static::getPostType()))
                                 ->where('language_code', app()->getLocale());
                         }),
+
+                    static::getPostType() == PostTypes::OPINION
+                        ? BelongsTo::make(__('Columnist'), 'columnist', UserColumnist::class)
+                            ->hideFromDetail()
+                            ->searchable()
+                            ->withSubtitles()
+                            ->default($request->user()->getKey())
+                            ->immutable(function ($request) {
+                                return !$request->user()->canViewAll();
+                            })
+                        : EntityMultiselect::make(__('Authors'), 'authors')
+                            ->onlyOnForms()
+                            ->belongsToMany(User::class, false)
+                            ->reorderable()
+                            ->default(auth()->user())
+                            ->when($this->exists, function($field) {
+                                return $field->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
+                                    $authors = $request->{$requestAttribute};
+                                    $syncData = [];
+                                    if ($authors) {
+                                        foreach ($authors as $index => $authorId) {
+                                            $syncData[$authorId] = ['position' => $index + 1];
+                                        }
+                                        $model->authors()->sync($syncData);
+                                    }
+                                });
+                            }),
                 
             Text::make(__('Views'), function () {
                 return $this->views_count;
@@ -207,6 +234,36 @@ abstract class Post extends Resource
         }
 
         $content = [
+
+            Image::make(__('Image file'), 'image') 
+                ->hideFromDetail()
+                ->hideFromIndex()
+                ->disk('public')
+                ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
+                ->nullable()
+                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
+                ->preview(function ($value, $disk) {
+                    return $value ? Storage::disk($disk)->url($value) : null;
+                })
+                ->thumbnail(function ($value, $disk) {
+                    return $value ? Storage::disk($disk)->url($value) : null;
+                }),
+
+            Text::make(__('Image description'), 'image_description')
+                ->hideFromDetail()
+                ->hideFromIndex()
+                ->sortable()
+                ->rules('max:255'),
+
+            // Textarea::make(__('Lead text'), 'lead')
+            //     ->hideFromDetail()
+            //     ->rules('nullable', 'max:500'),
+
+            CkEditor::make(__('Lead text'), 'lead')
+                ->toolbar('toolbar-theins-small')
+                ->hideFromIndex()
+                ->hideFromDetail()
+                ->rules('nullable'),
                 
             Flexible::make(__('Blocks'), 'content')
                 ->hideFromDetail()
@@ -299,46 +356,10 @@ abstract class Post extends Resource
             Heading::make('<h3 style="margin-top: 0px;" class="uppercase tracking-wide font-bold text-s">' . __('General') . '</h3>')
                 ->hideFromDetail()
                 ->asHtml(),
-
-            static::getPostType() == PostTypes::OPINION
-                ? BelongsTo::make(__('Columnist'), 'columnist', UserColumnist::class)
-                    ->hideFromDetail()
-                    ->default($request->user()->getKey())
-                    ->immutable(function ($request) {
-                        return !$request->user()->canViewAll();
-                    })
-                : EntityMultiselect::make(__('Authors'), 'authors')
-                    ->belongsToMany(User::class, true)
-                    ->reorderable()
-                    ->default(auth()->user())
-                    ->when($this->exists, function($field) {
-                        return $field->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
-                            $authors = $request->{$requestAttribute};
-                            $syncData = [];
-                            if ($authors) {
-                                foreach ($authors as $index => $authorId) {
-                                    $syncData[$authorId] = ['position' => $index + 1];
-                                }
-                                $model->authors()->sync($syncData);
-                            }
-                        });
-                    }),
-
-                // TagField::make(__('Authors'), 'authors', User::class)
-                //     ->onlyOnForms()
-                //     ->nullable()
-                //     ->searchable()
-                //     ->preload()
-                //     ->withSubtitles()
-                //     ->resolveUsing(function ($value, $model) {
-                //         if (!$model->exists) {
-                //             return $value ?: [["display" => auth()->user()->fullname, "value" => auth()->user()->id]];
-                //         }
-                //         return $value;
-                //     }),
                     
             Select::make(__('Author Visibility'), 'author_visibility')
                 ->onlyOnForms()
+                ->fullWidth()
                 ->options([
                     'default' => __('Author settings'),
                     'force_hidden' => __('Force Hidden'),
@@ -348,10 +369,10 @@ abstract class Post extends Resource
                 ->displayUsingLabels()
                 ->help(__('Controls the visibility of authors. Overrides default settings.')),
             
-            Text::make(__('Author'),
+            Text::make(__('Authors'),
                 function () {
-                    if ($this->author) {
-                        return $this->author;
+                    if ($this->authors->isNotEmpty()) {
+                        return $this->authors->pluck('fullname')->implode('<br>');
                     } else {
                         return '<span style="color:#ccc">The Insider</span>';
                     }
@@ -362,47 +383,10 @@ abstract class Post extends Resource
                     return static::getPostType() == PostTypes::OPINION;
                 }),
 
-            Image::make(__('Image file'), 'image') 
-                ->hideFromDetail()
-                ->hideFromIndex()
-                ->disk('public')
-                ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
-                ->nullable()
-                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
-                })
-                ->thumbnail(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
-                }),
-
-            Text::make(__('Image description'), 'image_description')
-                ->hideFromDetail()
-                ->hideFromIndex()
-                ->sortable()
-                ->rules('max:255'),
-
-            Heading::make('<h3 style="margin-top: 50px;" class="uppercase tracking-wide font-bold text-s">' . __('Additional') . '</h3>')
-                ->hideFromDetail()
-                ->asHtml(),
-
-            TagField::make(__('Tags'), 'tags', Tag::class)
-                ->hideFromIndex()
-                ->hideFromDetail()
-                ->searchable()
-                ->nullable()
-                ->preload(),
-
-            TagField::make(__('Termins'), 'termins', Termin::class)
-                ->hideFromIndex()
-                ->hideFromDetail()
-                ->searchable()
-                ->nullable()
-                ->preload(),
-
             BelongsTo::make(__('Translation'), 'translation', PostCollection::class)
                 ->hideFromIndex()
                 ->hideFromDetail()
+                ->fullWidth()
                 ->searchable()
                 ->nullable()
                 ->withSubtitles()
@@ -411,40 +395,58 @@ abstract class Post extends Resource
                     $query->where('type', static::getPostType());
                 }),
 
+            TagField::make(__('Tags'), 'tags', Tag::class)
+                ->hideFromIndex()
+                ->hideFromDetail()
+                ->fullWidth()
+                ->searchable()
+                ->nullable()
+                ->preload(),
+
+            TagField::make(__('Termins'), 'termins', Termin::class)
+                ->hideFromIndex()
+                ->hideFromDetail()
+                ->fullWidth()
+                ->searchable()
+                ->nullable()
+                ->preload(),
+
             BelongsTo::make(__('Investigation Theme'), 'investigationtheme', InvestigationTheme::class)
                 ->hideFromIndex()
                 ->hideFromDetail()
+                ->fullWidth()
+                ->searchable()
                 ->nullable(),
-
-            Text::make('Slug', 'slug')
-                ->sortable()
-                ->onlyOnForms()
-                ->rules('max:255'),
-
-            Textarea::make(__('Lead text'), 'lead')
-                ->hideFromDetail()
-                ->rules('nullable', 'max:500'),
 
             Heading::make('<h3 style="margin-top: 50px;" class="uppercase tracking-wide font-bold text-s">SEO</h3>')
                 ->hideFromDetail()
                 ->asHtml(),
+
+            Text::make('Slug (URL)', 'slug')
+                ->onlyOnForms()
+                ->sortable()
+                ->fullWidth()
+                ->rules('max:255'),
             
             Text::make(__('Page title'), 'seo_title')
                 ->hideFromIndex()
                 ->hideFromDetail()
                 ->sortable()
+                ->fullWidth()
                 ->rules('max:255'),
 
             Text::make(__('Page description'), 'seo_description')
                 ->hideFromIndex()
                 ->hideFromDetail()
                 ->sortable()
+                ->fullWidth()
                 ->rules('max:255'),
 
             Text::make(__('Page keywords'), 'seo_keywords')
                 ->hideFromIndex()
                 ->hideFromDetail()
                 ->sortable()
+                ->fullWidth()
                 ->rules('max:255'),
         ];
 

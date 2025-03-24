@@ -192,6 +192,40 @@ return [
                 ],
             ],
         ],
+
+        'toolbar-theins-small' => [
+            'height' => 200,
+            'content-lang' => 'en',
+            'force-paste-as-plain-text' => false,
+            'alert-before-unsaved-changes' => true,
+            'should-not-group-when-full' => false,
+
+            'browser' => [
+                'image' => false,
+                'video' => false,
+                'audio' => false,
+                'file'  => false
+            ],
+
+            'snippets' => [],
+
+            'items' => [
+                'undo',
+                'redo',
+                '|',
+                'bold',
+                'italic',
+                'underline',
+                'strikethrough',
+                'link',
+                '|',
+                'removeFormat',
+                'showBlocks',
+                'sourceEditing',
+            ],
+
+            'options' => [],
+        ],
      
         'toolbar-1' => [
             'height' => 400,

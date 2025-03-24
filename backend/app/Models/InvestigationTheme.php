@@ -10,7 +10,9 @@ use Spatie\EloquentSortable\SortableTrait;
 
 class InvestigationTheme extends Model {
     use HasFactory, SortableTrait;
-    
+
+    public $table = 'investigation_themes';
+
     public $sortable = [
         'order_column_name' => 'position',
         'sort_when_creating' => true,
@@ -43,7 +45,9 @@ class InvestigationTheme extends Model {
 
         static::saving(function ($investigationTheme) {
             if ($investigationTheme->is_main) {
-                static::where('id', '!=', $investigationTheme->id)
+                static
+                    ::where('language_code', $investigationTheme->language_code)
+                    ->where('id', '!=', $investigationTheme->id)
                     ->update(['is_main' => false]);
             }
         });

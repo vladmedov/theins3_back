@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 use Carbon\Carbon;
 
@@ -14,6 +15,8 @@ use \App\Enums\PostTypes;
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
+
+    private $locale;
 
     protected $appends = ['fullname'];
     protected $fillable = [
@@ -71,6 +74,20 @@ class User extends Authenticatable
         });   
     }
 
+    public function __construct($attributes = []) {
+        parent::__construct($attributes);
+        $this->locale = app()->getLocale();
+    }
+
+    public function getLocale() {
+        return $this->locale;
+    }
+
+    public function setLocale($locale) {
+        $this->locale = $locale;
+        return $this;
+    }
+
     /**
      * Проверка роли пользователя.
      */
@@ -98,49 +115,59 @@ class User extends Authenticatable
      * Имя и описание
      */
     public function getFullNameAttribute() {
-        $locale = app()->getLocale();
-        $firstName = $this->{"{$locale}_first_name"};
-        $secondName = $this->{"{$locale}_second_name"};
+        $firstName = $this->{"{$this->locale}_first_name"};
+        $secondName = $this->{"{$this->locale}_second_name"};
         return trim("{$firstName} {$secondName}");
     }
 
     public function getFirstNameAttribute() {
-        $locale = app()->getLocale();
-        return $this->{"{$locale}_first_name"};
+        return $this->{"{$this->locale}_first_name"};
     }
 
     public function getSecondNameAttribute() {
-        $locale = app()->getLocale();
-        return $this->{"{$locale}_second_name"};
+        return $this->{"{$this->locale}_second_name"};
     }
 
     public function getDescriptionAttribute() {
-        $locale = app()->getLocale();
-        return $this->{"{$locale}_description"};
+        return $this->{"{$this->locale}_description"};
+    }
+    
+    public function getAvatarUrlAttribute() {
+        return $this->avatar ? Storage::disk('public')->url($this->avatar) : null;
     }
 
     /**
      * Публикации пользователя
      */
+
     public function posts()
     {    
         return $this->belongsToMany(Post::class, 'post_authors', 'user_id', 'post_id');
     }
 
+    public function opinions($language_code = 'ru') {
+        return $this->hasMany(Post::class, 'columnist_id', 'id')
+            ->where('language_code', $language_code)
+            ->where('type', PostTypes::OPINION);
+    }
+
+    public function notOpinions($language_code = 'ru') {
+        return $this->belongsToMany(Post::class, 'post_authors', 'user_id', 'post_id')
+            ->where('language_code', $language_code)
+            ->whereIn('type', [PostTypes::ARTICLE, PostTypes::NEWS, PostTypes::ONLINE]);
+    }
+
+
     public function articles() {
-        return $this->belongsToMany(Post::class, 'post_authors')
+        return $this->belongsToMany(Post::class, 'post_authors', 'user_id', 'post_id')
             ->where('type', PostTypes::ARTICLE);
     }
 
     public function news() {
-        return $this->belongsToMany(Post::class, 'post_authors')
+        return $this->belongsToMany(Post::class, 'post_authors', 'user_id', 'post_id')
             ->where('type', PostTypes::NEWS);
     }
 
-    public function opinions() {
-        return $this->hasMany(Post::class, 'columnist_id', 'id')
-            ->where('type', PostTypes::OPINION);
-    }
 
     public function postHistories()
     {
@@ -148,7 +175,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Выборка
+     * Рейтинг авторов
      */
     public static function getTopUsersByPeriod($postType, $limit = 10, $days = 30)
     {
@@ -158,17 +185,40 @@ class User extends Authenticatable
         $startDate = Carbon::now()->subDays($days);
         $endDate = Carbon::now();
 
-        return self
-            ::query()
-            //::whereJsonContains('roles', $userRoles)
-            ->withCount(['posts as posts_count' => function ($query) use ($postType, $startDate, $endDate) {
+        $query = self::query();
+        
+        if ($postType === PostTypes::OPINION) {
+            $query->withCount(['opinions as posts_count' => function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('published_at', [$startDate, $endDate]);
+            }]);
+        } else {
+            $query->withCount(['posts as posts_count' => function ($query) use ($postType, $startDate, $endDate) {
                 $query
                     ->where('language_code', app()->getLocale())
                     ->where('type', $postType)
                     ->whereBetween('published_at', [$startDate, $endDate]);
-            }])
+            }]);
+        }
+        
+        return $query
             ->orderByDesc('posts_count')
             ->limit($limit)
             ->get();
+    }
+
+    public static function getColumnistsWithMinPosts($minPosts = 5)
+    {
+        $users = self::query()
+            //->whereJsonContains('roles', UserRoles::COLUMNIST)
+            ->withCount(['opinions as posts_count' => function ($query) {
+                $query->where('language_code', app()->getLocale())
+                      ->where('type', PostTypes::OPINION);
+            }])
+            ->orderByDesc('posts_count')
+            ->get();
+        
+        return $users->filter(function ($user) use ($minPosts) {
+            return $user->posts_count >= $minPosts;
+        })->values();
     }
 }

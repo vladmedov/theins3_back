@@ -91,6 +91,7 @@ class User extends Resource
                 Boolean::make(__('Disable Authentication'), 'is_authentication_disabled')
                     ->onlyOnForms()
                     ->sortable()
+                    ->default(1)
                     ->help(__('If enabled, the user will be unable to log in.')),
         
                 Slug::make(__('Slug'), 'slug')
@@ -101,11 +102,33 @@ class User extends Resource
 
                 Email::make(__('Email'), 'email')
                     ->sortable()
-                    ->rules('nullable', 'email', 'max:255'),
+                    ->dependsOn(
+                        ['is_authentication_disabled'],
+                        function (Email $field, NovaRequest $request, FormData $formData) {
+                            if ($formData->is_authentication_disabled) {
+                                $field->rules('nullable', 'email', 'max:255');
+                                $field->hide();
+                            } else {
+                                $field->rules('required', 'email', 'max:255');
+                                $field->show();
+                            }
+                        }
+                    ),
             
                 Password::make(__('Password'), 'password')
                     ->onlyOnForms()
-                    ->rules('nullable', 'min:8'),
+                    ->dependsOn(
+                        ['is_authentication_disabled'],
+                        function (Password $field, NovaRequest $request, FormData $formData) {
+                            if ($formData->is_authentication_disabled) {
+                                $field->rules('nullable', 'min:8');
+                                $field->hide();
+                            } else {
+                                $field->rules('required', 'min:8');
+                                $field->show();
+                            }
+                        }
+                    ),
 
                 MultiSelect::make(__('Roles'), 'roles')
                     ->options(UserRoles::all())

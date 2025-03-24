@@ -1,0 +1,175 @@
+/* ЦВЕТ ГРАФИКА В СТАТИСТИКЕ */
+
+.ct-chart > svg {
+    filter: brightness(0) saturate(100%) invert(28%) sepia(80%) saturate(5766%) hue-rotate(346deg) brightness(92%) contrast(99%);
+}
+
+/* СТИЛИ РЕДАКТОРА */
+
+.ck-content h2 {
+    color: #000;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.ck-content h3 {
+    color: #000;
+    font-size: 26px;
+    font-weight: bold;
+}
+
+.ck-content h4 {
+    color: #000;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.ck-content h5 {
+    color: #000;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.ck-content p {
+    color: #333 !important;
+}
+
+.ck-heading_heading5 {
+    color: #000;
+    font-size: 26px;
+    font-weight: bold;
+}
+
+.ck-content blockquote {
+    color: #000;
+    border-left: 5px solid #e54839 !important;
+}
+
+.ck-content p {
+    color: #666;
+}
+
+.ck-content a, .ck-link_selected {
+    color: rgb(68, 68, 236);
+    text-decoration: underline;
+}
+
+/* КНОПКА СОХРАНЕНИЯ СУЩНОСТИ */
+
+form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 {
+    position: fixed;
+    bottom: 20px;
+    left: 260px;
+    width: calc(100% - 280px);
+    background: rgba(180, 180, 180, 0.2);
+    padding: 10px 20px;
+    border-top: 3px solid #e54839; 
+    border: 3px solid #e54839;
+    z-index: 1000;
+    box-shadow: none;
+}
+
+form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 button:nth-child(1),
+form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 button:nth-child(2) {
+    display: none;
+}
+
+form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 button:nth-child(3) {
+    display: inline-block;
+}
+
+form {
+    padding-bottom: 80px;
+}
+
+/* СТИЛЬ МЕНЮ */
+
+body {
+    background-color: #1a1a1a !important;
+}
+
+div[id="app"] > div[id="nova"] > div > header {
+    background-color: #1a1a1a !important;
+}
+
+div[id="app"] > div[id="nova"] > div > header > div.hidden {
+    height: 100%;
+    background-color: #1a1a1a !important;
+    border-bottom: 1px solid #2b2b2b !important; /* d6d6d6 */
+}
+
+div[id="app"] > div[id="nova"] > div > header > div:last-child {
+    height: 100%;
+    background-color: #fff !important;
+    border-bottom: 1px solid #d6d6d6; /* d6d6d6 */
+}
+
+div[id="app"] > div[id="nova"] > div > header span {
+    color: #000;
+}
+
+div[id="app"] {
+    background-color: #1a1a1a;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] {
+    background-color: #1a1a1a;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div:last-child {
+    background-color: #f4f4f4;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child {
+    background-color: #1a1a1a;
+    padding: 0px;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div {
+    padding: 15px 0;
+    margin: 0px;
+    border-bottom: 1px solid #2b2b2b;
+    border-right: 1px solid #2b2b2b;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4 > span {
+    color: #fff;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4 > span:last-child {
+    filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(100%) hue-rotate(346deg) brightness(100%) contrast(100%);
+    padding-right: 20px;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4:hover {
+    background-color: #1a1a1a;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > div > div > a {
+    color: #fff;
+    padding: 10px 0;
+    padding-left: 20px;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > div > div > a:hover {
+    color: #fff;
+    background-color: #222;
+    padding: 10px 0;
+    padding-left: 20px;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > a {
+    color: #fff;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > a:hover {
+    color: #fff;
+    background-color: #222;
+}
+
+.nova_view_post_title {
+    max-width: 650px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+}

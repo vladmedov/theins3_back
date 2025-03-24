@@ -48,7 +48,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                 MenuGroup::make(__('Analytics'), [
                     MenuItem::dashboard(\App\Nova\Dashboards\ContentDashboard::class),
                     MenuItem::link(__('News calendar'), '/news-calendar'),
-                ])->collapsable(),//->icon('chart-pie'),
+                ])->collapsable(),
 
                 MenuGroup::make(__('Posts'), [
                     MenuItem::resource(\App\Nova\_Posts\PostArticle::class),
@@ -56,7 +56,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                     MenuItem::resource(\App\Nova\_Posts\PostOpinion::class),
                     MenuItem::resource(\App\Nova\_Posts\PostOnline::class),
                     MenuItem::resource(\App\Nova\_Posts\OnlineMessage::class),
-                ])->collapsable(),//->icon('pencil'),
+                ])->collapsable(),
 
                 MenuGroup::make(__('Main page'), [
                     MenuItem::resource(\App\Nova\_Collections\CollectionFeature::class),
@@ -69,7 +69,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                     MenuItem::resource(\App\Nova\_Taxonomy\InvestigationTheme::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Tag::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Termin::class),
-                ])->collapsable()->collapsedByDefault(),//->icon('tag'),
+                ])->collapsable(),
 
                 MenuGroup::make(__('Users'), [
                     MenuItem::resource(\App\Nova\_Users\User::class),
@@ -78,7 +78,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                     MenuItem::resource(\App\Nova\_Users\UserAuthor::class),
                     MenuItem::resource(\App\Nova\_Users\UserNewsWriter::class),
                     MenuItem::resource(\App\Nova\_Users\UserColumnist::class),
-                ])->collapsable()->collapsedByDefault(),//->icon('cog-6-tooth'),
+                ])->collapsable(),
 
             ];
 

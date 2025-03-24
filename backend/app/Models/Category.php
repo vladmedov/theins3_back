@@ -11,7 +11,12 @@ use Spatie\EloquentSortable\SortableTrait;
 use App\Enums\PostTypes;
 
 class Category extends Model {
+
     use HasFactory, SortableTrait;
+
+    const CATEGORY_ID_CONFESSION = 16;
+
+    public $table = 'categories';
 
     public $sortable = [
       'order_column_name' => 'position',
@@ -24,13 +29,13 @@ class Category extends Model {
         'slug',
         'title',
         'position',
-        'is_hidden',
+        'is_show_in_menu',
         'widgets',
     ];
 
     protected $casts = [
         'type' => 'string', 
-        'is_hidden' => 'boolean',
+        'is_show_in_menu' => 'boolean',
         'widgets' => 'array',
     ];
 

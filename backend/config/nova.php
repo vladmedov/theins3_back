@@ -167,7 +167,7 @@ return [
     */
 
     'brand' => [
-        'logo' => resource_path('/logo-black.svg'), 
+        'logo' => resource_path('img/logo.svg'), 
 
         'colors' => [
             "400" => "0, 0, 0, 0.8",

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Storage;
 
 use Carbon\Carbon;
 
@@ -20,7 +21,6 @@ use App\Services\ChangeDetectorService;
 use App\Services\ImageService;
 
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 // use Spatie\MediaLibrary\HasMedia;
 // use Spatie\MediaLibrary\InteractsWithMedia;
@@ -30,11 +30,16 @@ class Post extends Model { //implements HasMedia {
 
     //use InteractsWithMedia;
 
-    protected $table = 'posts';
+    const STATUS_PUBLISHED = 'published';
+    const STATUS_DRAFT = 'draft';
+
+    public $table = 'posts';
 
     public static $title = 'title';
 
     public static $search = ['title', 'slug', 'author_name']; 
+
+    public $with = ['category', 'authors', 'columnist'];
 
     protected $fillable = [
         'language_code',
@@ -56,6 +61,7 @@ class Post extends Model { //implements HasMedia {
         'image',
         'image_description',
         'title_feature',
+        'is_super_news',
     ];
 
     protected $casts = [
@@ -121,11 +127,6 @@ class Post extends Model { //implements HasMedia {
                 $updated = true;
             }
         
-            if (empty($post->seo_description) && !empty($post->lead)) {
-                $post->seo_description = $post->lead;
-                $updated = true;
-            }
-        
             if ($updated) {
                 $post->saveQuietly();
             }
@@ -181,6 +182,10 @@ class Post extends Model { //implements HasMedia {
             return null;
         }
     } 
+
+    public function getImageUrlAttribute() {
+        return $this->image ? Storage::disk('public')->url($this->image) : null;
+    }
 
     // Проверка доступа
 

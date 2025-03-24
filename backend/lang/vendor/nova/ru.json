@@ -75,7 +75,7 @@
   "News writers": "Новостники",
   "Columnists": "Колумнисты",
 
-  "Update :resource: :title": "РЕДАКТИРОВАНИЕ | :resource: :title",
+  "Update :resource: :title": "[РЕДАКТИРОВАНИЕ] :title (:resource)", 
   "Create :resource": "Создать: :resource",
   "Publication settings": "Настройки публикации",
   "Status": "Статус",
