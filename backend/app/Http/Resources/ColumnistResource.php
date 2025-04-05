@@ -45,7 +45,7 @@ class ColumnistResource extends JsonResource
     private function getPath()
     {
         return ''
-            . ($this->getLocale() === 'ru' ? 'columnists/' : "{$this->language_code}/columnists/")
+            . ($this->language_code === 'ru' ? 'columnists/' : "{$this->language_code}/columnists/")
             . "{$this->slug}";
     }
 }

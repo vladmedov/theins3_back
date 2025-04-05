@@ -16,16 +16,19 @@ class PostArticlePolicy
 {
     use HandlesAuthorization;
 
+    public function viewAny(User $user)
+    {
+        return true;
+    }
+
     public function create(User $user)
     {
-        return $user->canViewAll()
-            || PostArticle::checkAccessByRoles($user->roles);
+        return true;
     }
 
     public function update(User $user, PostArticle $post)
     {
-        $hasAccess = $user->canViewAll() 
-            || ($post->isOwner($user->id) && PostArticle::checkAccessByRoles($user->roles));
+        $hasAccess = $user->isAdmin() || $user->isEditor() || $post->isOwner($user->id);
         
         return Nova::whenServing(
             fn(NovaRequest $request) => $post->type === PostTypes::ARTICLE && $hasAccess,
@@ -35,9 +38,7 @@ class PostArticlePolicy
 
     public function delete(User $user, PostArticle $post)
     {
-        $hasAccess = $user->canDeleteAll()
-            || ($post->isOwner($user->id) && PostArticle::checkAccessByRoles($user->roles))
-            || ($post->isOwner($user->id) && $user->canViewAll());
+        $hasAccess = $user->isAdmin() || $post->isOwner($user->id);
             
         return Nova::whenServing(
             fn(NovaRequest $request) => $post->type === PostTypes::ARTICLE && $hasAccess,
@@ -50,14 +51,9 @@ class PostArticlePolicy
         return false;
     }
 
-    public function viewAny(User $user)
-    {
-        return $user->canViewAll() || PostArticle::checkAccessByRoles($user->roles);
-    }
-
     public function view(User $user, PostArticle $post)
     {
-        $hasAccess = $user->canViewAll() || PostArticle::checkAccessByRoles($user->roles);
+        $hasAccess = $user->isAdmin() || $user->isEditor() || $post->isOwner($user->id);
         
         return Nova::whenServing(
             fn(NovaRequest $request) => $post->type === PostTypes::ARTICLE && $hasAccess,

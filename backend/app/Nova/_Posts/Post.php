@@ -65,11 +65,11 @@ use App\Enums\CategoryTypes;
 use App\Nova\_Collections\PostCollection;
 use App\Nova\_Users\User;
 use App\Nova\_Users\UserAuthor;
-use App\Nova\_Users\UserColumnist;
 use App\Nova\_Taxonomy\Category;
 use App\Nova\_Taxonomy\InvestigationTheme;
 use App\Nova\_Taxonomy\Tag;
 use App\Nova\_Taxonomy\Termin;
+use App\Nova\_Taxonomy\Author;
 
 use App\Nova\Metrics\PostsPerDay;
 
@@ -194,19 +194,21 @@ abstract class Post extends Resource
                         }),
 
                     static::getPostType() == PostTypes::OPINION
-                        ? BelongsTo::make(__('Columnist'), 'columnist', UserColumnist::class)
+                        ? BelongsTo::make(__('Columnist'), 'columnist', Author::class)
                             ->hideFromDetail()
                             ->searchable()
                             ->withSubtitles()
-                            ->default($request->user()->getKey())
-                            ->immutable(function ($request) {
-                                return !$request->user()->canViewAll();
-                            })
+                            //->default($request->user()->getKey())
+                            // ->immutable(function ($request) {
+                            //     return !$request->user()->canViewAll();
+                            // })
                         : EntityMultiselect::make(__('Authors'), 'authors')
                             ->onlyOnForms()
-                            ->belongsToMany(User::class, false)
+                            ->belongsToMany(Author::class, false)
+                            ->options(\App\Models\Author::getAuthorsByPostType(app()->getLocale(), [$this->type]))
                             ->reorderable()
-                            ->default(auth()->user())
+                            ->optionsLimit(5)
+                            //->default(auth()->user())
                             ->when($this->exists, function($field) {
                                 return $field->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
                                     $authors = $request->{$requestAttribute};
@@ -513,11 +515,13 @@ abstract class Post extends Resource
             $query->where('language_code', app()->getLocale());
             $query->where('type', static::getPostType());
 
-            if (!$request->user()->canViewAll()) {
+            if (!$request->user()->isAdmin() && !$request->user()->isEditor()) {
                 $query->whereHas('owners', function($q) {
                     $q->where('user_id', auth()->user()->id);
                 });
             }
+
+            //$query->orderBy('id', 'desc');
 
             return $query;
         }

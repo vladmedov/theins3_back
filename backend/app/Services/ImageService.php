@@ -16,7 +16,7 @@ class ImageService
     public const SIZE_SMALL = 'small';
     public const SIZE_MEDIUM = 'medium';
     public const SIZE_ORIGINAL = 'original';
-    
+    public const SIZE_CROPPED = 'cropped';
     private const WIDTH_SMALL = 768;
     private const WIDTH_MEDIUM = 1536;
 

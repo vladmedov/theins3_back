@@ -11,37 +11,32 @@ class PostPolicy
 {
     use HandlesAuthorization;
 
+    public function viewAny(User $user)
+    {
+        return false;
+    }
+
     public function create(User $user)
     {
-        return $user->canViewAll()
-            || PostArticle::checkAccessByRoles($user->roles);
+        return true;
+    }
+
+    public function view()
+    {
+        return false;
     }
 
     public function update(User $user, PostArticle $post)
     {
-        return $user->canViewAll() 
-            || ($post->isOwner($user->id) && PostArticle::checkAccessByRoles($user->roles));
+        return $user->isAdmin() || $user->isEditor() || $post->isOwner($user->id);
     }
 
     public function delete(User $user, PostArticle $post)
     {
-        return $user->canDeleteAll()
-            || ($post->isOwner($user->id) && PostArticle::checkAccessByRoles($user->roles))
-            || ($post->isOwner($user->id) && $user->canViewAll());
+        return $user->isAdmin() || $post->isOwner($user->id);
     }
 
     public function restore()
-    {
-        return false;
-    }
-
-    public function viewAny(User $user)
-    {
-        return false;
-        return $user->canViewAll() || PostArticle::checkAccessByRoles($user->roles);
-    }
-
-    public function view()
     {
         return false;
     }

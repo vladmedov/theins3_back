@@ -15,7 +15,7 @@ class InvestigationThemeController extends Controller
         return InvestigationThemeResource::collection($investigationThemes);
     }
 
-    public function getInvestigationTheme($slug, $language_code = 'ru')
+    public function getInvestigationTheme($language_code, $slug)
     {
         $investigationTheme = InvestigationTheme
             ::with(['posts' => function($query) {

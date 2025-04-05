@@ -21,7 +21,7 @@ class TopUsersCard extends Card
             PostTypes::ONLINE => __('Top Online Writers (Last 30 Days)'),
         };
 
-        $topNewsWriters = User::getTopUsersByPeriod($postType, 10, 30);
+        $topNewsWriters = [];//User::getTopUsersByPeriod($postType, 10, 30);
 
         $this->withMeta([
             'topNewsWriters' => $topNewsWriters,

@@ -41,11 +41,11 @@ class PostResource extends JsonResource
             'is_super_news' => $this->is_super_news,
         ]
         + ($this->shouldShowColumnist() ? $this->whenLoaded('columnist', function () use ($request, $language_code) {
-            return ['columnist' => (new ColumnistResource($this->columnist->setLocale($language_code)))->toArray($request)];
+            return ['columnist' => (new ColumnistResource($this->columnist))->toArray($request)];
         }, []) : [])
         + ($this->shouldShowAuthors() ? $this->whenLoaded('authors', function () use ($request) {
             return ['authors' => (AuthorResource::collection(
-                $this->authors //->filter(fn($author) => !$author->hide_author_name_in_all_news || $this->author_visibility === 'force_shown')
+                $this->authors->filter(fn($author) => !in_array($this->type, $author->post_types_with_hidden_author_name) || $this->author_visibility === 'force_shown')
             ))->toArray($request)];
         }, []) : [])
         + ($this->inList ? [] : [
@@ -73,6 +73,10 @@ class PostResource extends JsonResource
 
     private function shouldShowColumnist(): bool
     {
+        if ($this->columnist === null) { // TODO: check
+            return false;
+        }
+
         if ($this->type !== PostTypes::OPINION) {
             return false;
         }
@@ -81,7 +85,7 @@ class PostResource extends JsonResource
             return false;
         }
 
-        if ($this->columnist->hide_author_name_in_all_news && $this->author_visibility !== 'force_shown') {
+        if (in_array($this->type, $this->columnist->post_types_with_hidden_author_name) && $this->author_visibility !== 'force_shown') {
             return false;
         }
 

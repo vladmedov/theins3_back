@@ -18,7 +18,7 @@ class PostAuthor extends Pivot //implements Sortable
 
     protected $fillable = [
         'post_id',
-        'user_id',
+        'author_id',
         'position',
     ];
 
@@ -32,7 +32,7 @@ class PostAuthor extends Pivot //implements Sortable
     }
 
     public function author() {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(Author::class, 'author_id');
     }
 
     // public function buildSortQuery()

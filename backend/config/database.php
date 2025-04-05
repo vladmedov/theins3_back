@@ -97,6 +97,21 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'legacy_pgsql' => [
+            'driver' => 'pgsql',
+            'url' => env('DB_URL'),
+            'host' => 'legacy_db',
+            'port' => env('DB_PORT', '5433'),
+            'database' => 'theins_legacy',
+            'username' => env('DB_USERNAME', 'theins'),
+            'password' => env('DB_PASSWORD', 'ith4837wiuesq93r8wgfiub'),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

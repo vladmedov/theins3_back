@@ -4,7 +4,7 @@ namespace App\Nova\Filters;
 
 use Illuminate\Http\Request;
 use Laravel\Nova\Filters\Filter;
-use App\Models\User;
+use App\Models\Author;
 
 class AuthorFilter extends Filter
 {
@@ -19,10 +19,11 @@ class AuthorFilter extends Filter
 
     public function options(Request $request)
     {
-        return User::select('id', 'ru_first_name', 'ru_second_name')
+        return Author::select('id', 'first_name', 'last_name')
+            ->where('language_code', app()->getLocale())
             ->get()
-            ->mapWithKeys(function ($user) {
-                return [$user->ru_first_name . ' ' . $user->ru_second_name => $user->id];
+            ->mapWithKeys(function ($author) {
+                return [$author->first_name . ' ' . $author->last_name => $author->id];
             })
             ->toArray();
     }

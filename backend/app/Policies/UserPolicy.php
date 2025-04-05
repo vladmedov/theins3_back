@@ -11,34 +11,32 @@ class UserPolicy
 {
     use HandlesAuthorization;
 
-    public function create(User $user)
+    public function viewAny(User $user)
     {
-        return $user->canDeleteAll();
+        return $user->isAdmin();
     }
 
-    public function update(User $user)
-    {
-        //return true;
-        return $user->canDeleteAll();
-    }
-
-    public function delete(User $user)
-    {
-        return $user->canDeleteAll();
-    }
-
-    public function restore()
+    public function view()
     {
         return false;
     }
 
-    public function viewAny(User $user)
+    public function create(User $user)
     {
-        //return true;
-        return $user->canDeleteAll();
+        return $user->isAdmin();
     }
 
-    public function view()
+    public function update(User $user)
+    {
+        return $user->isAdmin();
+    }
+
+    public function delete(User $user)
+    {
+        return $user->isAdmin();
+    }
+
+    public function restore()
     {
         return false;
     }

@@ -16,16 +16,29 @@ class PostNewsPolicy
 {
     use HandlesAuthorization;
 
+    public function viewAny(User $user)
+    {
+        return true;
+    }
+
     public function create(User $user)
     {
-        return $user->canViewAll()
-            || PostNews::checkAccessByRoles($user->roles);
+        return true;
+    }
+
+    public function view(User $user, PostNews $post)
+    {
+        $hasAccess = $user->isAdmin() || $user->isEditor() || $post->isOwner($user->id);
+        
+        return Nova::whenServing(
+            fn(NovaRequest $request) => $post->type === PostTypes::NEWS && $hasAccess,
+            fn(Request $request) => $hasAccess
+        );
     }
 
     public function update(User $user, PostNews $post)
     {
-        $hasAccess = $user->canViewAll() 
-            || ($post->isOwner($user->id) && PostNews::checkAccessByRoles($user->roles));
+        $hasAccess = $user->isAdmin() || $user->isEditor() || $post->isOwner($user->id);
             
         return Nova::whenServing(
             fn(NovaRequest $request) => $post->type === PostTypes::NEWS && $hasAccess,
@@ -35,9 +48,7 @@ class PostNewsPolicy
 
     public function delete(User $user, PostNews $post)
     {
-        $hasAccess = $user->canDeleteAll()
-            || ($post->isOwner($user->id) && PostNews::checkAccessByRoles($user->roles))
-            || ($post->isOwner($user->id) && $user->canViewAll());
+        $hasAccess = $user->isAdmin() || $post->isOwner($user->id);
             
         return Nova::whenServing(
             fn(NovaRequest $request) => $post->type === PostTypes::NEWS && $hasAccess,
@@ -48,21 +59,6 @@ class PostNewsPolicy
     public function restore()
     {
         return false;
-    }
-
-    public function viewAny(User $user)
-    {
-        return $user->canViewAll() || PostNews::checkAccessByRoles($user->roles);
-    }
-
-    public function view(User $user, PostNews $post)
-    {
-        $hasAccess = $user->canViewAll() || PostNews::checkAccessByRoles($user->roles);
-        
-        return Nova::whenServing(
-            fn(NovaRequest $request) => $post->type === PostTypes::NEWS && $hasAccess,
-            fn(Request $request) => $hasAccess
-        );
     }
 
     public function replicate()

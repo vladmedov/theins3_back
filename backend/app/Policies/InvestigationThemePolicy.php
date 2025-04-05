@@ -13,17 +13,17 @@ class InvestigationThemePolicy
 
     public function create(User $user)
     {
-        return $user->canViewAll() || $user->hasRole(UserRoles::AUTHOR);
+        return $user->isAdmin() || $user->isEditor();
     }
 
     public function update(User $user)
     {
-        return $user->canViewAll() || $user->hasRole(UserRoles::AUTHOR);
+        return $user->isAdmin() || $user->isEditor();
     }
 
     public function delete(User $user)
     {
-        return $user->canDeleteAll();
+        return $user->isAdmin();
     }
 
     public function restore()
@@ -33,7 +33,7 @@ class InvestigationThemePolicy
 
     public function viewAny(User $user)
     {
-        return $user->canViewAll() || $user->hasRole(UserRoles::AUTHOR);
+        return $user->isAdmin() || $user->isEditor();
     }
 
     public function view()

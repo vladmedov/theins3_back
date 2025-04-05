@@ -3,9 +3,8 @@
 namespace App\Traits;
 
 use App\Models\Post;
+use App\Models\Author;
 use App\Enums\PostTypes;
-use App\Models\User;
-use App\Enums\UserRoles;
 use App\Http\Resources\PostResource;
 use App\Http\Resources\ColumnistResource;
 
@@ -32,7 +31,7 @@ trait HasWidgets
                 'type' => 'columnists_list',
                 'attributes' => [
                     'title' => 'Колумнисты',
-                    'users' => ColumnistResource::collection(User::whereJsonContains('roles', UserRoles::COLUMNIST)->limit(2)->get())
+                    'users' => ColumnistResource::collection(Author::whereJsonContains('allowed_post_types', [PostTypes::OPINION])->limit(2)->get())
                 ],
             ],
             [

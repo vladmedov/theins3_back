@@ -40,6 +40,16 @@ use App\Nova\_Posts\PostOnline;
 use App\Services\ImageService;
 use Illuminate\Support\Facades\Storage;
 
+// use Ultrasimplified\ImageCropper\ImageCropper;
+
+// use Marshmallow\AdvancedImage\AdvancedImage;
+
+// use Slim\Image\Image;
+
+use Laravel\Nova\Fields\Image;
+
+use DigitalCreative\Filepond\Filepond;
+
 //use Outl1ne\NovaSortable\Traits\HasSortableManyToManyRows;
 
 class User extends Resource
@@ -53,8 +63,8 @@ class User extends Resource
 
     public static $model = \App\Models\User::class;
 
-    public static $title = 'full_name';
-    public static $search = ['id', 'email', 'slug', 'ru_first_name', 'en_first_name', 'ru_second_name', 'en_second_name'];
+    public static $title = 'name';
+    public static $search = ['id', 'email', 'slug', 'name'];
 
     public static $clickAction = 'edit';
     
@@ -75,174 +85,76 @@ class User extends Resource
                 ->prunable()
                 ->exceptOnForms(),
 
-            Badge::make(__('Disable Authentication'), 'is_authentication_disabled')->map([
-                1 => 'danger',
-                0 => 'success',
-            ])->label(function ($value) {
-                if ($value) {
-                    return __('No access');
-                } else {
-                    return __('Has access');
-                }
-            })
-            ->sortable(),
+            Text::make(__('Name (RU)'), 'name')
+                ->rules('required', 'max:255'),
 
-            Panel::make(__('Main Information'), [
-                Boolean::make(__('Disable Authentication'), 'is_authentication_disabled')
-                    ->onlyOnForms()
-                    ->sortable()
-                    ->default(1)
-                    ->help(__('If enabled, the user will be unable to log in.')),
+            Email::make(__('Email'), 'email')
+                ->sortable(),
         
-                Slug::make(__('Slug'), 'slug')
-                    ->onlyOnForms()
-                    ->from('ru_second_name')
-                    ->sortable()
-                    ->rules('required', 'max:255'),
+            Password::make(__('Password'), 'password')
+                ->onlyOnForms(),
 
-                Email::make(__('Email'), 'email')
-                    ->sortable()
-                    ->dependsOn(
-                        ['is_authentication_disabled'],
-                        function (Email $field, NovaRequest $request, FormData $formData) {
-                            if ($formData->is_authentication_disabled) {
-                                $field->rules('nullable', 'email', 'max:255');
-                                $field->hide();
-                            } else {
-                                $field->rules('required', 'email', 'max:255');
-                                $field->show();
-                            }
+            Select::make(__('Role'), 'role_code')
+                ->options(UserRoles::all())
+                ->rules('required'),
+
+            BooleanGroup::make(__('Available languages'), 'available_languages')
+                ->onlyOnForms()
+                ->options([
+                    'ru' => __('Russian'),
+                    'en' => __('English')   
+                ])
+                ->rules('required', function($attribute, $value, $fail) {
+                    $decodedValue = json_decode($value, true);
+                    if (!is_array($decodedValue) || !array_filter($decodedValue)) {
+                        $fail(__('Choose at least one language.'));
+                    }
+                })
+                ->help(__('Choose at least one language.')),
+
+            Avatar::make(__('Photo'), 'avatar')
+                ->disk('public')
+                ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120')
+                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL))
+                ->preview(function ($value, $disk) {
+                    return $value ? Storage::disk($disk)->url($value) : null;
+                })
+                ->thumbnail(function ($value, $disk) {
+                    return $value ? Storage::disk($disk)->url($value) : null;
+                })
+                ->prunable()
+                ->onlyOnForms(),
+
+            Select::make(__('Timezone'), 'timezone')
+                ->options(function () {
+                    $allTimezones = timezone_identifiers_list();
+                    $timezones = array_combine($allTimezones, $allTimezones);
+                    
+                    $priorityTimezones = [
+                        'Europe/Moscow' => 'Europe/Moscow (MSK)',
+                        'Europe/Warsaw' => 'Europe/Warsaw (CET)',
+                        'Europe/Riga' => 'Europe/Riga (EEST)',
+                        'UTC' => 'UTC'
+                    ];
+                    
+                    foreach (array_keys($priorityTimezones) as $tz) {
+                        if (isset($timezones[$tz])) {
+                            unset($timezones[$tz]);
                         }
-                    ),
-            
-                Password::make(__('Password'), 'password')
-                    ->onlyOnForms()
-                    ->dependsOn(
-                        ['is_authentication_disabled'],
-                        function (Password $field, NovaRequest $request, FormData $formData) {
-                            if ($formData->is_authentication_disabled) {
-                                $field->rules('nullable', 'min:8');
-                                $field->hide();
-                            } else {
-                                $field->rules('required', 'min:8');
-                                $field->show();
-                            }
-                        }
-                    ),
-
-                MultiSelect::make(__('Roles'), 'roles')
-                    ->options(UserRoles::all())
-                    ->rules('required'),
-
-                BooleanGroup::make(__('Available languages'), 'available_languages')
-                    ->onlyOnForms()
-                    ->options([
-                        'ru' => __('Russian'),
-                        'en' => __('English')   
-                    ])
-                    ->rules('required', function($attribute, $value, $fail) {
-                        $decodedValue = json_decode($value, true);
-                        if (!is_array($decodedValue) || !array_filter($decodedValue)) {
-                            $fail(__('Choose at least one language.'));
-                        }
-                    })
-                    ->help(__('Choose at least one language.')),
-            ]),
-        
-            Panel::make(__('User Information'), [
-                Text::make(__('First name (RU)'), 'ru_first_name')
-                    ->onlyOnForms()
-                    ->rules('required', 'max:255'),
+                    }
                     
-                Text::make(__('Last name (RU)'), 'ru_second_name')
-                    ->onlyOnForms()
-                    ->rules('required', 'max:255'),
-
-                Text::make(__('First name (EN)'), 'en_first_name')
-                    ->onlyOnForms()
-                    ->rules('required', 'max:255'),
-
-                Text::make(__('Last name (EN)'), 'en_second_name')
-                    ->onlyOnForms()
-                    ->rules('required', 'max:255'),
-                    
-                Textarea::make(__('Description (RU)'), 'ru_description')
-                    ->onlyOnForms(),
-                    
-                Textarea::make(__('Description (EN)'), 'en_description')
-                    ->onlyOnForms(),
-
-                Avatar::make(__('Photo'), 'avatar')
-                    ->disk('public')
-                    ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120')
-                    ->path(ImageService::getImagePath($this->id, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL))
-                    ->preview(function ($value, $disk) {
-                        return $value ? Storage::disk($disk)->url($value) : null;
-                    })
-                    ->thumbnail(function ($value, $disk) {
-                        return $value ? Storage::disk($disk)->url($value) : null;
-                    })
-                    ->prunable()
-                    ->onlyOnForms(),
-
-                Text::make(__('Job position'), 'position')
-                    ->onlyOnForms()
-                    ->rules('nullable', 'max:255'),
-                    
-                Text::make('Twitter', 'twitter')
-                    ->onlyOnForms()
-                    ->rules('nullable', 'max:255'),
-                    
-                Text::make('Facebook', 'facebook')
-                    ->onlyOnForms()
-                    ->rules('nullable', 'max:255'),
-            ]),
-
-            Text::make(__('Full name'), 'full_name')
-                ->sortable()
-                ->exceptOnForms(),
-
-            Panel::make(__('Display Settings'), [
-                Boolean::make(__('Hide author name in all news'), 'hide_author_name_in_all_news')
-                    ->onlyOnForms()
-                    ->sortable(),
-
-                Boolean::make(__('Hide author page'), 'hide_author_page')
-                    ->onlyOnForms()
-                    ->sortable()
-                    ->help(__('Does not affect users who have only the columnist role.')),
-
-                Boolean::make(__('Hide columnist page'), 'hide_columnist_page')
-                    ->onlyOnForms()
-                    ->sortable()
-                    ->help(__('Does not affect users who do not have the columnist role.')),
-            ]),
-
-            Text::make($this->getPostsCountTitle(), function () {
-                return $this->getPostsCount();
-            }),
-
-           
+                    return $priorityTimezones + $timezones;
+                })
+                ->searchable()
+                ->rules('required')
+                ->default('Europe/Moscow')
+                ->help(__('Select your local timezone')),   
 
             DateTimeSplit::make(__('Created'), 'created_at')->onlyOnDetail(),
             DateTimeSplit::make(__('Updated'), 'updated_at')->onlyOnDetail(),
                 
-        ], array_filter([
-            array_intersect([UserRoles::ADMIN, UserRoles::EDITOR, UserRoles::AUTHOR], $request->user()->roles) 
-                ? BelongsToMany::make(__('Articles'), 'articles', PostArticle::class)
-                    ->showCreateRelationButton()->searchable()->relatableQueryUsing(function ($request, $query) {
-                        $query->where('title', 'like', "%{$request->search}%");
-                    })
-                : null,
-        
-            array_intersect([UserRoles::ADMIN, UserRoles::EDITOR, UserRoles::NEWS_WRITER], $request->user()->roles) 
-                ? HasMany::make(__('News'), 'news', PostNews::class) 
-                : null,
-        
-            array_intersect([UserRoles::ADMIN, UserRoles::EDITOR, UserRoles::COLUMNIST], $request->user()->roles) 
-                ? HasMany::make(__('Opinions'), 'opinions', PostOpinion::class) 
-                : null,
-        ]));
+        ]
+       );
         
     }
 
@@ -259,14 +171,14 @@ class User extends Resource
     public static function indexQuery(NovaRequest $request, Builder $query): Builder
     {
         if (static::getUserRole()) {
-            $query->whereJsonContains('roles', static::getUserRole());
+            $query->where('role_code', static::getUserRole());
         }
 
         return $query;
     }
 
     public function subtitle() {
-        return trim("{$this->ru_first_name} {$this->ru_second_name} ({$this->en_first_name} {$this->en_second_name})");
+        return trim("{$this->name} ({$this->email})");
     }
 
     public static function label() {

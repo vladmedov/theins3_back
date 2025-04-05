@@ -1,4 +1,4 @@
-FROM php:8.2-fpm
+FROM php:8.3-fpm
 
 # Устанавливаем необходимые зависимости
 RUN apt-get update && apt-get install -y \
@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_pgsql zip exif \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd \
+    && pecl config-set preferred_state beta \
     && pecl install imagick \
     && docker-php-ext-enable imagick
 
@@ -23,8 +24,8 @@ RUN { \
         echo 'upload_max_filesize = 50M'; \
         echo 'post_max_size = 55M'; \
         echo 'memory_limit = 256M'; \
-        echo 'max_execution_time = 300'; \
-        echo 'max_input_time = 300'; \
+        echo 'max_execution_time = 36000'; \
+        echo 'max_input_time = 36000'; \
     } > /usr/local/etc/php/conf.d/uploads.ini
 
 # Устанавливаем Composer

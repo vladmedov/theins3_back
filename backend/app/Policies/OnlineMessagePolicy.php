@@ -13,21 +13,17 @@ class OnlineMessagePolicy
 
     public function create(User $user)
     {
-        return $user->canViewAll()
-            || PostOnline::checkAccessByRoles($user->roles);
+        return true;
     }
 
     public function update(User $user, OnlineMessage $onlineMessage)
     {
-        return $user->canViewAll() 
-            || ($post->isOwner($user->id) && PostOnline::checkAccessByRoles($user->roles));
+        return true;
     }
 
     public function delete(User $user, OnlineMessage $onlineMessage)
     {
-        return $user->canDeleteAll()
-            || ($post->isOwner($user->id) && PostOnline::checkAccessByRoles($user->roles))
-            || ($post->isOwner($user->id) && $user->canViewAll());
+        return true;
     }
 
     public function restore()
@@ -37,7 +33,7 @@ class OnlineMessagePolicy
 
     public function viewAny(User $user)
     {
-        return $user->canViewAll() || PostOnline::checkAccessByRoles($user->roles);
+        return true;
     }
 
     public function view()

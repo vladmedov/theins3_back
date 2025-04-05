@@ -10,9 +10,10 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "doctrine/dbal": "^4.2",
         "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1",
         "laravel/nova": "^5.0",
+        "laravel/tinker": "^2.10.1",
         "medov/custom-flexible-menu": "@dev",
         "medov/date-time-split": "@dev",
         "medov/image-gallery": "@dev",

@@ -42,6 +42,7 @@ class Post extends Model { //implements HasMedia {
     public $with = ['category', 'authors', 'columnist'];
 
     protected $fillable = [
+        'id', // TODO: remove
         'language_code',
         'category_id',
         'translation_id',
@@ -184,7 +185,8 @@ class Post extends Model { //implements HasMedia {
     } 
 
     public function getImageUrlAttribute() {
-        return $this->image ? Storage::disk('public')->url($this->image) : null;
+        return $this->image ? 'https://insidertexts.com/storage/post/' . $this->id . '/' . $this->image : null; // TODO: remove
+        //return $this->image ? Storage::disk('public')->url($this->image) : null;
     }
 
     // Проверка доступа
@@ -194,18 +196,18 @@ class Post extends Model { //implements HasMedia {
         return in_array($user_id, $this->owners->pluck('id')->toArray());
     }
 
-    public static function checkAccessByRoles($roles) 
-    {
-        $access = PostTypes::access();
-        if (!empty($access[static::TYPE])) {
-            foreach ($roles as $role) {
-                if (in_array($role, $access[static::TYPE])) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
+    // public static function checkAccessByRoles($roles) 
+    // {
+    //     $access = PostTypes::access();
+    //     if (!empty($access[static::TYPE])) {
+    //         foreach ($roles as $role) {
+    //             if (in_array($role, $access[static::TYPE])) {
+    //                 return true;
+    //             }
+    //         }
+    //     }
+    //     return false;
+    // }
 
     // Связи
 
@@ -232,12 +234,12 @@ class Post extends Model { //implements HasMedia {
     }
 
     public function columnist() {
-        return $this->belongsTo(User::class, 'columnist_id');
+        return $this->belongsTo(Author::class, 'columnist_id');
     }
 
     public function authors(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'post_authors', 'post_id', 'user_id')->withPivot('position')->orderBy('post_authors.position');
+        return $this->belongsToMany(Author::class, 'post_authors', 'post_id', 'author_id')->withPivot('position')->orderBy('post_authors.position');
     }
     
     public function owners() {

@@ -185,7 +185,7 @@ class MainPageController extends Controller
                 ->where('status', Post::STATUS_PUBLISHED)
                 ->whereNotIn('type', [PostTypes::OPINION, PostTypes::NEWS])
                 ->whereNotIn('id', $this->excludedIds)
-                ->orderBy('published_at', 'desc')
+                ->orderBy('published_at', 'DESC')
                 ->simplePaginate(36)
         )->toArray(request());
     }

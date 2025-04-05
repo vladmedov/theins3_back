@@ -24,6 +24,7 @@ class Category extends Model {
     ];
 
     protected $fillable = [
+        'id', // TODO: remove
         'language_code',
         'type',
         'slug',

@@ -13,17 +13,17 @@ class TerminPolicy
 
     public function create(User $user)
     {
-        return $user->canViewAll() || $user->hasRole(UserRoles::AUTHOR) || $user->hasRole(UserRoles::NEWS_WRITER);
+        return true;
     }
 
     public function update(User $user)
     {
-        return $user->canViewAll() || $user->hasRole(UserRoles::AUTHOR) || $user->hasRole(UserRoles::NEWS_WRITER);
+        return true;
     }
 
     public function delete(User $user)
     {
-        return $user->canDeleteAll();
+        return $user->isAdmin();
     }
 
     public function restore()
@@ -33,7 +33,7 @@ class TerminPolicy
 
     public function viewAny(User $user)
     {
-        return $user->canViewAll() || $user->hasRole(UserRoles::AUTHOR) || $user->hasRole(UserRoles::NEWS_WRITER);
+        return true;
     }
 
     public function view()

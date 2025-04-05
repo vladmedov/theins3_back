@@ -69,15 +69,14 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                     MenuItem::resource(\App\Nova\_Taxonomy\InvestigationTheme::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Tag::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Termin::class),
+                    MenuItem::resource(\App\Nova\_Taxonomy\Author::class),
                 ])->collapsable(),
 
                 MenuGroup::make(__('Users'), [
                     MenuItem::resource(\App\Nova\_Users\User::class),
                     MenuItem::resource(\App\Nova\_Users\UserAdmin::class),
                     MenuItem::resource(\App\Nova\_Users\UserEditor::class),
-                    MenuItem::resource(\App\Nova\_Users\UserAuthor::class),
-                    MenuItem::resource(\App\Nova\_Users\UserNewsWriter::class),
-                    MenuItem::resource(\App\Nova\_Users\UserColumnist::class),
+                    MenuItem::resource(\App\Nova\_Users\UserJournalist::class),
                 ])->collapsable(),
 
             ];
