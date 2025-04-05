@@ -9,8 +9,14 @@ return new class extends Migration {
      * Run the migrations.
      */
     public function up(): void {
-        Schema::table('post_authors', function (Blueprint $table) {
-            $table->integer('position')->default(0)->after('user_id');
+        Schema::create('post_termins', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('post_id')->constrained()->onDelete('cascade');
+            $table->foreignId('termin_id')->constrained()->onDelete('cascade');
+            $table->integer('position')->default(0);
+            $table->timestamps();
+            
+            $table->unique(['post_id', 'termin_id']);
         });
     }
 
@@ -18,8 +24,6 @@ return new class extends Migration {
      * Reverse the migrations.
      */
     public function down(): void {
-        Schema::table('post_authors', function (Blueprint $table) {
-            $table->dropColumn('position');
-        });
+        Schema::dropIfExists('post_termins');
     }
 };

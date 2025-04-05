@@ -8,6 +8,8 @@ use App\Models\Category;
 use App\Http\Resources\CategoryResource;
 use App\Http\Resources\CategoryCollection;
 
+use App\Models\Post;
+
 class CategoryController extends Controller
 {
     public function getCategories($language_code)
@@ -20,7 +22,7 @@ class CategoryController extends Controller
     {
         $category = Category
             ::with(['posts' => function($query) {
-                $query->with(['category', 'authors', 'columnist'])->orderBy('published_at', 'desc')->paginate(36);
+                $query->with(['category', 'authors', 'columnist'])->where('status', Post::STATUS_PUBLISHED)->orderBy('published_at', 'desc')->paginate(36);
             }])
             ->where('language_code', $language_code)
             ->where('slug', $slug)

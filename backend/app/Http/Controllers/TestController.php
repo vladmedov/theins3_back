@@ -27,16 +27,20 @@ class TestController extends Controller
     public function test()
     {
         $this->clearDB();
-        $this->importCategories();
-        $this->importAuthors();
-        $this->importInvestigationThemes();
 
-        $this->importPosts();
+        $this->importCategories(1);
+        $this->importCategories(3);
+        $this->importAuthors(1);
+        $this->importAuthors(3);
+        $this->importInvestigationThemes(1);
+        $this->importInvestigationThemes(3);
+        
+        $this->importPosts(1);
+        $this->importPosts(3);
 
-        $this->importPostAuthors();
+        $this->importPostAuthors(1);
+        $this->importPostAuthors(3);
         $this->importThemePosts();
-
-        //$this->importContentPosts(279832);
 
         return [
             'status' => 'Import completed',
@@ -345,13 +349,11 @@ class TestController extends Controller
                     continue;
                 }
 
-                $posts = Post::whereIn('id', $postIds)->get();
-
                 $content[] = [
                     'type' => 'related',
                     'attributes' => [
                         'related_title' => $contentPostContent->related_posts_title,
-                        'related_posts' => PostResource::collection($posts),
+                        'related_posts' => $postIds,
                     ],
                 ];
             }
@@ -498,57 +500,60 @@ class TestController extends Controller
         return $html;
     }
 
-    private function importPostAuthors()
+    private function importPostAuthors($regionId)
     {
-        $peopleRegions = $this->legacy_db->select('
-            SELECT * FROM public.region_relations
-            WHERE regionable_type = \'Person\'
-            ORDER BY id ASC 
-        ');
-
-        $peopleIds = [];
-        foreach ($peopleRegions as $personRegion) {
-            switch ($personRegion->region_id) {
-                case 1:
-                    $peopleIds['ru'][] = $personRegion->regionable_id;
-                    break;
-                case 3:
-                    $peopleIds['en'][] = $personRegion->regionable_id;
-                    break;
-                default:
-                    throw new \Exception('Unknown region id: ' . $personRegion->region_id);
-                    break;
-            }
+        if ($regionId === 1) {
+            $languageCode = 'ru';
+        } elseif ($regionId === 3) {
+            $languageCode = 'en';
+        } else {
+            throw new \Exception('Unknown region id: ' . $regionId);
         }
 
+        // Получаем ID авторов для указанного региона
+        $authorIds = $this->legacy_db->select('
+            SELECT regionable_id FROM public.region_relations
+            WHERE region_id = ' . $regionId . ' AND regionable_type = \'Person\'
+            ORDER BY id ASC 
+        ');
+        $authorIds = array_column($authorIds, 'regionable_id');
+
+        // Получаем ID постов для указанного региона
+        $postIds = $this->legacy_db->select('
+            SELECT regionable_id FROM public.region_relations
+            WHERE region_id = ' . $regionId . ' AND regionable_type = \'Post\'
+            ORDER BY id ASC 
+        ');
+        $postIds = array_column($postIds, 'regionable_id');
+
+        // Получаем связи между авторами и постами для данного региона
         $postAuthors = $this->legacy_db->select('
             SELECT * FROM public.person_relations
-            WHERE (personable2_type = \'Post\' 
-            AND person_id IN (' . implode(',', $peopleIds['ru']) . '))
-            OR (personable3_type = \'Post\' 
-            AND person_id IN (' . implode(',', $peopleIds['ru']) . '))
+            WHERE ((personable2_type = \'Post\' AND person_id IN (' . implode(',', $authorIds) . '))
+            OR (personable3_type = \'Post\' AND person_id IN (' . implode(',', $authorIds) . ')))
             ORDER BY id ASC
         ');
 
         $relations = [];
 
         foreach ($postAuthors as $postAuthor) {
-            if ($postAuthor->personable2_id) {
+            if ($postAuthor->personable2_id && in_array($postAuthor->personable2_id, $postIds)) {
                 $relations[$postAuthor->personable2_id][] = $postAuthor->person_id;
-            } else {
+            } elseif ($postAuthor->personable3_id && in_array($postAuthor->personable3_id, $postIds)) {
                 $relations[$postAuthor->personable3_id][] = $postAuthor->person_id;
             }
         }
+        
+        if (empty($relations)) {
+            return;
+        }
+        
         $keys = array_keys($relations);
 
-        collect($keys)->chunk(1000)->each(function ($batch) use ($relations) {
-            // $posts = $this->legacy_db->select('
-            //     SELECT * FROM public.posts
-            //     WHERE id IN (' . implode(',', $batch->toArray()) . ')
-            //     ORDER BY id ASC
-            // ');
-
-            $posts = Post::whereIn('id', $batch->toArray())->get();
+        collect($keys)->chunk(1000)->each(function ($batch) use ($relations, $languageCode) {
+            $posts = Post::where('language_code', $languageCode)
+                        ->whereIn('id', $batch->toArray())
+                        ->get();
 
             foreach ($posts as $post) { 
                 foreach ($relations[$post->id] as $authorId) {
@@ -564,11 +569,6 @@ class TestController extends Controller
                 }
             }
         });
-
-
-        //dd($relations);
-
-        
     }
 
     private function clearDB()
@@ -580,38 +580,33 @@ class TestController extends Controller
         PostAuthor::truncate();
     }
 
-    private function importCategories()
+    private function importCategories($regionId)
     {
-        $categoryRegions = $this->legacy_db->select('
-            SELECT * FROM public.region_relations
-            WHERE regionable_type = \'Rubric\'
+        if ($regionId === 1) {
+            $languageCode = 'ru';
+        } elseif ($regionId === 3) {
+            $languageCode = 'en';
+        } else {
+            throw new \Exception('Unknown region id: ' . $regionId);
+        }
+
+        $categoryIds = $this->legacy_db->select('
+            SELECT regionable_id FROM public.region_relations
+            WHERE region_id = ' . $regionId . ' AND regionable_type = \'Rubric\'
             ORDER BY id ASC 
         ');
 
-        $categoryIds = [];
-        foreach ($categoryRegions as $categoryRegion) {
-            switch ($categoryRegion->region_id) {
-                case 1:
-                    $categoryIds['ru'][] = $categoryRegion->regionable_id;
-                    break;
-                case 3:
-                    $categoryIds['en'][] = $categoryRegion->regionable_id;
-                    break;
-                default:
-                    throw new \Exception('Unknown region id: ' . $categoryRegion->region_id);
-                    break;
-            }
-        }
+        $categoryIds = array_column($categoryIds, 'regionable_id');
 
         $categories = $this->legacy_db->select('
             SELECT * FROM public.rubrics
-            WHERE id IN (' . implode(',', $categoryIds['ru']) . ')
+            WHERE id IN (' . implode(',', $categoryIds) . ')
             ORDER BY id ASC
         ');
 
-        collect($categories)->each(function ($category) {
+        collect($categories)->each(function ($category) use ($languageCode) {
             Category::create([
-                'language_code' => 'ru',
+                'language_code' => $languageCode,
                 'slug' => $category->slug,
                 'type' => match ($category->special) {
                     'news' => 'news',
@@ -630,66 +625,26 @@ class TestController extends Controller
                 'updated_at' => $category->updated_at,
             ]);
         });
-
-        $categories = $this->legacy_db->select('
-            SELECT * FROM public.rubrics
-            WHERE id IN (' . implode(',', $categoryIds['en']) . ')
-            ORDER BY id ASC
-        ');
-
-        collect($categories)->each(function ($category) {
-            Category::create([
-                'language_code' => 'en',
-                'slug' => $category->slug,
-                'type' => match ($category->special) {
-                    'news' => 'news',
-                    'opinion' => 'opinion',
-                    'simple' => 'default',
-                    'longread' => 'default',
-                    'confession' => 'default',
-                },
-                'id' => $category->id,
-                'title' => $category->title,
-
-                'position' => $category->position,
-                'is_show_in_menu' => $category->show_in_menu,
-
-                'created_at' => $category->created_at,
-                'updated_at' => $category->updated_at,
-            ]);
-        });
-
-        // +"created_at": "2020-05-29 11:16:42.026616"
-        // +"updated_at": "2020-06-02 16:27:14.340579"
-
-        // +"old_id": 2
-        // +"old": true
-
     }
-    private function importPosts()
+    private function importPosts($regionId)
     {
-        $postsRegions = $this->legacy_db->select('
-            SELECT * FROM public.region_relations
-            WHERE regionable_type = \'Post\'
+        if ($regionId === 1) {
+            $languageCode = 'ru';
+        } elseif ($regionId === 3) {
+            $languageCode = 'en';
+        } else {
+            throw new \Exception('Unknown region id: ' . $regionId);
+        }
+
+        $postIds = $this->legacy_db->select('
+            SELECT regionable_id FROM public.region_relations
+            WHERE region_id = ' . $regionId . ' AND regionable_type = \'Post\'
             ORDER BY id ASC 
         ');
 
-        $postsIds = [];
-        foreach ($postsRegions as $postRegion) {
-            switch ($postRegion->region_id) {
-                case 1:
-                    $postsIds['ru'][] = $postRegion->regionable_id;
-                    break;  
-                case 3:
-                    $postsIds['en'][] = $postRegion->regionable_id;
-                    break;
-                default:
-                    throw new \Exception('Unknown region id: ' . $postRegion->region_id);
-                    break;
-            }
-        }
+        $postIds = array_column($postIds, 'regionable_id');
 
-        collect($postsIds['ru'])->chunk(10000)->each(function ($batch) {
+        collect(array_chunk($postIds, 10000))->each(function ($batch) use ($languageCode) {
             $posts = $this->legacy_db->select('
                 SELECT posts.*, rubric_relations.rubric_id FROM public.posts
                 LEFT JOIN (
@@ -698,14 +653,13 @@ class TestController extends Controller
                     WHERE rubricable_type = \'Post\'
                     GROUP BY rubricable_id
                 ) as rubric_relations ON rubric_relations.rubricable_id = posts.id
-                WHERE posts.id IN (' . implode(',', $batch->toArray()) . ')
+                WHERE posts.id IN (' . implode(',', $batch) . ')
             ');
-            //$table->enum('type', ['article', 'news', 'opinion', 'online']);
+            
             foreach ($posts as $post) {
                 Post::create([
-                    'language_code' => 'ru',
+                    'language_code' => $languageCode,
                     'slug' => $post->slug ?? $post->id,
-                    //'type' => 'article',
                     'type' => match ($post->type) {
                         'Post::News' => 'news',
                         'Post::Opinion' => 'opinion',
@@ -729,200 +683,94 @@ class TestController extends Controller
                 $this->importContentPosts($post->id);
             }
         });
-
-        //     +"published_at": "2020-05-21 13:34:40"
-        //     +"created_at": "2020-05-29 11:42:04.134553"
-        //     +"updated_at": "2022-06-15 14:19:56.084248"
-
-        // 0 => {#90339 ▼
-        //     +"meta": null
-        //     +"lead": null
-        //     +"online": false
-        //     +"meta_image": "screen20220615-13082-1q2xuxm.png"
-        //     +"old_id": 220748
-        //     +"old": true
-        //     +"old_image": "/wp-content/uploads/2020/05/forecast.jpg"
-        //     +"fb_instat_articles": true
-        //     +"pre_release": false
-        //     +"feature_title": null
-        //   }
     }
 
-    private function importAuthors()
+    private function importAuthors($regionId)
     {
-        $peopleRegions = $this->legacy_db->select('
-            SELECT * FROM public.region_relations
-            WHERE regionable_type = \'Person\'
+        if ($regionId === 1) {
+            $languageCode = 'ru';
+        } elseif ($regionId === 3) {
+            $languageCode = 'en';
+        } else {
+            throw new \Exception('Unknown region id: ' . $regionId);
+        }
+
+        $authorIds = $this->legacy_db->select('
+            SELECT regionable_id FROM public.region_relations
+            WHERE region_id = ' . $regionId . ' AND regionable_type = \'Person\'
             ORDER BY id ASC 
         ');
 
-        $peopleIds = [];
-        foreach ($peopleRegions as $personRegion) {
-            switch ($personRegion->region_id) {
-                case 1:
-                    $peopleIds['ru'][] = $personRegion->regionable_id;
-                    break;
-                case 3:
-                    $peopleIds['en'][] = $personRegion->regionable_id;
-                    break;
-                default:
-                    throw new \Exception('Unknown region id: ' . $personRegion->region_id);
-                    break;
-            }
-        }
+        $authorIds = array_column($authorIds, 'regionable_id');
 
-        $peopleRU = $this->legacy_db->select('
+        $authors = $this->legacy_db->select('
             SELECT * FROM public.people
-            WHERE id IN (' . implode(',', $peopleIds['ru']) . ')
+            WHERE id IN (' . implode(',', $authorIds) . ')
             ORDER BY id ASC
         ');
 
-        $peopleEN = $this->legacy_db->select('
-            SELECT * FROM public.people
-            WHERE id IN (' . implode(',', $peopleIds['en']) . ')
-            ORDER BY id ASC
-        ');
-
-        foreach ($peopleRU as $person) {
+        collect($authors)->each(function ($author) use ($languageCode) {
             Author::create([
-                'id' => $person->id,
-                'language_code' => 'ru',
-                'slug' => $person->slug,
-                'first_name' => $person->first_name,
-                'last_name' => $person->last_name,
-                'avatar' => $person->image, // todo
-                'position' => $person->work_position,
-                'description' => $person->description,
-                'twitter' => $person->twitter,
-                'facebook' => $person->facebook,
+                'id' => $author->id,
+                'language_code' => $languageCode,
+                'slug' => $author->slug,
+                'first_name' => $author->first_name,
+                'last_name' => $author->last_name,
+                'avatar' => $author->image, // todo
+                'position' => $author->work_position,
+                'description' => $author->description,
+                'twitter' => $author->twitter,
+                'facebook' => $author->facebook,
                 'allowed_post_types' => ['article', 'opinion', 'news', 'online'],
                 'post_types_with_hidden_author_name' => [],
                 'is_author_page_hidden' => false,
                 'is_columnist_page_hidden' => false,
             ]);
-        }
-
-        foreach ($peopleEN as $person) {
-            Author::create([
-                'id' => $person->id,
-                'language_code' => 'en',
-                'slug' => $person->slug,
-                'first_name' => $person->first_name,
-                'last_name' => $person->last_name,
-                'avatar' => $person->image, // todo
-                'position' => $person->work_position,
-                'description' => $person->description,
-                'twitter' => $person->twitter,
-                'facebook' => $person->facebook,
-                'allowed_post_types' => ['article', 'opinion', 'news', 'online'],
-                'post_types_with_hidden_author_name' => [],
-                'is_author_page_hidden' => false,
-                'is_columnist_page_hidden' => false,
-            ]);
-        }
-
-        
-        
-        //dd($peopleRU, $peopleEN);
-
-
-      
-
-        // $admins = [];
-
-
-
-        // foreach ($peopleEN as $person) {
-        //     $id = trim($person->last_name);
-        //     $admins[$id][] = $person->first_name . ' ' . $person->last_name;
-        // }
-
-        // foreach ($peopleRU as $person) {
-        //     $id = trim($person->last_name);
-        //     $translitId = $this->translit($id);
-        //     $admins[$translitId][] = $person->first_name . ' ' . $person->last_name;
-        // }
-
-        // // Сортировка массива $admins по ключу в алфавитном порядке
-        // ksort($admins);
-        
-        // dd($admins);
-
-        // $users = $this->legacy_db->select('
-        //     SELECT * FROM public.people
-        //     ORDER BY id ASC
-        // ');
-
-        // dd($users);
+        });
     }
 
-    private function importInvestigationThemes()
+    private function importInvestigationThemes($regionId)
     {
-        $themeRegions = $this->legacy_db->select('
-            SELECT * FROM public.region_relations
-            WHERE regionable_type = \'Theme\'
+        if ($regionId === 1) {
+            $languageCode = 'ru';
+        } elseif ($regionId === 3) {
+            $languageCode = 'en';
+        } else {
+            throw new \Exception('Unknown region id: ' . $regionId);
+        }
+
+        $themeIds = $this->legacy_db->select('
+            SELECT regionable_id FROM public.region_relations
+            WHERE region_id = ' . $regionId . ' AND regionable_type = \'Theme\'
             ORDER BY id ASC 
         ');
 
-        $themeIds = [];
-        foreach ($themeRegions as $themeRegion) {
-            switch ($themeRegion->region_id) {
-                case 1:
-                    $themeIds['ru'][] = $themeRegion->regionable_id;
-                    break;
-                case 3:
-                    $themeIds['en'][] = $themeRegion->regionable_id;
-                    break;
-                default:
-                    throw new \Exception('Unknown region id: ' . $themeRegion->region_id);
-                    break;
-            }
-        }
+        $themeIds = array_column($themeIds, 'regionable_id');
 
-        $themeRU = $this->legacy_db->select('
+        $themes = $this->legacy_db->select('
             SELECT * FROM public.themes
-            WHERE id IN (' . implode(',', $themeIds['ru']) . ')
+            WHERE id IN (' . implode(',', $themeIds) . ')
             ORDER BY id ASC
         ');
 
-        $position = count($themeRU) * 10;
-        foreach ($themeRU as $theme) {
+        // Вычисляем начальную позицию для тем
+        $position = count($themes) * 10;
+        
+        collect($themes)->each(function ($theme) use ($languageCode, &$position) {
             InvestigationTheme::create([
                 'id' => $theme->id,
-                'language_code' => 'ru',
+                'language_code' => $languageCode,
                 'slug' => $theme->slug,
                 'title' => $theme->title,
                 'description' => $theme->description,
                 'position' => !empty($theme->position) ? $theme->position : $position,
                 'cover_image' => $theme->image,
-                'is_main' => $theme->slug === 'otraviteli-iz-fsb',
+                'is_main' => $theme->slug === 'otraviteli-iz-fsb' && $languageCode === 'ru',
                 'created_at' => $theme->created_at,
                 'updated_at' => $theme->updated_at,
             ]);
             $position--;
-        }
-
-        $themeEN = $this->legacy_db->select('
-            SELECT * FROM public.themes
-            WHERE id IN (' . implode(',', $themeIds['en']) . ')
-            ORDER BY id ASC
-        ');
-
-        $position = count($themeEN);
-        foreach ($themeEN as $theme) {
-            InvestigationTheme::create([
-                'id' => $theme->id,
-                'language_code' => 'en',
-                'slug' => $theme->slug,
-                'title' => $theme->title,
-                'description' => $theme->description,
-                'position' => $position,
-                'cover_image' => $theme->image,
-                'created_at' => $theme->created_at,
-                'updated_at' => $theme->updated_at,
-            ]);
-            $position--;
-        }
+        });
     }
 
     private function importThemePosts()

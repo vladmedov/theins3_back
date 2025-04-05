@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 use App\Enums\PostTypes;
+use App\Models\Post;
 
 use App\Traits\HasWidgets;
 
@@ -60,7 +61,7 @@ class PostResource extends JsonResource
                 return (new PostResource($this->translation))->toArray($request);
             }),
             'lead' => $this->lead ?? "",
-            'content' => $this->content,
+            'content' => $this->getBlocks(),
             'termins' => $this->whenLoaded('termins', function () use ($request) {
                 return (TerminResource::collection($this->termins))->toArray($request);
             }),
@@ -69,6 +70,20 @@ class PostResource extends JsonResource
             'seo_keywords' => $this->seo_keywords ?? "",
             'widgets' => $this->getWidgets(),
         ]);
+    }
+
+    private function getBlocks()
+    {
+        $blocks = $this->content;
+        foreach ($blocks as $key => $block) {
+            if ($block['type'] === 'related') {
+                $ids = $block['attributes']['related_posts'];
+                $posts = PostResource::collection(Post::whereIn('id', $ids)->get());
+                $block['attributes']['related_posts'] = $posts;
+                $blocks[$key] = $block;
+            }
+        }
+        return $blocks;
     }
 
     private function shouldShowColumnist(): bool
