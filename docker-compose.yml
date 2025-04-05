@@ -1,13 +1,13 @@
 services:
   app:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
     container_name: app
     restart: always
     working_dir: /var/www/html
     volumes:
-      - ./backend:/var/www/html
+      - .:/var/www/html
     depends_on:
       - db
     networks:
