@@ -222,7 +222,7 @@ class Post extends Model { //implements HasMedia {
 
     public function onlineMessages()
     {
-        return $this->hasMany(OnlineMessage::class, 'post_id');
+        return $this->hasMany(OnlineMessage::class, 'post_id')->orderBy('published_at', 'desc');
     }
 
     public function category() {

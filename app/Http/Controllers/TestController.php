@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Category;
 
 use App\Models\Post;
+use App\Models\PostTypes\OnlineMessage;
 
 use App\Models\Author;
 use App\Models\PostAuthor;
@@ -373,6 +374,44 @@ class TestController extends Controller
 
         //dd($content, $contentPosts);
     }
+
+    private function importContentPostsOnline($id)
+    {
+        $onlineIds = $this->legacy_db->select('
+            SELECT postable_id FROM public.post_relations
+            WHERE postable_type = \'OnlineItem\'
+            AND post_id = ' . $id
+        );
+        
+        $onlineIds = array_column($onlineIds, 'postable_id');
+
+        $onlines = $this->legacy_db->select('
+            SELECT * FROM public.online_items
+            WHERE id IN (' . implode(',', $onlineIds) . ')
+            ORDER BY time ASC
+        ');
+
+        foreach ($onlines as $online) {
+            OnlineMessage::create([
+                'language_code' => 'ru',
+                'post_id' => $id,
+                'published_at' => $online->time,
+                'is_key_event' => $online->key_point,
+                'outline' => $online->title ?? '',
+                'text' => $online->text ?? '',
+                'images' => $online->image ? [
+                    'link' => $online->image,
+                    'author' => '',
+                    'description' => '',
+                ] : [],
+                'video_url' => $online->video_embed ?? '',
+                'video_description' => '',
+                'video_author' => '',
+                'embed_code' => $online->social_embed ?? '',
+                'embed_type' => $online->social_type ?? 'iframe',
+            ]);
+        }
+    }
     
     /**
      * Нормализует HTML-содержимое текстового блока
@@ -577,6 +616,7 @@ class TestController extends Controller
         Author::truncate();
         InvestigationTheme::truncate();
         Post::truncate();
+        OnlineMessage::truncate();
         PostAuthor::truncate();
     }
 
@@ -680,7 +720,11 @@ class TestController extends Controller
                     'is_super_news' => $post->super_news,
                     'views_count' => $post->viewed,
                 ]);
-                $this->importContentPosts($post->id);
+                if ($post->type === 'Post::Online') {
+                    $this->importContentPostsOnline($post->id);
+                } else {
+                    $this->importContentPosts($post->id);
+                }
             }
         });
     }
