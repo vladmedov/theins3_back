@@ -33,7 +33,7 @@ class Termin extends Resource
 
             Markdown::make(__('Description'), 'description')
                 ->sortable()
-                ->rules('required', 'max:255'),
+                ->rules('required'),
 
             Text::make(__('Posts count'), function () {
                 return $this->posts()->count();
