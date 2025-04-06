@@ -385,6 +385,10 @@ class TestController extends Controller
         
         $onlineIds = array_column($onlineIds, 'postable_id');
 
+        if (count($onlineIds) === 0) {
+            return;
+        }
+
         $onlines = $this->legacy_db->select('
             SELECT * FROM public.online_items
             WHERE id IN (' . implode(',', $onlineIds) . ')
