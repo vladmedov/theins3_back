@@ -55,20 +55,30 @@ class Author extends Model {
     public function news() {
         return $this
             ->posts()
-            ->where('type', PostTypes::NEWS);
+            ->where('type', PostTypes::NEWS)
+            ->limit(36);
     }
 
     public function articles() {
         return $this
             ->posts()
-            ->whereIn('type', [PostTypes::ARTICLE, PostTypes::ONLINE]);
+            ->whereIn('type', [PostTypes::ARTICLE, PostTypes::ONLINE])
+            ->limit(36);
     }
 
     public function opinions() {
         return $this
             ->hasMany(Post::class, 'columnist_id', 'id')
             ->where('language_code', $this->language_code)
-            ->where('type', PostTypes::OPINION);
+            ->where('type', PostTypes::OPINION)
+            ->limit(36);
+    }
+
+    public function notOpinions() {
+        return $this
+            ->posts()
+            ->whereNot('type', PostTypes::OPINION)
+            ->limit(36);
     }
 
     public static function getAuthorsByPostType($languageCode, $postTypes = [PostTypes::ARTICLE, PostTypes::ONLINE, PostTypes::NEWS, PostTypes::OPINION]) {

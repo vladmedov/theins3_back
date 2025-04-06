@@ -61,4 +61,10 @@ class InvestigationTheme extends Model {
     public function posts() {
         return $this->hasMany(Post::class)->orderBy('published_at', 'desc');
     }
+
+    public function getPath() {
+        return '/'
+            . ($this->language_code === 'ru' ? 'investigations/' : "{$this->language_code}/investigations/")
+            . "{$this->slug}";
+    }
 }

@@ -42,7 +42,7 @@ class AuthorResource extends JsonResource
 
     private function getPath()
     {
-        return ''
+        return '/'
             . ($this->language_code === 'ru' ? 'authors/' : "{$this->language_code}/authors/")
             . "{$this->slug}";
     }

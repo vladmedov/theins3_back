@@ -161,6 +161,7 @@ class MainPageController extends Controller
 
         return [
             'title' => $mainInvestigation->title,
+            'path' => $mainInvestigation->getPath(),
             'posts' => PostResource::collection($mainInvestigation->posts)->toArray(request()),
         ];
     }

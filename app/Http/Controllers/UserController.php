@@ -4,30 +4,38 @@ namespace App\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 
-use App\Models\User;
-use App\Enums\UserRoles;
+use App\Models\Author;
+use App\Enums\PostTypes;
 
 use App\Http\Resources\AuthorResource;
 use App\Http\Resources\ColumnistResource;
 
 class UserController extends Controller
 {
-    public function getAuthor($slug, $language_code = 'ru')
+    public function getAuthor($language_code, $slug)
     {
-        $author = User::where('slug', $slug)->where(function($query) {
-            $query
-                ->whereJsonContains('roles', UserRoles::ADMIN)
-                ->orWhereJsonContains('roles', UserRoles::EDITOR)
-                ->orWhereJsonContains('roles', UserRoles::AUTHOR)
-                ->orWhereJsonContains('roles', UserRoles::NEWS_WRITER);
-        })->firstOrFail();
-        return new AuthorResource($author->setLocale($language_code), false);
+        $author = Author::where('language_code', $language_code)
+            ->where('slug', $slug)
+            ->where('is_author_page_hidden', false)
+            // ->where(function($query) {
+            //     $query
+            //         ->whereJsonContains('allowed_post_types', PostTypes::ARTICLE)
+            //         ->orWhereJsonContains('allowed_post_types', PostTypes::NEWS)
+            //         ->orWhereJsonContains('allowed_post_types', PostTypes::ONLINE);
+            // })
+            ->firstOrFail();
+
+        return new AuthorResource($author, false);
     }
 
-    public function getColumnist($slug, $language_code = 'ru')
+    public function getColumnist($language_code, $slug)
     {
-        $columnist = User::where('slug', $slug)->whereJsonContains('roles', UserRoles::COLUMNIST)->firstOrFail();
-        return new ColumnistResource($columnist->setLocale($language_code), false);
+        $columnist = Author::where('language_code', $language_code)
+            ->where('slug', $slug)
+            ->where('is_columnist_page_hidden', false)
+            // ->whereJsonContains('allowed_post_types', PostTypes::OPINION)
+            ->firstOrFail();
+        return new ColumnistResource($columnist, false);
     }
 
     
