@@ -91,7 +91,7 @@ class TestController extends Controller
                 $templates[$dbTemplate->human_id]['type'] = 'images';
                 foreach ($images as $image) {
                     $templates[$dbTemplate->human_id]['attributes']['images'][] = [
-                        'link' => 'https://theins.ru/images/S94ufcu7GG4cr8bfPH6UU_j975FIAlL2kGy_xixJtyI/rs:auto:877:579:0:0/dpr:2/q:100/bG9jYWw6L3B1Ymxp/Yy9zdG9yYWdlL3Bv/c3QvMjgwMjA5L2Zp/bGUtYzBmOTJiZmY0/MWVmNzZiZDExZDk0/ZjJkNTMxYzg1MjUu/anBn.jpg',
+                        'link' => 'https://theins.ru/storage/content_block/image/' . $image->id . '/' . $image->image,
                         'author' => $image->credit ?? '',
                         'description' => $image->caption ?? '',
                     ];
@@ -397,7 +397,7 @@ class TestController extends Controller
                 $links[$linksPost->human_id]['type'] = 'images';
                 foreach ($images as $image) {
                     $links[$linksPost->human_id]['attributes']['images'][] = [
-                        'link' => 'https://theins.ru/images/S94ufcu7GG4cr8bfPH6UU_j975FIAlL2kGy_xixJtyI/rs:auto:877:579:0:0/dpr:2/q:100/bG9jYWw6L3B1Ymxp/Yy9zdG9yYWdlL3Bv/c3QvMjgwMjA5L2Zp/bGUtYzBmOTJiZmY0/MWVmNzZiZDExZDk0/ZjJkNTMxYzg1MjUu/anBn.jpg',
+                        'link' => '',
                         'author' => $image->credit ?? '',
                         'description' => $image->caption ?? '',
                     ];
