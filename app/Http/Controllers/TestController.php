@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Post;
 use App\Models\PostTypes\OnlineMessage;
 use App\Models\Termin;
+use App\Models\Tag;
 
 use App\Models\Author;
 use App\Models\PostAuthor;
@@ -40,13 +41,53 @@ class TestController extends Controller
         $this->importPosts(1);
         $this->importPosts(3);
 
-        $this->importPostAuthors(1);
-        $this->importPostAuthors(3);
+        $this->importPostTags(1);
+        $this->importPostTags(3);
+
         $this->importThemePosts();
 
         return [
             'status' => 'Import completed',
         ];
+    }
+
+    private function importPostTags($id)
+    {
+        $currentPost = Post::find($id);
+
+        if (!$currentPost) {
+            return;
+        }
+
+        $dbTagRelations = $this->legacy_db->select('
+            SELECT tag_id FROM public.tag_relations
+            WHERE tagable_id = ' . $id . '
+            AND tagable_type = \'Post\'
+        ');
+
+        $tagIds = array_column($dbTagRelations, 'tag_id');
+
+        if (count($tagIds) === 0) {
+            return;
+        }
+
+        $dbTags = $this->legacy_db->select('
+            SELECT * FROM public.tags
+            WHERE id IN (' . implode(',', $tagIds) . ')
+        ');
+
+        foreach ($dbTags as $dbTag) {
+            $tag = Tag::where('slug', $dbTag->slug)->first();
+            if (!$tag) {
+                $tag = Tag::create([
+                    'language_code' => $currentPost->language_code,
+                    'id' => $dbTag->id,
+                    'title' => $dbTag->title,
+                    'slug' => $dbTag->slug,
+                ]);
+            }
+            $currentPost->tags()->syncWithoutDetaching($tag->id);
+        }
     }
 
     private function importContentPosts($id)
@@ -937,6 +978,7 @@ class TestController extends Controller
         OnlineMessage::truncate();
         PostAuthor::truncate();
         Termin::truncate();
+        Tag::truncate();
     }
 
     private function importCategories($regionId)
@@ -1044,6 +1086,7 @@ class TestController extends Controller
                 } else {
                     $this->importContentPosts($newPost->id);
                 }
+                $this->importPostTags($newPost->id);
             }
         });
     }

@@ -13,7 +13,7 @@ class TagController extends Controller
     {
         $tag = Tag
             ::with(['posts' => function($query) {
-                $query->with(['category', 'authors', 'columnist'])->paginate(36);
+                $query->with(['category', 'authors', 'columnist'])->orderBy('published_at', 'desc')->paginate(36);
             }])
             ->where('language_code', $language_code)
             ->where('slug', $slug)
