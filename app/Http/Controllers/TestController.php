@@ -1173,7 +1173,7 @@ class TestController extends Controller
                 'title' => $theme->title,
                 'description' => $theme->description,
                 'position' => !empty($theme->position) ? $theme->position : $position,
-                'cover_image' => $theme->image,
+                'cover_image' => 'https://theins.ru/storage/theme/' . $theme->id . '/' . $theme->image,
                 'is_main' => $theme->slug === 'otraviteli-iz-fsb' && $languageCode === 'ru',
                 'created_at' => $theme->created_at,
                 'updated_at' => $theme->updated_at,
