@@ -63,6 +63,7 @@ class Post extends Model { //implements HasMedia {
         'image_description',
         'title_feature',
         'is_super_news',
+        'views_count',
     ];
 
     protected $casts = [
