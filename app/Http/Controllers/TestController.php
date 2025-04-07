@@ -41,6 +41,9 @@ class TestController extends Controller
         $this->importPosts(1);
         $this->importPosts(3);
 
+        $this->importPostAuthors(1);
+        $this->importPostAuthors(3);
+
         $this->importPostTags(1);
         $this->importPostTags(3);
 
