@@ -9,6 +9,7 @@ use App\Models\Category;
 
 use App\Models\Post;
 use App\Models\PostTypes\OnlineMessage;
+use App\Models\Termin;
 
 use App\Models\Author;
 use App\Models\PostAuthor;
@@ -50,12 +51,318 @@ class TestController extends Controller
 
     private function importContentPosts($id)
     {
-        $termsPosts = $this->legacy_db->select('
+        $currentPost = Post::find($id);
+
+        $termins = [];
+        $dbTermins = $this->legacy_db->select('
             SELECT * FROM public.content_blocks
             WHERE blockable_type = \'Post\'
             AND blockable_id = ' . $id . '
             AND kind = \'term\'
         ');
+        foreach ($dbTermins as $dbTermin) {
+            $content = json_decode($dbTermin->content ?? '{}')->text ?? '';
+
+            if (!isset($dbTermin->human_id) || $dbTermin->human_id === '' || $content === '') {
+                continue;
+            }
+
+            $termins[$dbTermin->human_id] = $content;
+        }
+
+        $templates = [];
+        $dbTemplates = $this->legacy_db->select('
+            SELECT * FROM public.content_blocks
+            WHERE blockable_type = \'Post\'
+            AND blockable_id = ' . $id . '
+            AND kind IN (\'image\', \'big_image\', \'gallery\', \'video\', \'quote\')
+            ORDER BY position ASC
+        ');
+        foreach ($dbTemplates as $dbTemplate) {
+            if (in_array($dbTemplate->kind, ['image', 'big_image', 'gallery'])) {
+                $images = $this->legacy_db->select('
+                    SELECT * FROM public.content_block_images
+                    WHERE content_block_id = ' . $dbTemplate->id . '
+                    ORDER BY position ASC
+                ');
+                if (count($images) === 0) {
+                    continue;
+                }
+                $templates[$dbTemplate->human_id]['type'] = 'images';
+                foreach ($images as $image) {
+                    $templates[$dbTemplate->human_id]['attributes']['images'][] = [
+                        'link' => 'https://theins.ru/images/S94ufcu7GG4cr8bfPH6UU_j975FIAlL2kGy_xixJtyI/rs:auto:877:579:0:0/dpr:2/q:100/bG9jYWw6L3B1Ymxp/Yy9zdG9yYWdlL3Bv/c3QvMjgwMjA5L2Zp/bGUtYzBmOTJiZmY0/MWVmNzZiZDExZDk0/ZjJkNTMxYzg1MjUu/anBn.jpg',
+                        'author' => $image->credit ?? '',
+                        'description' => $image->caption ?? '',
+                    ];
+                }
+            }
+            if ($dbTemplate->kind === 'video') {
+                $dbTemplateContent = json_decode($dbTemplate->content);
+                if (isset($dbTemplateContent->video_embed) && $dbTemplateContent->video_embed === '') {
+                    continue;
+                }
+                $templates[$dbTemplate->human_id]['type'] = 'video';
+                $templates[$dbTemplate->human_id]['attributes'] = [
+                    // 'embed_code' => json_decode($linksPost->content)->video_embed,
+                    // 'embed_type' => 'video',
+                    // 'embed_description' => $linksPost->caption,
+                    // 'embed_author' => $linksPost->credit,
+                    'video_url' => $dbTemplateContent->video_embed ?? '',
+                    'video_description' => $dbTemplate->caption ?? '',
+                    'video_author' => $dbTemplate->credit ?? '',
+                ];
+            }
+            if ($dbTemplate->kind === 'quote') {
+                $dbTemplateContent = json_decode($dbTemplate->content);
+                if (isset($dbTemplateContent->quote) && $dbTemplateContent->quote === '') {
+                    continue;
+                }
+                $templates[$dbTemplate->human_id]['type'] = 'quote';
+                $templates[$dbTemplate->human_id]['attributes'] = [
+                    'quote' => $dbTemplateContent->quote ?? '',
+                    'quote_author' => '',
+                ];
+            }
+        }
+
+        $content = [];
+        $blocks = $this->legacy_db->select('
+            SELECT * FROM public.content_blocks
+            WHERE blockable_type = \'Post\'
+            AND blockable_id = ' . $id . '
+            AND kind IN (\'number\', \'text\', \'social\', \'related_posts\', \'audio\', \'iframe\')
+            ORDER BY position ASC
+        ');
+
+        foreach ($blocks as $block) {
+            if ($block->kind === 'number') {
+                if (!isset($block->title) || $block->title === '') {
+                    continue;
+                }
+                $content[] = [
+                    'type' => 'outline',
+                    'attributes' => [
+                        'outline' => $block->title,
+                    ],
+                ];
+            }
+
+            if ($block->kind === 'text') {
+                $blockContent = json_decode($block->content);
+                if (!isset($blockContent->text) || $blockContent->text === '') {
+                    continue;
+                }
+                $text = $blockContent->text;
+
+                // 1) Заменяем все ссылки на термины на код
+                $text = preg_replace_callback('/<a\s+href="\{\{term_([^}]+)\}\}"[^>]*>(.*?)<\/a\s*>/is', function($matches) use ($termins, $currentPost) {
+                    $terminId = $matches[1];
+                    $terminTermin = $matches[2];
+                    $terminCode = "{{term_" . $terminId . "}}";
+                    $terminDescription = $termins[$terminCode] ?? '';
+                    
+                    $termin = Termin::where('termin', $terminTermin)->first();
+                    if (!$termin) {
+                        $termin = Termin::create([
+                            'language_code' => $currentPost->language_code,
+                            'termin' => $terminTermin,
+                            'description' => $terminDescription,
+                        ]);
+                    }
+                    $currentPost->termins()->syncWithoutDetaching($termin->id);
+                    if ($termin) {
+                        return '<code>' . $termin->termin . '</code>';
+                    }
+                }, $text);
+                
+                // Находим все вхождения h3 и шаблонов и обрабатываем их по порядку
+                $matches = [];
+
+                // Поиск всех тегов h3
+                preg_match_all('/<h3>(.*?)<\/h3>/i', $text, $h3Matches, PREG_OFFSET_CAPTURE);
+                if (!empty($h3Matches[0])) {
+                    foreach ($h3Matches[0] as $index => $match) {
+                        $matches[] = [
+                            'type' => 'h3',
+                            'content' => $h3Matches[1][$index][0],
+                            'fullMatch' => $match[0],
+                            'offset' => $match[1],
+                            'length' => strlen($match[0])
+                        ];
+                    }
+                }
+
+                // Поиск всех шаблонов
+                preg_match_all('/\{\{([^}]+)\}\}/i', $text, $templateMatches, PREG_OFFSET_CAPTURE);
+                if (!empty($templateMatches[0])) {
+                    foreach ($templateMatches[0] as $index => $match) {
+                        $matches[] = [
+                            'type' => 'template',
+                            'fullMatch' => $match[0],
+                            'offset' => $match[1],
+                            'length' => strlen($match[0])
+                        ];
+                    }
+                }
+
+                // Сортируем все найденные совпадения по их позиции в тексте
+                usort($matches, function($a, $b) {
+                    return $a['offset'] - $b['offset'];
+                });
+
+                if (empty($matches)) {
+                    // Если не найдено ни заголовков h3, ни шаблонов
+                    $content[] = [
+                        'type' => 'text',
+                        'attributes' => [
+                            'text' => $text,
+                        ],
+                    ];
+                } else {
+                    $currentPosition = 0;
+                    
+                    // Обрабатываем каждое совпадение по порядку
+                    foreach ($matches as $match) {
+                        // Добавляем текст до текущего совпадения
+                        $textBefore = substr($text, $currentPosition, $match['offset'] - $currentPosition);
+                        if (!empty(trim($textBefore))) {
+                            $content[] = [
+                                'type' => 'text',
+                                'attributes' => [
+                                    'text' => $textBefore,
+                                ],
+                            ];
+                        }
+                        
+                        // Обрабатываем текущее совпадение в зависимости от его типа
+                        if ($match['type'] === 'h3') {
+                            $content[] = [
+                                'type' => 'outline',
+                                'attributes' => [
+                                    'outline' => $match['content'],
+                                ],
+                            ];
+                        } else { // template
+                            $templateKey = $match['fullMatch'];
+                            if (isset($templates[$templateKey])) {
+                                $content[] = $templates[$templateKey];
+                            }
+                        }
+                        
+                        // Обновляем текущую позицию
+                        $currentPosition = $match['offset'] + $match['length'];
+                    }
+                    
+                    // Добавляем оставшийся текст после последнего совпадения
+                    $textAfter = substr($text, $currentPosition);
+                    if (!empty(trim($textAfter))) {
+                        $content[] = [
+                            'type' => 'text',
+                            'attributes' => [
+                                'text' => $textAfter,
+                            ],
+                        ];
+                    }
+                }
+            }
+            
+            // TODO: add other social types
+            $socialTypes = [
+                'iframe',
+                'telegram',
+                'twitter',
+                'facebook',
+                'instagram',
+                'vk',
+                'audio'
+            ];
+            if ($block->kind === 'social') {
+                $blockContent = json_decode($block->content);
+                if (!isset($contentblockContentPostContent->social_embed) || $blockContent->social_embed === '') {
+                    continue;
+                }
+                if (in_array($blockContent->social_type, $socialTypes)) {
+                    $socialType = $blockContent->social_type;
+                } else {
+                    $socialType = 'iframe';
+                }
+                $content[] = [
+                    'type' => 'embed',
+                    'attributes' => [
+                        'embed_code' => $contentPostContent->social_embed,
+                        'embed_type' => $socialType,
+                    ],
+                ];
+            }
+            if ($block->kind === 'audio') {
+                $blockContent = json_decode($block->content);
+                if (!isset($blockContent->audio_embed) || $blockContent->audio_embed === '') {
+                    continue;
+                }
+                $content[] = [
+                    'type' => 'embed',
+                    'attributes' => [
+                        'embed_code' => $blockContent->audio_embed,
+                        'embed_type' => 'audio',
+                    ],
+                ];
+            }
+            if ($block->kind === 'iframe') {
+                $blockContent = json_decode($block->content);
+                if (!isset($blockContent->iframe) || $blockContent->iframe === '') {
+                    continue;
+                }
+                $content[] = [
+                    'type' => 'embed',
+                    'attributes' => [
+                        'embed_code' => $blockContent->iframe,
+                        'embed_type' => 'iframe',
+                    ],
+                ];
+            }
+            if ($block->kind === 'related_posts') {
+                $blockContent = json_decode($block->content);
+                $title = $blockContent->related_posts_title ?? '';
+
+                $relatedPosts= $this->legacy_db->select('
+                    SELECT * FROM public.post_relations
+                    WHERE postable_id = ' . $block->id . '
+                    AND postable_type = \'ContentBlock\'
+                ');
+
+                $postIds = [];
+                foreach ($relatedPosts as $post) {
+                    $postIds[] = $post->post_id;
+                }
+
+                if (count($postIds) === 0) {
+                    continue;
+                }
+
+                $content[] = [
+                    'type' => 'related',
+                    'attributes' => [
+                        'related_title' => $title,
+                        'related_posts' => $postIds,
+                    ],
+                ];
+            }
+        }
+
+        Post::where('id', $id)->update([
+            'content' => json_encode($content),
+        ]);
+
+        return true;
+
+
+
+
+
+
+
+        
 
         // ...
 
@@ -90,7 +397,7 @@ class TestController extends Controller
                 $links[$linksPost->human_id]['type'] = 'images';
                 foreach ($images as $image) {
                     $links[$linksPost->human_id]['attributes']['images'][] = [
-                        'link' => '',
+                        'link' => 'https://theins.ru/images/S94ufcu7GG4cr8bfPH6UU_j975FIAlL2kGy_xixJtyI/rs:auto:877:579:0:0/dpr:2/q:100/bG9jYWw6L3B1Ymxp/Yy9zdG9yYWdlL3Bv/c3QvMjgwMjA5L2Zp/bGUtYzBmOTJiZmY0/MWVmNzZiZDExZDk0/ZjJkNTMxYzg1MjUu/anBn.jpg',
                         'author' => $image->credit ?? '',
                         'description' => $image->caption ?? '',
                     ];
@@ -167,6 +474,13 @@ class TestController extends Controller
                 }
 
                 $text = $contentPostContent->text;
+                
+                // Применяем замены на основе $replacements
+                if (!empty($replacements)) {
+                    $keys = array_keys($replacements);
+                    $values = array_values($replacements);
+                    $text = str_replace($keys, $values, $text);
+                }
                 
                 // Ищем все теги <h3> и заменяем их на маркеры
                 $h3Markers = [];
@@ -622,6 +936,7 @@ class TestController extends Controller
         Post::truncate();
         OnlineMessage::truncate();
         PostAuthor::truncate();
+        Termin::truncate();
     }
 
     private function importCategories($regionId)
@@ -683,7 +998,7 @@ class TestController extends Controller
         $postIds = $this->legacy_db->select('
             SELECT regionable_id FROM public.region_relations
             WHERE region_id = ' . $regionId . ' AND regionable_type = \'Post\'
-            ORDER BY id ASC 
+            ORDER BY id DESC 
         ');
 
         $postIds = array_column($postIds, 'regionable_id');
@@ -701,7 +1016,7 @@ class TestController extends Controller
             ');
             
             foreach ($posts as $post) {
-                Post::create([
+                $newPost = Post::create([
                     'language_code' => $languageCode,
                     'slug' => $post->slug ?? $post->id,
                     'type' => match ($post->type) {
@@ -725,9 +1040,9 @@ class TestController extends Controller
                     'views_count' => $post->viewed,
                 ]);
                 if ($post->type === 'Post::Online') {
-                    $this->importContentPostsOnline($post->id);
+                    $this->importContentPostsOnline($newPost->id);
                 } else {
-                    $this->importContentPosts($post->id);
+                    $this->importContentPosts($newPost->id);
                 }
             }
         });

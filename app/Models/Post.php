@@ -127,6 +127,16 @@ class Post extends Model { //implements HasMedia {
                 $post->seo_title = $post->title;
                 $updated = true;
             }
+
+            if (!empty($post->translation_id)) {
+                $post->translation()->update([
+                    'translation_id' => $post->id,
+                ]);
+            } else {
+                $post->translation()->update([
+                    'translation_id' => null,
+                ]);
+            }
         
             if ($updated) {
                 $post->saveQuietly();
