@@ -11,7 +11,9 @@ class InvestigationThemeController extends Controller
 {
     public function getInvestigationThemes($language_code = 'ru')
     {
-        $investigationThemes = InvestigationTheme::where('language_code', $language_code)->get();
+        $investigationThemes = InvestigationTheme::where('language_code', $language_code)
+            ->orderBy('position', 'ASC')
+            ->get();
         return InvestigationThemeResource::collection($investigationThemes);
     }
 
@@ -19,7 +21,7 @@ class InvestigationThemeController extends Controller
     {
         $investigationTheme = InvestigationTheme
             ::with(['posts' => function($query) {
-                $query->with(['category', 'authors', 'columnist'])->paginate(36);
+                $query->with(['category', 'authors', 'columnist'])->orderBy('published_at', 'DESC')->paginate(36);
             }])
             ->where('language_code', $language_code)
             ->where('slug', $slug)

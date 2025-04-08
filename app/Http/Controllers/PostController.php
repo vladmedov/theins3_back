@@ -30,6 +30,10 @@ class PostController extends Controller
             ->where('status', Post::STATUS_PUBLISHED)
             ->firstOrFail();
 
+        if ($post->category->slug !== $category_slug) {
+            return response()->json(['redirect' => $post->getPath()], 301);
+        }
+
         return new PostResource($post, false);
     }
 

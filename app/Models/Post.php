@@ -291,4 +291,10 @@ class Post extends Model { //implements HasMedia {
     {
         return ImageService::getImageUrl($this->id, $this->image, ImageService::TYPE_POST_COVER, $size);
     }
+
+    public function getPath() {
+        return '/'
+            . ($this->language_code === 'ru' ? $this->category->slug . '/' : "{$this->language_code}/{$this->category->slug}/")
+            . "{$this->slug}";
+    }
 }
