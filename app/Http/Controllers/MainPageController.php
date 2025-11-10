@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Routing\Controller;
+use Illuminate\Http\Request;
 
 use App\Models\Post;
 use App\Enums\PostTypes;
@@ -25,10 +26,14 @@ class MainPageController extends Controller
         ];
     }
 
-    public function getMainPage($language_code)
+    public function getMainPage(Request $request, $language_code)
     {
         $feature = $this->getCollectionPosts($language_code, CollectionPost::COLLECTION_CODE_FEATURE, 3);
         $this->excludedIds = $feature->pluck('id');
+
+        if ($request->has('page')) {
+            return $this->getArticles($language_code);
+        }
 
         return [
             'collection_opinions' => $this->getCollectionPosts($language_code, CollectionPost::COLLECTION_CODE_MAIN_OPINIONS, 7, PostTypes::OPINION),
@@ -186,6 +191,7 @@ class MainPageController extends Controller
                 ->where('status', Post::STATUS_PUBLISHED)
                 ->whereNotIn('type', [PostTypes::OPINION, PostTypes::NEWS])
                 ->whereNotIn('id', $this->excludedIds)
+                ->where('category_id', '!=', 12)
                 ->orderBy('published_at', 'DESC')
                 ->simplePaginate(36)
         )->toArray(request());

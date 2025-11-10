@@ -117,7 +117,7 @@ class User extends Authenticatable
         if (!is_array($roles))
             $roles = [$roles];
         
-        return array_intersect($roles, $this->roles ?? []);
+        return in_array($this->role_code, $roles);
     }
 
     public function canViewAll() {

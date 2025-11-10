@@ -55,7 +55,7 @@ services:
       - "5433:5432"  # Используем другой порт для внешнего доступа
     volumes:
       - legacy_db_data:/var/lib/postgresql/data
-      - ./theins_prod_24032025:/home/theins_prod_24032025
+      - ./theins_prod_09112025_tar:/home/theins_prod_09112025_tar
     networks:
       - laravel_network
 
