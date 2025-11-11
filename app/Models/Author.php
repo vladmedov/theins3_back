@@ -73,6 +73,7 @@ class Author extends Model {
             ->hasMany(Post::class, 'columnist_id', 'id')
             ->where('language_code', $this->language_code)
             ->where('type', PostTypes::OPINION)
+            ->where('status', Post::STATUS_PUBLISHED)
             ->orderBy('published_at', 'desc')
             ->limit(36);
     }
@@ -81,6 +82,7 @@ class Author extends Model {
         return $this
             ->posts()
             ->whereNot('type', PostTypes::OPINION)
+            ->where('status', Post::STATUS_PUBLISHED)
             ->orderBy('published_at', 'desc')
             ->limit(36);
     }

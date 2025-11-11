@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Routing\Controller;
 
 use App\Models\InvestigationTheme;
+use App\Models\Post;
 use App\Http\Resources\InvestigationThemeResource;
 
 class InvestigationThemeController extends Controller
@@ -21,7 +22,10 @@ class InvestigationThemeController extends Controller
     {
         $investigationTheme = InvestigationTheme
             ::with(['posts' => function($query) {
-                $query->with(['category', 'authors', 'columnist'])->orderBy('published_at', 'DESC')->paginate(36);
+                $query->with(['category', 'authors', 'columnist'])
+                    ->where('status', Post::STATUS_PUBLISHED)
+                    ->orderBy('published_at', 'DESC')
+                    ->paginate(36);
             }])
             ->where('language_code', $language_code)
             ->where('slug', $slug)
