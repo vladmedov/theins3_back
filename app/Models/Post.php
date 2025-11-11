@@ -21,6 +21,7 @@ use App\Services\ChangeDetectorService;
 use App\Services\ImageService;
 
 use Illuminate\Support\Facades\Log;
+use Laravel\Scout\Searchable;
 
 // use Spatie\MediaLibrary\HasMedia;
 // use Spatie\MediaLibrary\InteractsWithMedia;
@@ -28,6 +29,7 @@ use Illuminate\Support\Facades\Log;
 
 class Post extends Model { //implements HasMedia {
 
+    use Searchable;
     //use InteractsWithMedia;
 
     const STATUS_PUBLISHED = 'published';
@@ -296,5 +298,95 @@ class Post extends Model { //implements HasMedia {
         return '/'
             . ($this->language_code === 'ru' ? $this->category->slug . '/' : "{$this->language_code}/{$this->category->slug}/")
             . "{$this->slug}";
+    }
+
+    /**
+     * Scout / Elasticsearch methods
+     */
+
+    /**
+     * Определяет, какие данные индексировать в Elasticsearch
+     */
+    public function toSearchableArray(): array
+    {
+        // Извлекаем текстовое содержимое из flexible content
+        $contentText = $this->extractTextFromContent($this->content);
+
+        return [
+            'id' => $this->id,
+            'title' => $this->title,
+            'lead' => $this->lead ?? '',
+            'content' => $contentText,
+            'category_id' => $this->category_id,
+            'category_title' => $this->category?->title ?? '',
+            'category_slug' => $this->category?->slug ?? '',
+            'language_code' => $this->language_code,
+            'type' => $this->type,
+            'status' => $this->status,
+            'published_at' => $this->published_at?->timestamp,
+            'views_count' => $this->views_count ?? 0,
+            'authors' => $this->authors->pluck('fullname')->toArray(),
+            'columnist' => $this->columnist?->fullname ?? '',
+            'tags' => $this->tags->pluck('title')->toArray(),
+        ];
+    }
+
+    /**
+     * Название индекса для поиска
+     */
+    public function searchableAs(): string
+    {
+        return 'posts_' . $this->language_code;
+    }
+
+    /**
+     * Индексировать только опубликованные статьи
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status === self::STATUS_PUBLISHED;
+    }
+
+    /**
+     * Извлекает текст из flexible content для индексации
+     */
+    private function extractTextFromContent($content): string
+    {
+        if (empty($content)) {
+            return '';
+        }
+
+        $text = '';
+        
+        if (is_array($content)) {
+            foreach ($content as $block) {
+                if (isset($block['attributes'])) {
+                    $attrs = $block['attributes'];
+                    
+                    // Text блоки
+                    if (isset($attrs['text'])) {
+                        $text .= strip_tags($attrs['text']) . ' ';
+                    }
+                    
+                    // Quote блоки
+                    if (isset($attrs['quote'])) {
+                        $text .= strip_tags($attrs['quote']) . ' ';
+                    }
+                    
+                    // Title блоки
+                    if (isset($attrs['title'])) {
+                        $text .= strip_tags($attrs['title']) . ' ';
+                    }
+                    
+                    // Subtitle блоки
+                    if (isset($attrs['subtitle'])) {
+                        $text .= strip_tags($attrs['subtitle']) . ' ';
+                    }
+                }
+            }
+        }
+        
+        // Возвращаем весь контент без ограничений
+        return trim($text);
     }
 }

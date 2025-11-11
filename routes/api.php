@@ -9,11 +9,13 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\InvestigationThemeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\SearchController;
 
 Route::prefix('{language_code}')->group(function () {
     Route::get('/layout-data', [MainPageController::class, 'getLayoutData']);
     Route::get('/main-page', [MainPageController::class, 'getMainPage']);
     Route::get('/posts', [PostController::class, 'getAllExceptOpinions']);
+    Route::get('/search', [SearchController::class, 'search']);
 
     Route::get('/investigations', [InvestigationThemeController::class, 'getInvestigationThemes']);
 
