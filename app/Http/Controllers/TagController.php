@@ -21,4 +21,20 @@ class TagController extends Controller
 
         return new TagResource($tag, false);
     }
+    
+    public function getAllTags($language_code)
+    {
+        $tags = Tag
+            ::where('language_code', $language_code)
+            ->withCount('posts')
+            ->get()
+            ->filter(function($tag) {
+                return $tag->posts_count > 0;
+            })
+            ->sortByDesc('posts_count')
+            ->take(20) 
+            ->values(); 
+
+        return TagResource::collection($tags);
+    }
 }

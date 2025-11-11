@@ -19,6 +19,7 @@ Route::prefix('{language_code}')->group(function () {
     Route::get('/search', [SearchController::class, 'search']);
 
     Route::get('/investigations', [InvestigationThemeController::class, 'getInvestigationThemes']);
+    Route::get('/tags', [TagController::class, 'getAllTags']);
 
     Route::get('/category/{slug}', [CategoryController::class, 'getCategory']);
     Route::get('/tag/{slug}', [TagController::class, 'getTag']);
