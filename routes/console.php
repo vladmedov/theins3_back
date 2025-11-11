@@ -17,3 +17,23 @@ Schedule::command('process:view-counts')
     ->onSuccess(function () {
         \Log::info('ProcessViewCounts scheduled task completed successfully');
     });
+
+Schedule::command('update:currencies')
+    ->everyFourHours()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        \Log::error('UpdateCurrencyRates scheduled task failed');
+    })
+    ->onSuccess(function () {
+        \Log::info('UpdateCurrencyRates scheduled task completed successfully');
+    });
+
+Schedule::command('update:oil')
+    ->everyFourHours()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        \Log::error('UpdateOilPrice scheduled task failed');
+    })
+    ->onSuccess(function () {
+        \Log::info('UpdateOilPrice scheduled task completed successfully');
+    });

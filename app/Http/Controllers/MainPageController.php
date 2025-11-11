@@ -13,6 +13,7 @@ use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use App\Models\CollectionPost;
 use App\Models\InvestigationTheme;
+use App\Models\ExchangeRate;
 
 class MainPageController extends Controller
 {
@@ -48,23 +49,7 @@ class MainPageController extends Controller
 
     private function getRates()
     {
-        return [
-            [
-                'currency' => 'USD',
-                'value' => rand(8020, 8050) / 100,
-                'dynamics' => rand(0, 100) > 70,
-            ],
-            [
-                'currency' => 'EUR',
-                'value' => rand(9050, 9099) / 100,
-                'dynamics' => rand(0, 100) > 70,
-            ],
-            [
-                'currency' => 'OIL',
-                'value' => rand(7000, 7099) / 100,
-                'dynamics' => rand(0, 100) > 30,
-            ],
-        ];
+        return ExchangeRate::getLatestRates();
     }
 
     private function getCategories($language_code)
