@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'mailchimp' => [
+        'api_key' => env('MAILCHIMP_API_KEY'),
+        'server_prefix' => env('MAILCHIMP_SERVER_PREFIX'),
+        'lists' => [
+            'ru' => env('MAILCHIMP_LIST_RU'),
+            'en' => env('MAILCHIMP_LIST_EN'),
+        ],
+    ],
+
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+    ],
+
 ];

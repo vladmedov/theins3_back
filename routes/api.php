@@ -11,6 +11,7 @@ use App\Http\Controllers\InvestigationThemeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TrackingPixelController;
+use App\Http\Controllers\MailchimpController;
 
 Route::prefix('{language_code}')->group(function () {
     Route::get('/layout-data', [MainPageController::class, 'getLayoutData']);
@@ -30,4 +31,6 @@ Route::prefix('{language_code}')->group(function () {
     Route::get('/post/{category_slug}/{slug}', [PostController::class, 'getPost']);
     
     Route::post('/track-view', [TrackingPixelController::class, 'trackView']);
+    
+    Route::post('/newsletter/subscribe', [MailchimpController::class, 'subscribe']);
 });

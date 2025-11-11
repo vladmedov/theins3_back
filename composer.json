@@ -16,6 +16,7 @@
         "laravel/nova": "^5.0",
         "laravel/scout": "*",
         "laravel/tinker": "^2.10.1",
+        "mailchimp/marketing": "^3.0",
         "matchish/laravel-scout-elasticsearch": "*",
         "medov/custom-flexible-menu": "@dev",
         "medov/date-time-split": "@dev",
