@@ -16,8 +16,8 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd \
     && pecl config-set preferred_state beta \
-    && pecl install imagick \
-    && docker-php-ext-enable imagick
+    && pecl install imagick redis \
+    && docker-php-ext-enable imagick redis
 
 # Настройка PHP для загрузки больших файлов
 RUN { \

@@ -50,7 +50,7 @@ class PostResource extends JsonResource
             ))->toArray($request)];
         }, []) : [])
         + ($this->inList ? [] : [
-            'count_views' => $this->count_views ?? 0,
+            'views_count' => $this->views_count ?? 0,
             'tags' => $this->whenLoaded('tags', function () use ($request) {
                 return (TagResource::collection($this->tags))->toArray($request);
             }), 

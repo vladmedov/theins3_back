@@ -10,6 +10,7 @@ use App\Http\Controllers\TagController;
 use App\Http\Controllers\InvestigationThemeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\TrackingPixelController;
 
 Route::prefix('{language_code}')->group(function () {
     Route::get('/layout-data', [MainPageController::class, 'getLayoutData']);
@@ -26,4 +27,6 @@ Route::prefix('{language_code}')->group(function () {
     Route::get('/columnist/{slug}', [UserController::class, 'getColumnist']);
 
     Route::get('/post/{category_slug}/{slug}', [PostController::class, 'getPost']);
+    
+    Route::post('/track-view', [TrackingPixelController::class, 'trackView']);
 });
