@@ -83,6 +83,11 @@ class Post extends Model { //implements HasMedia {
 
         // Объединяем логику создания PostHistory в отдельный метод
         $createHistory = function($post, $oldData, $newData, $status) {
+            // Проверяем есть ли авторизованный пользователь
+            if (!auth()->check()) {
+                return;
+            }
+            
             $oldData['content'] = isset($oldData['content']) ? CompactFlexibleCast::convertToDbFormat($oldData['content']) : null;
             $changes = ChangeDetectorService::compare($oldData, $newData, ['created_at', 'updated_at']);
     
