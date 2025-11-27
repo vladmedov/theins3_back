@@ -78,7 +78,7 @@ class PostResource extends JsonResource
         foreach ($blocks as $key => $block) {
             if ($block['type'] === 'related') {
                 $ids = $block['attributes']['related_posts'];
-                $posts = PostResource::collection(Post::whereIn('id', $ids)->get());
+                $posts = PostResource::collection(Post::whereIn('id', $ids)->where('status', Post::STATUS_PUBLISHED)->get());
                 $block['attributes']['related_posts'] = $posts;
                 $blocks[$key] = $block;
             }
@@ -118,6 +118,14 @@ class PostResource extends JsonResource
         }
 
         return true;
+    }
+
+    private function getWidgets(): array
+    {
+        return [
+            $this->getPopularWidget($this->language_code),
+            $this->getSubscribeWidget(),
+        ];
     }
 
     private function getPath()

@@ -14,6 +14,8 @@ use App\Models\Tag;
 
 use App\Models\Author;
 use App\Models\PostAuthor;
+use App\Models\User;
+use App\Models\PostOwner;
 
 use App\Models\InvestigationTheme;
 
@@ -30,6 +32,8 @@ class TestController extends Controller
     public function test()
     {
         $this->clearDB();
+
+        $this->importAdmins();
 
         $this->importCategories(1);
         $this->importCategories(3);
@@ -49,8 +53,68 @@ class TestController extends Controller
 
         $this->importThemePosts();
 
+        // Импорт связей админов с постами (post_owners)
+        $this->importAdminRelations();
+
         return [
             'status' => 'Import completed',
+        ];
+    }
+
+    public function checkPost($postId = 283015)
+    {
+        // Получаем пост из новой БД
+        $post = Post::find($postId);
+        
+        if (!$post) {
+            return [
+                'error' => 'Post not found in new DB',
+                'post_id' => $postId,
+            ];
+        }
+
+        // content уже массив благодаря cast в модели Post
+        $content = is_array($post->content) ? $post->content : json_decode($post->content, true);
+        
+        if (!$content) {
+            return [
+                'error' => 'Content is empty or invalid',
+                'post_id' => $postId,
+            ];
+        }
+        
+        // Ищем текстовые блоки
+        $textBlocks = [];
+        foreach ($content as $index => $block) {
+            if (isset($block['type']) && $block['type'] === 'text') {
+                $text = $block['attributes']['text'] ?? '';
+                $textBlocks[] = [
+                    'index' => $index,
+                    'text' => $text,
+                    'raw_length' => strlen($text),
+                    // Добавим hex dump первых 100 символов чтобы увидеть невидимые символы
+                    'hex_preview' => bin2hex(substr($text, 0, 200)),
+                ];
+            }
+        }
+
+        return [
+            'post_id' => $postId,
+            'total_blocks' => count($content),
+            'text_blocks_count' => count($textBlocks),
+            'text_blocks' => $textBlocks,
+        ];
+    }
+
+    public function reimportPost($postId = 283015)
+    {
+        // Переимпортируем контент поста с новой логикой очистки
+        $this->importContentPosts($postId);
+        
+        return [
+            'status' => 'Post content reimported',
+            'post_id' => $postId,
+            'message' => 'Check post at /test/post/' . $postId,
         ];
     }
 
@@ -260,7 +324,7 @@ class TestController extends Controller
                     $content[] = [
                         'type' => 'text',
                         'attributes' => [
-                            'text' => $text,
+                            'text' => $this->normalizeHtml($text),
                         ],
                     ];
                 } else {
@@ -274,7 +338,7 @@ class TestController extends Controller
                             $content[] = [
                                 'type' => 'text',
                                 'attributes' => [
-                                    'text' => $textBefore,
+                                    'text' => $this->normalizeHtml($textBefore),
                                 ],
                             ];
                         }
@@ -304,7 +368,7 @@ class TestController extends Controller
                         $content[] = [
                             'type' => 'text',
                             'attributes' => [
-                                'text' => $textAfter,
+                                'text' => $this->normalizeHtml($textAfter),
                             ],
                         ];
                     }
@@ -786,6 +850,47 @@ class TestController extends Controller
         // Удаляем символ ◀ в конце текста
         $html = preg_replace('/\s*◀\s*$/', '', $html);
         
+        // Сначала очищаем пустые параграфы - ДО балансировки тегов
+        $html = $this->removeEmptyParagraphs($html);
+        
+        // Агрессивно удаляем ВСЕ висячие теги в начале (в цикле пока они есть)
+        $cleanStart = true;
+        $maxIterations = 20;
+        $iteration = 0;
+        
+        while ($cleanStart && $iteration < $maxIterations) {
+            $cleanStart = false;
+            $iteration++;
+            
+            // Удаляем <br></p> в начале
+            if (preg_match('/^[\s\r\n\t]*<br\s*\/?><\/p>/is', $html)) {
+                $html = preg_replace('/^[\s\r\n\t]*<br\s*\/?><\/p>/is', '', $html);
+                $cleanStart = true;
+                continue;
+            }
+            
+            // Удаляем </p> в начале
+            if (preg_match('/^[\s\r\n\t]*<\/p>/is', $html)) {
+                $html = preg_replace('/^[\s\r\n\t]*<\/p>/is', '', $html);
+                $cleanStart = true;
+                continue;
+            }
+            
+            // Удаляем <br> в начале
+            if (preg_match('/^[\s\r\n\t]*<br\s*\/?>/is', $html)) {
+                $html = preg_replace('/^[\s\r\n\t]*<br\s*\/?>/is', '', $html);
+                $cleanStart = true;
+                continue;
+            }
+            
+            // Удаляем любые закрывающие теги в начале
+            if (preg_match('/^[\s\r\n\t]*<\/([a-z0-9]+)>/is', $html)) {
+                $html = preg_replace('/^[\s\r\n\t]*<\/([a-z0-9]+)>/is', '', $html);
+                $cleanStart = true;
+                continue;
+            }
+        }
+        
         // Подсчитываем количество открывающих и закрывающих p-тегов
         $openingPCount = substr_count(strtolower($html), '<p');
         $closingPCount = substr_count(strtolower($html), '</p');
@@ -794,36 +899,81 @@ class TestController extends Controller
         if ($closingPCount > $openingPCount) {
             $diff = $closingPCount - $openingPCount;
             // Удаляем лишние закрывающие теги с конца строки
-            $pattern = '/(<\/p>){' . $diff . '}\s*$/i';
-            $html = preg_replace($pattern, '', $html);
+            for ($i = 0; $i < $diff; $i++) {
+                $html = preg_replace('/<\/p>[\s\r\n\t]*$/is', '', $html, 1);
+            }
         }
-        
-        // Удаляем пустые параграфы
-        $html = preg_replace('/<p>\s*(&nbsp;)*\s*<\/p>/i', '', $html);
-        
-        // Удаляем висящие закрывающие теги в начале текста
-        $html = preg_replace('/^[\s\n]*<\/([a-z0-9]+)>/', '', $html);
         
         // Если текст не начинается с тега p и не пустой, оборачиваем его
         if (!preg_match('/^\s*<p(?:\s[^>]*)?>/i', $html) && trim($html) !== '') {
             $html = "<p>$html</p>";
         }
         
-        // Нормализуем структуру вложенных тегов, удаляя невалидные конструкции
-        $dom = new \DOMDocument();
-        // Отключаем сообщения об ошибках при парсинге невалидного HTML
-        libxml_use_internal_errors(true);
-        // Задаем кодировку и загружаем HTML
-        $html = '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' . $html;
-        $dom->loadHTML($html);
-        // Возвращаем только body содержимое (без meta и других служебных тегов)
-        $html = $dom->saveHTML($dom->getElementsByTagName('body')->item(0));
-        // Удаляем теги body, которые были добавлены
-        $html = preg_replace('/<\/?body>/', '', $html);
-        libxml_clear_errors();
+        // Агрессивно удаляем висячие теги в конце (пустые открывающие теги)
+        $cleanEnd = true;
+        $maxIterations = 20;
+        $iteration = 0;
         
-        // Финальная очистка - удаляем пустые параграфы, которые могли появиться
-        $html = preg_replace('/<p>\s*(&nbsp;)*\s*<\/p>/i', '', $html);
+        while ($cleanEnd && $iteration < $maxIterations) {
+            $cleanEnd = false;
+            $iteration++;
+            
+            // Удаляем <p><br> в конце без закрывающего </p>
+            if (preg_match('/<p[^>]*>[\s\r\n\t]*<br\s*\/?>[\s\r\n\t]*$/is', $html)) {
+                $html = preg_replace('/<p[^>]*>[\s\r\n\t]*<br\s*\/?>[\s\r\n\t]*$/is', '', $html);
+                $cleanEnd = true;
+                continue;
+            }
+            
+            // Удаляем пустой <p> в конце
+            if (preg_match('/<p[^>]*>[\s\r\n\t]*$/is', $html)) {
+                $html = preg_replace('/<p[^>]*>[\s\r\n\t]*$/is', '', $html);
+                $cleanEnd = true;
+                continue;
+            }
+        }
+        
+        // Еще раз очищаем пустые параграфы после всех манипуляций
+        $html = $this->removeEmptyParagraphs($html);
+        
+        return $html;
+    }
+
+    /**
+     * Удаляет пустые параграфы - последовательно применяем разные паттерны
+     */
+    private function removeEmptyParagraphs($html) {
+        if (empty(trim($html))) {
+            return $html;
+        }
+
+        // Повторяем удаление пока есть изменения
+        $maxIterations = 10;
+        $iteration = 0;
+        
+        do {
+            $previousHtml = $html;
+            
+            // Заменяем &nbsp; на пробел
+            $html = str_replace('&nbsp;', ' ', $html);
+            
+            // 1. Удаляем <p><br></p> и вариации
+            $html = preg_replace('/<p[^>]*>\s*<br\s*\/?>\s*<\/p>/is', '', $html);
+            
+            // 2. Удаляем <p> с только пробелами </p>
+            $html = preg_replace('/<p[^>]*>\s+<\/p>/is', '', $html);
+            
+            // 3. Удаляем полностью пустые <p></p>
+            $html = preg_replace('/<p[^>]*><\/p>/i', '', $html);
+            
+            // 4. Удаляем параграфы с несколькими <br>
+            $html = preg_replace('/<p[^>]*>(?:\s*<br\s*\/?>\s*)+<\/p>/is', '', $html);
+            
+            // 5. Удаляем параграфы с миксом пробелов и <br>
+            $html = preg_replace('/<p[^>]*>[\s\r\n\t]*(?:<br\s*\/?>[\s\r\n\t]*)+<\/p>/is', '', $html);
+            
+            $iteration++;
+        } while ($html !== $previousHtml && $iteration < $maxIterations);
         
         return $html;
     }
@@ -865,20 +1015,27 @@ class TestController extends Controller
         // Удаляем висящие закрывающие теги в начале строки
         $html = preg_replace('/^[\s\n]*<\/([a-z0-9]+)>/', '', $html);
         
-        // Удаляем полностью пустые параграфы (даже без пробелов)
-        $html = preg_replace('/<p><\/p>/i', '', $html);
+        // Многоэтапная очистка пустых тегов (с модификатором s для многострочности)
+        // Шаг 1: Удаляем полностью пустые параграфы (даже без пробелов)
+        $html = preg_replace('/<p[^>]*><\/p>/is', '', $html);
         
-        // Удаляем параграфы только с пробельными символами
-        $html = preg_replace('/<p>\s*(&nbsp;)*\s*<\/p>/i', '', $html);
+        // Шаг 2: Удаляем параграфы с только &nbsp;
+        $html = preg_replace('/<p[^>]*>[\s\r\n\t]*&nbsp;[\s\r\n\t]*<\/p>/is', '', $html);
         
-        // Удаляем пустые div
-        $html = preg_replace('/<div>\s*(&nbsp;)*\s*<\/div>/i', '', $html);
+        // Шаг 3: Удаляем параграфы с только <br>
+        $html = preg_replace('/<p[^>]*>[\s\r\n\t]*<br\s*\/?>[\s\r\n\t]*<\/p>/is', '', $html);
         
-        // Удаляем пустые span
-        $html = preg_replace('/<span>\s*(&nbsp;)*\s*<\/span>/i', '', $html);
+        // Шаг 4: Удаляем параграфы с комбинациями
+        $html = preg_replace('/<p[^>]*>([\r\n\t ]|&nbsp;|<br[\s\/]*>)+<\/p>/is', '', $html);
+        
+        // Аналогично для div
+        $html = preg_replace('/<div[^>]*>([\r\n\t ]|&nbsp;|<br[\s\/]*>)+<\/div>/is', '', $html);
+        
+        // Аналогично для span
+        $html = preg_replace('/<span[^>]*>([\r\n\t ]|&nbsp;|<br[\s\/]*>)+<\/span>/is', '', $html);
         
         // Удаляем теги с атрибутами, но пустым содержимым
-        $html = preg_replace('/<([a-z0-9]+)(?:\s+[^>]*)?>\s*(&nbsp;)*\s*<\/\1>/i', '', $html);
+        $html = preg_replace('/<([a-z0-9]+)(?:\s+[^>]*)?>([\r\n\t ]|&nbsp;|<br[\s\/]*>)+<\/\1>/is', '', $html);
         
         // Удаляем символ ◀ и любые пробельные символы в конце текста
         $html = preg_replace('/[\s\n]*◀[\s\n]*$/', '', $html);
@@ -891,10 +1048,10 @@ class TestController extends Controller
         $iterations = 0;
         while ($previousHtml !== $html && $iterations < 5) {
             $previousHtml = $html;
-            // Удаляем пустые теги
-            $html = preg_replace('/<([a-z0-9]+)(?:\s+[^>]*)?>\s*(&nbsp;)*\s*<\/\1>/i', '', $html);
+            // Удаляем пустые теги с улучшенным паттерном (с модификатором s)
+            $html = preg_replace('/<([a-z0-9]+)(?:\s+[^>]*)?>([\r\n\t ]|&nbsp;|<br[\s\/]*>)+<\/\1>/is', '', $html);
             // Удаляем висящие закрывающие теги
-            $html = preg_replace('/[\s\n]*<\/([a-z0-9]+)>[\s\n]*$/', '', $html);
+            $html = preg_replace('/[\s\n]*<\/([a-z0-9]+)>[\s\n]*$/s', '', $html);
             $iterations++;
         }
         
@@ -974,6 +1131,7 @@ class TestController extends Controller
 
     private function clearDB()
     {
+        PostOwner::truncate();
         Category::truncate();
         Author::truncate();
         InvestigationTheme::truncate();
@@ -982,6 +1140,7 @@ class TestController extends Controller
         PostAuthor::truncate();
         Termin::truncate();
         Tag::truncate();
+        User::truncate();
     }
 
     private function importCategories($regionId)
@@ -1198,6 +1357,116 @@ class TestController extends Controller
             foreach ($posts as $post) {
                 $post->investigation_theme_id = $themeIds[$post->id];
                 $post->save();
+            }
+        });
+    }
+
+    private function importAdmins()
+    {
+        // Получаем всех админов из старой БД
+        $admins = $this->legacy_db->select('
+            SELECT * FROM public.admins
+            ORDER BY id ASC
+        ');
+
+        // Получаем все связи админов с регионами
+        $regionRelations = $this->legacy_db->select('
+            SELECT regionable_id as admin_id, region_id 
+            FROM public.region_relations
+            WHERE regionable_type = \'Admin\'
+        ');
+
+        // Группируем регионы по admin_id
+        $adminRegions = [];
+        foreach ($regionRelations as $relation) {
+            $adminRegions[$relation->admin_id][] = $relation->region_id;
+        }
+
+        // Импортируем каждого админа
+        collect($admins)->each(function ($admin) use ($adminRegions) {
+            // Маппинг team_role_id в role_code
+            $roleCode = match ($admin->team_role_id) {
+                1 => 'admin',
+                2 => 'editor',
+                3 => 'journalist',
+                default => 'journalist',
+            };
+
+            // Формируем available_languages на основе регионов
+            $availableLanguages = [];
+            $regions = $adminRegions[$admin->id] ?? [];
+            
+            foreach ($regions as $regionId) {
+                if ($regionId === 1) {
+                    $availableLanguages['ru'] = true;
+                } elseif ($regionId === 3) {
+                    $availableLanguages['en'] = true;
+                }
+            }
+
+            // Если нет регионов, ставим по умолчанию ru
+            if (empty($availableLanguages)) {
+                $availableLanguages = ['ru' => true];
+            }
+
+            // Используем прямую вставку в БД, минуя Eloquent модель,
+            // чтобы избежать повторного хеширования уже захешированного пароля
+            // Rails использует $2a$, Laravel ожидает $2y$ - заменяем префикс
+            $password = str_replace('$2a$', '$2y$', $admin->password_digest);
+            
+            DB::table('users')->insert([
+                'id' => $admin->id,
+                'email' => $admin->email,
+                'password' => $password,
+                'name' => $admin->name,
+                'role_code' => $roleCode,
+                'available_languages' => json_encode($availableLanguages),
+                'timezone' => $admin->timezone,
+                'created_at' => $admin->created_at,
+                'updated_at' => $admin->updated_at,
+            ]);
+        });
+    }
+
+    private function importAdminRelations()
+    {
+        // Получаем все связи админов с постами
+        $adminRelations = $this->legacy_db->select('
+            SELECT admin_id, adminable_id as post_id, created_at, updated_at 
+            FROM public.admin_relations
+            WHERE adminable_type = \'Post\'
+            ORDER BY id ASC
+        ');
+
+        // Получаем все существующие посты в новой БД
+        $existingPostIds = Post::pluck('id')->toArray();
+
+        // Получаем все существующие пользователей в новой БД
+        $existingUserIds = User::pluck('id')->toArray();
+
+        // Импортируем связи
+        collect($adminRelations)->each(function ($relation) use ($existingPostIds, $existingUserIds) {
+            // Проверяем, что пост и пользователь существуют
+            if (!in_array($relation->post_id, $existingPostIds)) {
+                return; // Пропускаем, если пост не импортирован
+            }
+
+            if (!in_array($relation->admin_id, $existingUserIds)) {
+                return; // Пропускаем, если пользователь не импортирован
+            }
+
+            // Проверяем, не существует ли уже такая связь
+            $exists = PostOwner::where('post_id', $relation->post_id)
+                              ->where('user_id', $relation->admin_id)
+                              ->exists();
+
+            if (!$exists) {
+                PostOwner::create([
+                    'post_id' => $relation->post_id,
+                    'user_id' => $relation->admin_id,
+                    'created_at' => $relation->created_at,
+                    'updated_at' => $relation->updated_at,
+                ]);
             }
         });
     }

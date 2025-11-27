@@ -36,11 +36,19 @@ class ColumnistResource extends JsonResource
         + $this->when($this->inList, function () {
             return [];
         }, function () use ($request) {
-            return ['posts' => (PostResource::collection($this->opinions))->toArray($request)];
+            return [
+                'posts' => (PostResource::collection($this->opinions))->toArray($request),
+                'widgets' => $this->getWidgets(),
+            ];
         });
     }
 
-
+    private function getWidgets(): array
+    {
+        return [
+            $this->getColumnistsWidget($this->language_code),
+        ];
+    }
 
     private function getPath()
     {

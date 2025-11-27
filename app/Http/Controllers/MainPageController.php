@@ -14,6 +14,7 @@ use App\Models\Category;
 use App\Models\CollectionPost;
 use App\Models\InvestigationTheme;
 use App\Models\ExchangeRate;
+use App\Http\Controllers\WidgetController;
 
 class MainPageController extends Controller
 {
@@ -36,10 +37,12 @@ class MainPageController extends Controller
             return $this->getArticles($language_code);
         }
 
+        $widgetController = new WidgetController();
+
         return [
             'collection_opinions' => $this->getCollectionPosts($language_code, CollectionPost::COLLECTION_CODE_MAIN_OPINIONS, 7, PostTypes::OPINION),
             'collection_feature' => $feature,
-            'collection_popular' => $this->getCollectionPosts($language_code, CollectionPost::COLLECTION_CODE_POPULAR, 5, null, 'views_count'),
+            'collection_popular' => $widgetController->getPopular($language_code)->toArray(request()),
             'main_investigation' => $this->getMainInvestigation($language_code),
             'confessions' => $this->getConfession($language_code),
             'news' => $this->getNews($language_code),

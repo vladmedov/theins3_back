@@ -41,6 +41,34 @@ class CategoryResource extends JsonResource
         });
     }
 
+    private function getWidgets(): array
+    {
+        $widgets = [];
+        
+        if ($this->type === 'news') {
+            $widgets = [
+                $this->getSubscribeWidget(),
+                $this->getDonateWidget(50),
+                $this->getRandomWidget($this->language_code, ['social', 'opinions']),
+            ];
+        } elseif ($this->type === 'opinion') {
+            $widgets = [
+                $this->getColumnistsWidget($this->language_code),
+                $this->getDonateWidget(50),
+            ];
+        } else {
+            $widgets = [
+                $this->getRandomWidget($this->language_code),
+                $this->getDonateWidget(50),
+                $this->getSocialWidget(),
+            ];
+        }
+        
+        $widgets[] = $this->getPopularWidget($this->language_code);
+        
+        return $widgets;
+    }
+
     private function getPath()
     {
         return '/'

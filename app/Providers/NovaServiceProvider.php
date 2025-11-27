@@ -61,6 +61,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                 MenuGroup::make(__('Main page'), [
                     MenuItem::resource(\App\Nova\_Collections\CollectionFeature::class),
                     MenuItem::resource(\App\Nova\_Collections\CollectionPopular::class),
+                    MenuItem::resource(\App\Nova\_Collections\CollectionTopNews::class),
                     MenuItem::resource(\App\Nova\_Collections\CollectionMainOpinions::class),
                 ])->collapsable()->collapsedByDefault(),//->icon('users'),
 

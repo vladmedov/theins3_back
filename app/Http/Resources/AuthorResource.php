@@ -36,8 +36,20 @@ class AuthorResource extends JsonResource
         + $this->when($this->inList, function () {
             return [];
         }, function () use ($request) {
-            return ['posts' => (PostResource::collection($this->notOpinions))->toArray($request)];
+            return [
+                'posts' => (PostResource::collection($this->notOpinions))->toArray($request),
+                'widgets' => $this->getWidgets(),
+            ];
         });
+    }
+
+    private function getWidgets(): array
+    {
+        return [
+            $this->getRandomWidget($this->language_code),
+            $this->getDonateWidget(50),
+            $this->getSocialWidget(),
+        ];
     }
 
     private function getPath()

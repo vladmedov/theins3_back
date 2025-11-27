@@ -40,6 +40,16 @@ class TagResource extends JsonResource
         });
     }
 
+    private function getWidgets(): array
+    {
+        return [
+            $this->getRandomWidget($this->language_code),
+            $this->getDonateWidget(50),
+            $this->getSocialWidget(),
+            $this->getPopularWidget($this->language_code),
+        ];
+    }
+
     private function getPath()
     {
         return '/'

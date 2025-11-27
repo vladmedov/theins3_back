@@ -16,6 +16,7 @@ class CollectionPost extends Pivot implements Sortable {
     const COLLECTION_CODE_MAIN_OPINIONS = 'main_opinions';
     const COLLECTION_CODE_FEATURE = 'feature';
     const COLLECTION_CODE_POPULAR = 'popular';
+    const COLLECTION_CODE_TOP_NEWS = 'top_news';
 
     protected $fillable = [
         'language_code',
