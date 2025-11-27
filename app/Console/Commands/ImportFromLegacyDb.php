@@ -12,40 +12,44 @@ class ImportFromLegacyDb extends Command
 
     public function handle()
     {
-        $action = $this->argument('action') ?? 'all';
+        $action = $this->argument('action') ?? 'test';
         
         $controller = new TestController();
         
-        $this->info("Starting import: {$action}");
+        $this->info("Starting import/test: {$action}");
         
         try {
             switch ($action) {
-                case 'categories':
-                    $controller->importCategories(1);
-                    $this->info('Categories imported successfully');
+                case 'test':
+                    $this->info('Running full test import...');
+                    $controller->test();
+                    $this->info('Test import completed successfully');
                     break;
                     
-                case 'admins':
-                    $controller->importAdmins();
-                    $this->info('Admins imported successfully');
+                case 'post':
+                    $postId = $this->ask('Enter post ID (default: 283015)', 283015);
+                    $controller->checkPost($postId);
+                    $this->info("Post {$postId} checked successfully");
                     break;
                     
-                case 'all':
-                    $this->call('import:legacy', ['action' => 'categories']);
-                    $this->call('import:legacy', ['action' => 'admins']);
+                case 'reimport':
+                    $postId = $this->ask('Enter post ID (default: 283015)', 283015);
+                    $controller->reimportPost($postId);
+                    $this->info("Post {$postId} reimported successfully");
                     break;
                     
                 default:
                     $this->error("Unknown action: {$action}");
-                    $this->info('Available actions: categories, admins, all');
+                    $this->info('Available actions: test, post, reimport');
                     return 1;
             }
             
-            $this->info('Import completed!');
+            $this->info('Command completed!');
             return 0;
             
         } catch (\Exception $e) {
-            $this->error('Import failed: ' . $e->getMessage());
+            $this->error('Command failed: ' . $e->getMessage());
+            $this->error($e->getTraceAsString());
             return 1;
         }
     }
