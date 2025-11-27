@@ -13,8 +13,6 @@ use App\Http\Controllers\CategoryController;
 
 use App\Http\Controllers\TestController;
 
-Route::get('/test', [TestController::class, 'test']);
-
 Route::get('/', function (Request $request) {
 
     $user = auth()->user();

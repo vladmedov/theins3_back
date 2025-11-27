@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     curl \
+    git \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
     libpng-dev \
@@ -33,9 +34,19 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 WORKDIR /var/www/html
 
+# Сначала копируем auth.json для доступа к Laravel Nova
+COPY auth.json /root/.composer/auth.json
+
+# Копируем composer файлы
+COPY composer.json composer.lock ./
+
+# Устанавливаем зависимости
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-autoloader
+
+# Копируем остальные файлы
 COPY . .
 
-# Запускаем Composer
-RUN composer install --no-dev --optimize-autoloader
+# Генерируем autoloader
+RUN composer dump-autoload --optimize --no-dev
 
 CMD ["php-fpm"]
