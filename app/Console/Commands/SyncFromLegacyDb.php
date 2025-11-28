@@ -17,6 +17,7 @@ use App\Models\Termin;
 use App\Models\PostTypes\OnlineMessage;
 use App\Models\User;
 use App\Models\PostOwner;
+use App\Models\CollectionPost;
 
 class SyncFromLegacyDb extends Command
 {
@@ -78,6 +79,7 @@ class SyncFromLegacyDb extends Command
             $this->syncPostAuthors(3);
             $this->syncThemePosts();
             $this->syncAdminRelations();
+            $this->syncCollections();
 
             $this->info('Sync completed successfully!');
             Log::info('Legacy sync completed successfully');
@@ -471,14 +473,14 @@ class SyncFromLegacyDb extends Command
                             $post->save();
                         } else {
                             // Для остальных типов постов - в таблицу post_authors
-                            PostAuthor::updateOrCreate(
-                                [
+                    PostAuthor::updateOrCreate(
+                        [
                                     'post_id' => $post->id,
                                     'author_id' => $authorId,
-                                ]
-                            );
+                        ]
+                    );
                         }
-                        $syncedCount++;
+                    $syncedCount++;
                     }
                 }
             }
@@ -1193,6 +1195,66 @@ class SyncFromLegacyDb extends Command
         } while ($html !== $previousHtml && $iteration < $maxIterations);
         
         return $html;
+    }
+
+    private function syncCollections(): void
+    {
+        $entityType = "collections";
+        
+        try {
+            SyncLog::markAsRunning($entityType);
+            
+            $lastSyncTime = SyncLog::getLastSyncTime($entityType);
+            
+            $this->info("Syncing post collections (updated after {$lastSyncTime})");
+
+            // Синхронизация фичеров (featured posts) из старой БД
+            $featuredPosts = $this->legacy_db->select('
+                SELECT feature_on_mains.*, region_relations.region_id 
+                FROM public.feature_on_mains
+                JOIN public.region_relations ON region_relations.regionable_id = feature_on_mains.postable_id 
+                    AND region_relations.regionable_type = \'Post\'
+                WHERE feature_on_mains.postable_type = \'Post\'
+                AND feature_on_mains.updated_at > ?
+                ORDER BY feature_on_mains.position ASC
+            ', [$lastSyncTime]);
+
+            $syncedCount = 0;
+            foreach ($featuredPosts as $featured) {
+                // Определяем язык по region_id
+                $languageCode = $featured->region_id === 1 ? 'ru' : 'en';
+                
+                // Проверяем существование поста
+                $post = Post::find($featured->postable_id);
+                if ($post) {
+                    CollectionPost::updateOrCreate(
+                        [
+                            'language_code' => $languageCode,
+                            'collection_code' => CollectionPost::COLLECTION_CODE_FEATURE,
+                            'post_id' => $featured->postable_id,
+                        ],
+                        [
+                            'position' => $featured->position ?? 0,
+                        ]
+                    );
+                    $this->line("  → Featured post ID: {$featured->postable_id} (position: {$featured->position})");
+                    $syncedCount++;
+                }
+            }
+
+            $this->info("Synced {$syncedCount} featured posts");
+            SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
+
+        } catch (\Exception $e) {
+            // Если таблица feature_on_mains не существует, это не ошибка
+            if (str_contains($e->getMessage(), 'feature_on_mains')) {
+                $this->warn("Table feature_on_mains not found in legacy database, skipping collections sync");
+                SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
+            } else {
+                SyncLog::markAsFailed($entityType, $e->getMessage());
+                throw $e;
+            }
+        }
     }
 }
 

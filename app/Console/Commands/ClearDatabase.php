@@ -14,6 +14,7 @@ use App\Models\PostTypes\OnlineMessage;
 use App\Models\User;
 use App\Models\PostOwner;
 use App\Models\SyncLog;
+use App\Models\CollectionPost;
 
 class ClearDatabase extends Command
 {
@@ -33,6 +34,7 @@ class ClearDatabase extends Command
 
         $this->clearTable(PostOwner::class, 'post_owners');
         $this->clearTable(PostAuthor::class, 'post_authors');
+        $this->clearTable(CollectionPost::class, 'collection_post');
         $this->clearTable(OnlineMessage::class, 'online_messages');
         $this->clearTable(Post::class, 'posts');
         $this->clearTable(Category::class, 'categories');
