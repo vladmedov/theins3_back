@@ -101,7 +101,7 @@ return [
             'driver' => 'pgsql',
             'url' => env('LEGACY_DB_URL'),
             'host' => env('LEGACY_DB_HOST', 'legacy_db'),
-            'port' => env('LEGACY_DB_PORT', '5433'),
+            'port' => env('LEGACY_DB_PORT', '5432'),
             'database' => env('LEGACY_DB_DATABASE', 'theins_legacy'),
             'username' => env('LEGACY_DB_USERNAME', 'theins'),
             'password' => env('LEGACY_DB_PASSWORD', 'ith4837wiuesq93r8wgfiub'),

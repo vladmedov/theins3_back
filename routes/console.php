@@ -37,3 +37,13 @@ Schedule::command('update:oil')
     ->onSuccess(function () {
         \Log::info('UpdateOilPrice scheduled task completed successfully');
     });
+
+Schedule::command('sync:legacy')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        \Log::error('Legacy sync scheduled task failed');
+    })
+    ->onSuccess(function () {
+        \Log::info('Legacy sync scheduled task completed successfully');
+    });
