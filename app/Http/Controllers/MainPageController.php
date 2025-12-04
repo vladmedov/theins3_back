@@ -65,7 +65,8 @@ class MainPageController extends Controller
                 ->get()
         )->toArray(request());
 
-        $firstCategory = [$categories[1]];
+        $firstCategories = [$categories[0], $categories[1]];
+        unset($categories[0]);
         unset($categories[1]);
         
         if ($language_code === 'ru') {
@@ -76,9 +77,9 @@ class MainPageController extends Controller
                     'title' => 'Военная сводка',
                 ]
             ];
-            $categories = array_merge($firstCategory, $militaryTag, $categories);
+            $categories = array_merge($firstCategories, $militaryTag, $categories);
         } else {
-            $categories = array_merge($firstCategory, $categories);
+            $categories = array_merge($firstCategories, $categories);
         }
 
         return $categories;
