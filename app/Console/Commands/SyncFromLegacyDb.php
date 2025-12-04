@@ -1055,10 +1055,32 @@ class SyncFromLegacyDb extends Command
                 ORDER BY id ASC
             ', [$lastSyncTime]);
 
+            $totalRelations = count($adminRelations);
+            $this->info("Found {$totalRelations} admin-post relations to sync");
+
+            if ($totalRelations === 0) {
+                $this->info("Synced 0 admin-post relations");
+                SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
+                return;
+            }
+
+            // Предзагружаем существующие посты и пользователей для быстрой проверки
+            $postIds = array_column($adminRelations, 'post_id');
+            $adminIds = array_column($adminRelations, 'admin_id');
+            
+            $existingPostIds = Post::whereIn('id', array_unique($postIds))->pluck('id')->toArray();
+            $existingUserIds = User::whereIn('id', array_unique($adminIds))->pluck('id')->toArray();
+            
+            $this->line("  Posts found: " . count($existingPostIds) . ", Users found: " . count($existingUserIds));
+
             $syncedCount = 0;
+            $processedCount = 0;
+            
             foreach ($adminRelations as $relation) {
-                // Проверяем существование поста и пользователя
-                if (Post::find($relation->post_id) && User::find($relation->admin_id)) {
+                $processedCount++;
+                
+                // Быстрая проверка через массивы вместо запросов к БД
+                if (in_array($relation->post_id, $existingPostIds) && in_array($relation->admin_id, $existingUserIds)) {
                     PostOwner::updateOrCreate(
                         [
                             'post_id' => $relation->post_id,
@@ -1071,9 +1093,14 @@ class SyncFromLegacyDb extends Command
                     );
                     $syncedCount++;
                 }
+                
+                // Выводим прогресс каждые 1000 записей
+                if ($processedCount % 1000 === 0) {
+                    $this->line("  Progress: {$processedCount}/{$totalRelations} processed, {$syncedCount} synced");
+                }
             }
 
-            $this->info("Synced {$syncedCount} admin-post relations");
+            $this->info("Synced {$syncedCount} admin-post relations (processed {$processedCount})");
             SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
 
         } catch (\Exception $e) {
