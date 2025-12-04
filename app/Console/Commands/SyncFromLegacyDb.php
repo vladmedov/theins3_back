@@ -1064,12 +1064,28 @@ class SyncFromLegacyDb extends Command
                 return;
             }
 
-            // Предзагружаем существующие посты и пользователей для быстрой проверки
-            $postIds = array_column($adminRelations, 'post_id');
-            $adminIds = array_column($adminRelations, 'admin_id');
+            // Предзагружаем существующие посты и пользователей батчами (чтобы избежать огромных SQL запросов)
+            $postIds = array_unique(array_column($adminRelations, 'post_id'));
+            $adminIds = array_unique(array_column($adminRelations, 'admin_id'));
             
-            $existingPostIds = Post::whereIn('id', array_unique($postIds))->pluck('id')->toArray();
-            $existingUserIds = User::whereIn('id', array_unique($adminIds))->pluck('id')->toArray();
+            $existingPostIds = [];
+            $existingUserIds = [];
+            
+            // Загружаем посты батчами по 10000
+            foreach (array_chunk($postIds, 10000) as $postIdsChunk) {
+                $existingPostIds = array_merge(
+                    $existingPostIds,
+                    Post::whereIn('id', $postIdsChunk)->pluck('id')->toArray()
+                );
+            }
+            
+            // Загружаем пользователей батчами по 1000
+            foreach (array_chunk($adminIds, 1000) as $adminIdsChunk) {
+                $existingUserIds = array_merge(
+                    $existingUserIds,
+                    User::whereIn('id', $adminIdsChunk)->pluck('id')->toArray()
+                );
+            }
             
             $this->line("  Posts found: " . count($existingPostIds) . ", Users found: " . count($existingUserIds));
 
