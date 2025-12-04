@@ -34,7 +34,7 @@ class CollectionPost extends Pivot implements Sortable {
 
     public $sortable = [
         'order_column_name' => 'position',
-        'sort_when_creating' => true,
+        'sort_when_creating' => false,  // Отключено - position устанавливается вручную
     ];
 
     public function buildSortQuery() {
