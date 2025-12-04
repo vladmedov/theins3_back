@@ -132,8 +132,8 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
     protected function gate(): void
     {
         Gate::define('viewNova', function (User $user) {
-            // Разрешаем доступ если аутентификация не отключена
-            return !$user->is_authentication_disabled;
+            // Разрешаем доступ всем авторизованным пользователям
+            return true;
         });
     }
 

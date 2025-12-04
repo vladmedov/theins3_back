@@ -31,7 +31,6 @@ class User extends Authenticatable
         'role_code',
         'available_languages',
         'timezone',
-        'is_authentication_disabled',
 
         //  'slug',
         // 'ru_first_name',
@@ -58,7 +57,6 @@ class User extends Authenticatable
         'password' => 'hashed',
         'role_code' => 'string',
         'available_languages' => 'array',
-        'is_authentication_disabled' => 'boolean',
         // 'hide_author_name_in_all_news' => 'boolean',
         // 'hide_author_page' => 'boolean',
         // 'hide_columnist_page' => 'boolean',

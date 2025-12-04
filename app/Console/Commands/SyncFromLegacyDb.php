@@ -794,14 +794,29 @@ class SyncFromLegacyDb extends Command
                 if (!isset($blockContent->social_embed) || $blockContent->social_embed === '') {
                     continue;
                 }
+                
+                $embedCode = $blockContent->social_embed;
+                
                 $socialType = 'iframe';
-                if (isset($blockContent->social_type) && in_array($blockContent->social_type, $socialTypes)) {
+                if (str_contains($embedCode, 'twitter.com') || str_contains($embedCode, 'x.com')) {
+                    $socialType = 'twitter';
+                } elseif (str_contains($embedCode, 't.me')) {
+                    $socialType = 'telegram';
+                } elseif (str_contains($embedCode, 'facebook.com')) {
+                    $socialType = 'facebook';
+                } elseif (str_contains($embedCode, 'instagram.com')) {
+                    $socialType = 'instagram';
+                } elseif (str_contains($embedCode, 'vk.com')) {
+                    $socialType = 'vk';
+                } elseif (isset($blockContent->social_type) && in_array($blockContent->social_type, $socialTypes)) {
+                    // Fallback на тип из БД
                     $socialType = $blockContent->social_type;
                 }
+                
                 $content[] = [
                     'type' => 'embed',
                     'attributes' => [
-                        'embed_code' => $blockContent->social_embed,
+                        'embed_code' => $embedCode,
                         'embed_type' => $socialType,
                     ],
                 ];
