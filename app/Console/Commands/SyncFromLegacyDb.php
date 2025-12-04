@@ -1229,70 +1229,44 @@ class SyncFromLegacyDb extends Command
             
             $this->info("Syncing post collections (updated after {$lastSyncTime})");
 
-            // Получаем ВСЕ фичеры из старой БД
-            $query = '
-                SELECT feature_on_mains.id, 
-                       feature_on_mains.postable_id, 
-                       feature_on_mains.postable_type,
-                       feature_on_mains.position,
-                       feature_on_mains.created_at,
-                       feature_on_mains.updated_at,
-                       region_relations.region_id 
+            // Получаем ВСЕ актуальные фичеры из старой БД (для удаления устаревших)
+            $allFeaturedPosts = $this->legacy_db->select('
+                SELECT feature_on_mains.postable_id
                 FROM public.feature_on_mains
-                LEFT JOIN public.region_relations 
-                    ON region_relations.regionable_id = feature_on_mains.postable_id 
+                WHERE feature_on_mains.postable_type = \'Post\'
+            ');
+            
+            $validPostIds = array_column($allFeaturedPosts, 'postable_id');
+            
+            // Удаляем фичеры которых больше нет в старой БД
+            if (!empty($validPostIds)) {
+                $deletedCount = CollectionPost::where('collection_code', CollectionPost::COLLECTION_CODE_FEATURE)
+                    ->whereNotIn('post_id', $validPostIds)
+                    ->delete();
+                
+                if ($deletedCount > 0) {
+                    $this->line("  🗑 Deleted {$deletedCount} outdated featured posts");
+                }
+            }
+
+            // Синхронизация фичеров (featured posts) из старой БД
+            $featuredPosts = $this->legacy_db->select('
+                SELECT feature_on_mains.*, region_relations.region_id 
+                FROM public.feature_on_mains
+                JOIN public.region_relations ON region_relations.regionable_id = feature_on_mains.postable_id 
                     AND region_relations.regionable_type = \'Post\'
                 WHERE feature_on_mains.postable_type = \'Post\'
+                AND feature_on_mains.updated_at > ?
                 ORDER BY feature_on_mains.position ASC
-            ';
-            
-            $featuredPosts = $this->legacy_db->select($query);
-            
-            $this->info("Found " . count($featuredPosts) . " featured posts in legacy DB");
+            ', [$lastSyncTime]);
 
-            // Собираем ID постов которые должны быть в фичерах
-            $validPostIds = [];
-            foreach ($featuredPosts as $featured) {
-                if ($featured->region_id && $featured->postable_id) {
-                    $validPostIds[] = $featured->postable_id;
-                }
-            }
-
-            // Удаляем устаревшие фичеры (которых нет в старой БД)
-            $deletedCount = CollectionPost::where('collection_code', CollectionPost::COLLECTION_CODE_FEATURE)
-                ->whereNotIn('post_id', $validPostIds)
-                ->delete();
-            
-            if ($deletedCount > 0) {
-                $this->line("  🗑 Deleted {$deletedCount} outdated featured posts");
-            }
-
-            // Синхронизируем актуальные фичеры
             $syncedCount = 0;
-            $skippedCount = 0;
-            
             foreach ($featuredPosts as $featured) {
-                // Проверка region_id
-                if (!$featured->region_id) {
-                    $this->line("  ⚠ Featured post ID: {$featured->postable_id} - no region found");
-                    $skippedCount++;
-                    continue;
-                }
-                
                 // Определяем язык по region_id
-                $languageCode = $featured->region_id === 1 ? 'ru' : ($featured->region_id === 3 ? 'en' : null);
-                
-                if (!$languageCode) {
-                    $this->line("  ⚠ Featured post ID: {$featured->postable_id} - unknown region: {$featured->region_id}");
-                    $skippedCount++;
-                    continue;
-                }
+                $languageCode = $featured->region_id === 1 ? 'ru' : 'en';
                 
                 // Проверяем существование поста
-                $post = Post::where('id', $featured->postable_id)
-                           ->where('language_code', $languageCode)
-                           ->first();
-                           
+                $post = Post::find($featured->postable_id);
                 if ($post) {
                     CollectionPost::updateOrCreate(
                         [
@@ -1304,28 +1278,22 @@ class SyncFromLegacyDb extends Command
                             'position' => $featured->position ?? 0,
                         ]
                     );
-                    $this->line("  → Featured post ID: {$featured->postable_id} ({$languageCode}, position: {$featured->position})");
+                    $this->line("  → Featured post ID: {$featured->postable_id} (position: {$featured->position})");
                     $syncedCount++;
-                } else {
-                    $this->line("  ⚠ Featured post ID: {$featured->postable_id} - post not found in new DB");
-                    $skippedCount++;
                 }
             }
 
-            $this->info("Synced {$syncedCount} featured posts" . 
-                ($deletedCount > 0 ? ", deleted {$deletedCount} old" : "") .
-                ($skippedCount > 0 ? ", skipped {$skippedCount}" : ""));
+            $this->info("Synced {$syncedCount} featured posts");
             SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
 
         } catch (\Exception $e) {
             // Если таблица feature_on_mains не существует, это не ошибка
-            if (str_contains($e->getMessage(), 'feature_on_mains') || str_contains($e->getMessage(), 'relation') && str_contains($e->getMessage(), 'does not exist')) {
+            if (str_contains($e->getMessage(), 'feature_on_mains')) {
                 $this->warn("Table feature_on_mains not found in legacy database, skipping collections sync");
                 SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
             } else {
                 SyncLog::markAsFailed($entityType, $e->getMessage());
-                $this->error("Collections sync error: " . $e->getMessage());
-                // Не бросаем исключение, чтобы не ломать всю синхронизацию
+                throw $e;
             }
         }
     }
