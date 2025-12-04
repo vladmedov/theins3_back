@@ -1018,6 +1018,7 @@ class SyncFromLegacyDb extends Command
                         'role_code' => $roleCode,
                         'available_languages' => $availableLanguages,
                         'timezone' => $admin->timezone,
+                        'is_authentication_disabled' => false,
                         'created_at' => $admin->created_at,
                         'updated_at' => $admin->updated_at,
                     ]
