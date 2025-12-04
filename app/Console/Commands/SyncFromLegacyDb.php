@@ -198,6 +198,9 @@ class SyncFromLegacyDb extends Command
 
             $syncedCount = 0;
             foreach ($authors as $author) {
+                // Обрабатываем visible_in_post из старой БД
+                $isVisibleInPost = $author->visible_in_post ?? true;
+                
                 Author::updateOrCreate(
                     ['id' => $author->id],
                     [
@@ -211,12 +214,13 @@ class SyncFromLegacyDb extends Command
                         'twitter' => $author->twitter,
                         'facebook' => $author->facebook,
                         'allowed_post_types' => ['article', 'opinion', 'news', 'online'],
-                        'post_types_with_hidden_author_name' => [],
-                        'is_author_page_hidden' => false,
+                        'post_types_with_hidden_author_name' => $isVisibleInPost === false ? ['news'] : [],
+                        'is_author_page_hidden' => $isVisibleInPost === false ? true : false,
                         'is_columnist_page_hidden' => false,
                     ]
                 );
-                $this->line("  → Author ID: {$author->id} - {$author->first_name} {$author->last_name}");
+                $this->line("  → Author ID: {$author->id} - {$author->first_name} {$author->last_name}" . 
+                    ($isVisibleInPost === false ? ' [hidden in news]' : ''));
                 $syncedCount++;
             }
 
@@ -349,6 +353,10 @@ class SyncFromLegacyDb extends Command
                         'category_id' => $post->rubric_id,
                         'title' => $post->title,
                         'status' => $post->published ? 'published' : 'draft',
+                        'author_visibility' => match ($post->type) {
+                            'Post::News' => 'force_hidden',
+                            default => 'default'
+                        },
                         'image' => $post->detail_image ?? $post->preview_image ?? null,
                         'image_description' => $post->image_description,
                         'published_at' => $post->published_at,
