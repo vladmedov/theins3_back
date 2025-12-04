@@ -95,16 +95,16 @@ class SyncLog extends Model
     /**
      * Сбросить статус на idle для всех сущностей (для устранения зависших процессов)
      */
-    public static function resetStuckProcesses(): void
+    public static function resetStuckProcesses(int $inactiveMinutes = 1): void
     {
         $stuckLogs = self::where('status', 'running')
-            ->where('updated_at', '<', now()->subMinutes(5))
+            ->where('updated_at', '<', now()->subMinutes($inactiveMinutes))
             ->get();
 
         foreach ($stuckLogs as $log) {
             $log->update([
                 'status' => 'failed',
-                'error_message' => 'Process timed out or stuck',
+                'error_message' => 'Process timed out or stuck (no activity for ' . $inactiveMinutes . ' minutes)',
             ]);
             
             Log::warning("Reset stuck sync process for entity: {$log->entity_type}");

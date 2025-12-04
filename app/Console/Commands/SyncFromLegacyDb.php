@@ -25,7 +25,8 @@ class SyncFromLegacyDb extends Command
     protected $description = 'Incrementally sync data from legacy database';
 
     private $legacy_db;
-    private const LOCK_TIMEOUT = 300; // 5 minutes
+    private const LOCK_TIMEOUT = 180; // 3 minutes (short cache lock, real check is via sync_logs)
+    private const ACTIVITY_CHECK_MINUTES = 1; // Consider process dead if no updates for 1 minute
 
     public function __construct()
     {
@@ -37,7 +38,7 @@ class SyncFromLegacyDb extends Command
     {
         // Опция для сброса зависших процессов
         if ($this->option('reset-stuck')) {
-            SyncLog::resetStuckProcesses();
+            SyncLog::resetStuckProcesses(self::ACTIVITY_CHECK_MINUTES);
             
             // Принудительно освобождаем блокировку в кэше
             $lock = Cache::lock('legacy-sync-lock', self::LOCK_TIMEOUT);
@@ -47,12 +48,23 @@ class SyncFromLegacyDb extends Command
             return 0;
         }
 
+        // Проверяем активные процессы по таблице sync_logs
+        $runningProcesses = SyncLog::where('status', 'running')
+            ->where('updated_at', '>', now()->subMinutes(self::ACTIVITY_CHECK_MINUTES))
+            ->count();
+
+        if ($runningProcesses > 0) {
+            $this->warn('Another sync process is already running (detected by sync_logs activity)');
+            Log::warning('Legacy sync skipped: another active process detected');
+            return 1;
+        }
+
         // Получаем блокировку для предотвращения параллельного выполнения
         $lock = Cache::lock('legacy-sync-lock', self::LOCK_TIMEOUT);
 
         if (!$lock->get()) {
-            $this->warn('Another sync process is already running');
-            Log::warning('Legacy sync skipped: another process is running');
+            $this->warn('Another sync process is already running (cache lock)');
+            Log::warning('Legacy sync skipped: cache lock is held');
             return 1;
         }
 
