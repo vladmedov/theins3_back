@@ -22,13 +22,15 @@ class CollectionPost extends Pivot implements Sortable {
         'language_code',
         'collection_code',
         'post_id',
-        'position'
+        'position',
+        'created_at',
+        'updated_at',
     ];
 
     protected $uniqueKeys = ['language_code', 'collection_code', 'post_id'];
     public $primaryKey = 'id';
     public $incrementing = true;
-    public $timestamps = false;
+    public $timestamps = true;
 
     public $sortable = [
         'order_column_name' => 'position',

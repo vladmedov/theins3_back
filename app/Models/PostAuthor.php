@@ -14,12 +14,14 @@ class PostAuthor extends Pivot //implements Sortable
 
     public $primaryKey = 'id';
     public $incrementing = true;
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'post_id',
         'author_id',
         'position',
+        'created_at',
+        'updated_at',
     ];
 
     // public $sortable = [
