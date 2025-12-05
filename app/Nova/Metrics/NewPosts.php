@@ -36,12 +36,25 @@ class NewPosts extends Value
     
     public function calculate(NovaRequest $request): ValueResult
     {
-        return $this->count(
-            $request,
-            $this->postFilter($this->_postType),
-            'type',
-            'published_at',
-        );
+        $range = $request->get('range', 30); // По умолчанию 30 дней
+        
+        $query = $this->postFilter($this->_postType);
+        
+        // Фильтруем по диапазону дат
+        $query->where('published_at', '>=', now()->subDays($range));
+
+        // Подсчитываем общее количество
+        $count = $query->count();
+        
+        // Подсчитываем изменение по сравнению с предыдущим периодом
+        $previousQuery = $this->postFilter($this->_postType);
+        $previousQuery->whereBetween('published_at', [
+            now()->subDays($range * 2),
+            now()->subDays($range)
+        ]);
+        $previousCount = $previousQuery->count();
+
+        return $this->result($count)->previous($previousCount);
     }
 
     public function ranges(): array

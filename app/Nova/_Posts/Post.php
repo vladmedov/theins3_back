@@ -521,7 +521,7 @@ abstract class Post extends Resource
                 });
             }
 
-            //$query->orderBy('id', 'desc');
+            $query->orderBy('published_at', 'desc');
 
             return $query;
         }
