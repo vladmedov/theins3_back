@@ -36,24 +36,20 @@ class PostsPerDay extends Trend
     public function calculate(NovaRequest $request): TrendResult
     {
         $range = $request->get('range', 30);
-        $query = $this->postFilter($this->_postType);
 
         switch ($range) {
             case 12:
                 return $this->countByMonths(
                     $request,
-                    $query,
+                    $this->postFilter($this->_postType),
                     'published_at'
                 );
 
             default:
                 return $this->countByDays(
                     $request,
-                    $query,
-                    'published_at',
-                    null,
-                    null,
-                    'Y-m-d'
+                    $this->postFilter($this->_postType),
+                    'published_at'
                 );
         }
     }

@@ -5,9 +5,9 @@ namespace App\Nova\Dashboards;
 use Laravel\Nova\Dashboard;
 
 use App\Nova\Metrics\NewPosts;
+use App\Nova\Metrics\TotalViews;
 use App\Nova\Metrics\PostsPerDay;
 use App\Nova\Metrics\ViewsPerDay;
-use App\Nova\Metrics\AverageViewsPerDay;
 
 use Medov\TopUsersCard\TopUsersCard;
 
@@ -27,22 +27,24 @@ class ContentDashboard extends Dashboard
             new NewPosts(PostTypes::NEWS),
             new NewPosts(PostTypes::OPINION),
             new NewPosts(PostTypes::ONLINE),
+            
             new PostsPerDay(PostTypes::ARTICLE),
             new PostsPerDay(PostTypes::NEWS),
             new PostsPerDay(PostTypes::OPINION),
             new PostsPerDay(PostTypes::ONLINE),
-            new TopUsersCard(PostTypes::ARTICLE),
-            new TopUsersCard(PostTypes::NEWS),
-            new TopUsersCard(PostTypes::OPINION),
-            new TopUsersCard(PostTypes::ONLINE),
+            // new TopUsersCard(PostTypes::ARTICLE),
+            // new TopUsersCard(PostTypes::NEWS),
+            // new TopUsersCard(PostTypes::OPINION),
+            // new TopUsersCard(PostTypes::ONLINE),
+            
+            new TotalViews(PostTypes::ARTICLE),
+            new TotalViews(PostTypes::NEWS),
+            new TotalViews(PostTypes::OPINION),
+            new TotalViews(PostTypes::ONLINE),
             ViewsPerDay::make(PostTypes::ARTICLE)->help('Просмотры агрегируются по постам, а не по датам'),
             new ViewsPerDay(PostTypes::NEWS),
             new ViewsPerDay(PostTypes::OPINION),
             new ViewsPerDay(PostTypes::ONLINE),
-            new AverageViewsPerDay(PostTypes::ARTICLE),
-            new AverageViewsPerDay(PostTypes::NEWS),
-            new AverageViewsPerDay(PostTypes::OPINION),
-            new AverageViewsPerDay(PostTypes::ONLINE),
         ];
     }
 
