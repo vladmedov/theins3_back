@@ -652,10 +652,11 @@ class SyncFromLegacyDb extends Command
                 if (!isset($block->title) || $block->title === '') {
                     continue;
                 }
+                
                 $content[] = [
                     'type' => 'outline',
                     'attributes' => [
-                        'outline' => $block->title,
+                        'outline' => $this->cleanOutline($block->title),
                     ],
                 ];
             }
@@ -752,7 +753,7 @@ class SyncFromLegacyDb extends Command
                             $content[] = [
                                 'type' => 'outline',
                                 'attributes' => [
-                                    'outline' => $match['content'],
+                                    'outline' => $this->cleanOutline($match['content']),
                                 ],
                             ];
                         } else { // template
@@ -909,7 +910,7 @@ class SyncFromLegacyDb extends Command
                     'post_id' => $postId,
                     'published_at' => $online->time,
                     'is_key_event' => $online->key_point,
-                    'outline' => $online->title ?? '',
+                    'outline' => $this->cleanOutline($online->title ?? ''),
                     'text' => $online->text ?? '',
                     'images' => $online->image ? [
                         'link' => $online->image,
@@ -1137,6 +1138,17 @@ class SyncFromLegacyDb extends Command
             SyncLog::markAsFailed($entityType, $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Очищает outline от HTML entities и спецсимволов
+     */
+    private function cleanOutline(string $outline): string
+    {
+        $clean = html_entity_decode($outline, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $clean = strip_tags($clean);
+        $clean = trim($clean);
+        return $clean;
     }
 
     /**
