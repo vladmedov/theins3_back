@@ -1005,15 +1005,21 @@ class SyncFromLegacyDb extends Command
                     default => 'journalist',
                 };
 
-                // Формируем available_languages на основе регионов
+                // Формируем available_languages на основе регионов или region_role
                 $availableLanguages = [];
-                $regions = $adminRegions[$admin->id] ?? [];
                 
-                foreach ($regions as $regionId) {
-                    if ($regionId === 1) {
-                        $availableLanguages['ru'] = true;
-                    } elseif ($regionId === 3) {
-                        $availableLanguages['en'] = true;
+                // Если region_role = 'global_admin' - доступны все регионы
+                if (isset($admin->region_role) && $admin->region_role === 'global_admin') {
+                    $availableLanguages = ['ru' => true, 'en' => true];
+                } else {
+                    $regions = $adminRegions[$admin->id] ?? [];
+                    
+                    foreach ($regions as $regionId) {
+                        if ($regionId === 1) {
+                            $availableLanguages['ru'] = true;
+                        } elseif ($regionId === 3) {
+                            $availableLanguages['en'] = true;
+                        }
                     }
                 }
 
@@ -1120,8 +1126,8 @@ class SyncFromLegacyDb extends Command
                         [
                             'created_at' => $relation->created_at,
                             'updated_at' => $relation->updated_at,
-                        ]
-                    );
+                ]
+            );
                     $syncedCount++;
                 }
                 

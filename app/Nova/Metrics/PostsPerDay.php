@@ -25,11 +25,11 @@ class PostsPerDay extends Trend
 
         $this->_postType = $postType;
         $this->_title = match ($postType) {
-            PostTypes::ARTICLE => __('Articles per day'),
-            PostTypes::NEWS => __('News per day'),
-            PostTypes::OPINION => __('Opinions per day'),
-            PostTypes::ONLINE => __('Onlines per day'),
-            default => __('Posts per day')
+            PostTypes::ARTICLE => __('Articles count'),
+            PostTypes::NEWS => __('News count'),
+            PostTypes::OPINION => __('Opinions count'),
+            PostTypes::ONLINE => __('Onlines count'),
+            default => __('Posts count')
         };
     }
 
@@ -57,8 +57,8 @@ class PostsPerDay extends Trend
     public function ranges(): array
     {
         return [
-            30 => __('30 Days'),
-            12 => __('12 Months'),
+            30 => __('Today'),
+            12 => __('This month'),
         ];
     }
 

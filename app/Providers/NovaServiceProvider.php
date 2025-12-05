@@ -43,6 +43,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
         Nova::script('custom-nova-scripts', asset('js/nova-custom.js'));
         
         Nova::mainMenu(function ($request) {
+            
             $menu = [
                 
                 MenuGroup::make(__('Analytics'), [
@@ -84,9 +85,9 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
 
             foreach (auth()->user()->available_languages as $language => $active) {
                 if ($active == true && !app()->isLocale($language)) {
-                    $menu[] = [
+                    $menu = array_merge([
                         MenuItem::externalLink(strtoupper($language), '/set-locale/' . $language),
-                    ];
+                    ], $menu);
                 }
             }
 

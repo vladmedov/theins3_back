@@ -25,11 +25,11 @@ class ViewsPerDay extends Trend
 
         $this->_postType = $postType;
         $this->_title = match ($postType) {
-            PostTypes::ARTICLE => __('Article views per day'),
-            PostTypes::NEWS => __('News views per day'),
-            PostTypes::OPINION => __('Opinion views per day'),
-            PostTypes::ONLINE => __('Online views per day'),
-            default => __('Post views per day')
+            PostTypes::ARTICLE => __('Article views'),
+            PostTypes::NEWS => __('News views'),
+            PostTypes::OPINION => __('Opinion views'),
+            PostTypes::ONLINE => __('Online views'),
+            default => __('Post views')
         };
     }
 
@@ -46,7 +46,7 @@ class ViewsPerDay extends Trend
     public function ranges(): array
     {
         return [
-            30 => __('30 Days'),
+            30 => __('Today'),
         ];
     }
 
