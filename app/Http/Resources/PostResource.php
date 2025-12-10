@@ -70,7 +70,6 @@ class PostResource extends JsonResource
             'seo_description' => $this->seo_description ?? "",
             'seo_keywords' => $this->seo_keywords ?? "",
             'widgets' => $this->getWidgets(),
-            'updated_at' => $this->updated_at,
         ]);
     }
 
