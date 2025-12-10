@@ -40,6 +40,7 @@ class PostResource extends JsonResource
             'image' => $this->image_url ?? "",
             'image_description' => $this->image_description ?? "",
             'is_super_news' => $this->is_super_news,
+            'language_code' => $this->language_code,
         ]
         + ($this->shouldShowColumnist() ? $this->whenLoaded('columnist', function () use ($request, $language_code) {
             return ['columnist' => (new ColumnistResource($this->columnist))->toArray($request)];
@@ -69,6 +70,7 @@ class PostResource extends JsonResource
             'seo_description' => $this->seo_description ?? "",
             'seo_keywords' => $this->seo_keywords ?? "",
             'widgets' => $this->getWidgets(),
+            'updated_at' => $this->updated_at,
         ]);
     }
 
