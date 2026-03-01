@@ -1234,7 +1234,7 @@ class TestController extends Controller
                     'category_id' => $post->rubric_id,
                     'title' => $post->title,
                     'status' => $post->published ? 'published' : 'draft',
-                    'image' => $post->detail_image ?? $post->preview_image ?? null,
+                    'image' =>  $post->preview_image ?? $post->detail_image ?? null,
                     'image_description' => $post->image_description,
                     'published_at' => $post->published_at,
                     'created_at' => $post->created_at,
