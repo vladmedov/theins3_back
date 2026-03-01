@@ -20,11 +20,11 @@ RUN apt-get update && apt-get install -y \
     && pecl install imagick redis \
     && docker-php-ext-enable imagick redis
 
-# Настройка PHP для загрузки больших файлов
+# Настройка PHP для загрузки больших файлов и работы с большими данными
 RUN { \
         echo 'upload_max_filesize = 50M'; \
         echo 'post_max_size = 55M'; \
-        echo 'memory_limit = 256M'; \
+        echo 'memory_limit = 1024M'; \
         echo 'max_execution_time = 36000'; \
         echo 'max_input_time = 36000'; \
     } > /usr/local/etc/php/conf.d/uploads.ini
@@ -34,19 +34,9 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 WORKDIR /var/www/html
 
-# Сначала копируем auth.json для доступа к Laravel Nova
-COPY auth.json /root/.composer/auth.json
-
-# Копируем composer файлы
-COPY composer.json composer.lock ./
-
-# Устанавливаем зависимости
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-autoloader
-
-# Копируем остальные файлы
 COPY . .
 
-# Генерируем autoloader
-RUN composer dump-autoload --optimize --no-dev
+# Запускаем Composer
+RUN composer install --no-dev --optimize-autoloader
 
 CMD ["php-fpm"]
