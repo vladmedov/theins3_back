@@ -73,7 +73,6 @@ class WidgetController extends Controller
             ::whereIn('id', $forcedPosts)
             ->where('status', Post::STATUS_PUBLISHED)
             ->where('language_code', $language_code)
-            ->whereNotIn('type', [PostTypes::NEWS, PostTypes::OPINION])
             ->with(['category', 'authors', 'columnist']);
 
         $forcedPostsCollection = $query->get()
@@ -85,7 +84,6 @@ class WidgetController extends Controller
             $additionalPosts = Post
                 ::where('language_code', $language_code)
                 ->where('status', Post::STATUS_PUBLISHED)
-                ->whereNotIn('type', [PostTypes::NEWS, PostTypes::OPINION])
                 ->where('published_at', '>=', now()->subMonth()) // За последний месяц
                 ->whereNotIn('id', $forcedPosts)
                 ->with(['category', 'authors', 'columnist'])
