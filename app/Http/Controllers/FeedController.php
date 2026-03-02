@@ -137,9 +137,7 @@ class FeedController extends Controller
 
     private function feedPath(string $lang, string $suffix): string
     {
-        if ($lang === 'ru') {
-            return '/feed' . $suffix;
-        }
+        $lang = $lang ?: 'ru';
         return "/{$lang}/feed" . $suffix;
     }
 }
