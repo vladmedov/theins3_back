@@ -17,7 +17,7 @@ Route::prefix('{language_code}/feed')->where(['language_code' => 'ru|en'])->grou
 Route::get('/set-locale/{locale}', function (Request $request, string $locale) {
     $request->session()->put('locale', $locale);
     App::setLocale($locale);
-    return redirect('/nova');
+    return redirect(config('nova.path'));
 })->where('locale', 'ru|en');
 
 

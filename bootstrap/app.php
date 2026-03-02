@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(StartSession::class);
         $middleware->append(ShareErrorsFromSession::class);
         $middleware->append(LocaleMiddleware::class);
+        $middleware->redirectGuestsTo(fn() => url(rtrim(config('nova.path'), '/') . '/login'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
