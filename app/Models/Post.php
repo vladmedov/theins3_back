@@ -201,9 +201,17 @@ class Post extends Model { //implements HasMedia {
         }
     } 
 
-    public function getImageUrlAttribute() {
-        return $this->image ? 'https://insidertexts.com/storage/post/' . $this->id . '/' . $this->image : null; // TODO: remove
-        //return $this->image ? Storage::disk('public')->url($this->image) : null;
+    public function getImageUrlAttribute()
+    {
+        if (empty($this->image)) {
+            return null;
+        }
+        
+        if (str_starts_with($this->image, 'post_cover/')) {
+            return $this->getImageUrl(ImageService::SIZE_ORIGINAL, includeDomain: true);
+        } else {
+            return null;
+        }
     }
 
     // Проверка доступа
@@ -293,9 +301,9 @@ class Post extends Model { //implements HasMedia {
         ImageService::createImageVariants($this->id, $this->image);
     }
 
-    public function getImageUrl($size = ImageService::SIZE_ORIGINAL)
+    public function getImageUrl($size = ImageService::SIZE_ORIGINAL, bool $includeDomain = false)
     {
-        return ImageService::getImageUrl($this->id, $this->image, ImageService::TYPE_POST_COVER, $size);
+        return ImageService::getImageUrl($this->id, $this->image, ImageService::TYPE_POST_COVER, $size, $includeDomain);
     }
 
     public function getPath() {

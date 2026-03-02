@@ -2,28 +2,32 @@
 
 namespace App\Nova\Filters;
 
-use Illuminate\Http\Request;
-use Laravel\Nova\Filters\Filter;
 use App\Models\Author;
+use Illuminate\Contracts\Database\Eloquent\Builder;
+use Laravel\Nova\Filters\Filter;
+use Laravel\Nova\Http\Requests\NovaRequest;
 
 class AuthorFilter extends Filter
 {
     public $name = 'Авторы';
 
-    public function apply(Request $request, $query, $value)
+    public $searchable = true;
+
+    public function apply(NovaRequest $request, Builder $query, mixed $value)
     {
         return $query->whereHas('authors', function ($q) use ($value) {
-            $q->where('user_id', $value);
+            $q->where('authors.id', $value);
         });
     }
 
-    public function options(Request $request)
+    public function options(NovaRequest $request)
     {
         return Author::select('id', 'first_name', 'last_name')
             ->where('language_code', app()->getLocale())
+            ->orderBy('last_name')
             ->get()
             ->mapWithKeys(function ($author) {
-                return [$author->first_name . ' ' . $author->last_name => $author->id];
+                return [trim($author->first_name . ' ' . $author->last_name) => $author->id];
             })
             ->toArray();
     }

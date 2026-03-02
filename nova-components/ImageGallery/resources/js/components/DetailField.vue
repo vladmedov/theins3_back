@@ -5,7 +5,7 @@
         <div v-for="(image, index) in parsedValue" :key="index" class="image-gallery-item">
           <!-- Изображение слева -->
           <div class="image-gallery-container">
-            <img :src="image.link" class="image-gallery-preview" />
+            <img :src="imageSrc(image.link)" class="image-gallery-preview" />
           </div>
 
           <!-- Данные справа -->
@@ -32,6 +32,14 @@ export default {
         console.error("Ошибка парсинга JSON в DetailField:", error);
         return [];
       }
+    }
+  },
+
+  methods: {
+    imageSrc(link) {
+      if (!link) return '';
+      if (link.startsWith('http')) return link;
+      return '/storage/' + link;
     }
   }
 };

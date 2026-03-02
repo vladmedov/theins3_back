@@ -23,7 +23,7 @@ class InvestigationThemeResource extends JsonResource
             'id' => $this->id,
             'path' => $this->getPath(),
             'title' => $this->title,
-            'cover_image' => $this->cover_image ?? "",
+            'cover_image' => $this->cover_image_url ?? "",
             'posts_count' => $this->posts->count(),
         ]
         + $this->when($this->inList, function () {

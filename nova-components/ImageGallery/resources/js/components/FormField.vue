@@ -42,7 +42,7 @@
 
           <!-- Изображение слева -->
           <div class="image-gallery-container">
-            <img :src="image.link" class="image-gallery-preview" />
+            <img :src="imageSrc(image.link)" class="image-gallery-preview" />
           </div>
 
           <!-- Данные справа -->
@@ -128,6 +128,7 @@ export default {
         try {
           const response = await axios.post("/nova-vendor/medov/image-gallery/upload-image", formData);
           this.value.push({
+            id: response.data.id,
             link: response.data.link,
             author: "",
             description: "",
@@ -137,6 +138,12 @@ export default {
         }
       }
       this.$refs.fileInput.value = "";
+    },
+
+    imageSrc(link) {
+      if (!link) return '';
+      if (link.startsWith('http')) return link;
+      return '/storage/' + link;
     },
 
     removeImage(index) {

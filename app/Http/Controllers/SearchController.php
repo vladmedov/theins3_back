@@ -76,7 +76,7 @@ class SearchController extends Controller
                     'must' => [
                         ['multi_match' => [
                             'query' => $query,
-                            'fields' => ['title', 'lead', 'content', 'authors', 'columnist', 'tags'],
+                            'fields' => ['title^3', 'lead^2', 'content^2', 'authors^4', 'columnist^4', 'tags'],
                             'type' => 'most_fields', // Аналог word_start - поиск с начала слов
                         ]]
                     ],

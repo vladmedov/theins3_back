@@ -18,7 +18,7 @@ class TrackingPixelController extends Controller
         }
         
         $post = Post::select('id')
-            ->where('id', $postId)
+            ->where('slug', $postId)
             ->where('language_code', $language_code)
             ->where('status', Post::STATUS_PUBLISHED)
             ->first();

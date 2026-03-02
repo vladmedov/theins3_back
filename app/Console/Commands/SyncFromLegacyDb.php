@@ -4,8 +4,11 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use App\Services\ImageService;
 use App\Models\SyncLog;
 use App\Models\Category;
 use App\Models\Author;
@@ -69,6 +72,8 @@ class SyncFromLegacyDb extends Command
         }
 
         try {
+            ini_set('memory_limit', '512M');
+
             $this->info('Starting incremental sync from legacy database...');
             Log::info('Legacy sync started');
 
@@ -78,20 +83,16 @@ class SyncFromLegacyDb extends Command
             $this->syncCategories(1);
             $this->syncAuthors(1);
             $this->syncInvestigationThemes(1);
-            $this->syncPosts(1);
 
-            // Синхронизация для английского региона (region_id = 3)
             $this->syncCategories(3);
             $this->syncAuthors(3);
             $this->syncInvestigationThemes(3);
+
+            $this->syncPosts(1);
             $this->syncPosts(3);
 
-            // Синхронизация связей
-            $this->syncPostAuthors(1);
-            $this->syncPostAuthors(3);
-            $this->syncThemePosts();
-            $this->syncAdminRelations();
-            $this->syncCollections();
+            
+            $this->syncCollectionsCleanup();
 
             $this->info('Sync completed successfully!');
             Log::info('Legacy sync completed successfully');
@@ -212,6 +213,8 @@ class SyncFromLegacyDb extends Command
             foreach ($authors as $author) {
                 // Обрабатываем visible_in_post из старой БД
                 $isVisibleInPost = $author->visible_in_post ?? true;
+
+                $avatarPath = $this->downloadLegacyImage($author->id, $author->image ?? null, 'person', ImageService::TYPE_USER_PHOTO);
                 
                 Author::updateOrCreate(
                     ['id' => $author->id],
@@ -220,14 +223,14 @@ class SyncFromLegacyDb extends Command
                         'slug' => $author->slug,
                         'first_name' => $author->first_name,
                         'last_name' => $author->last_name,
-                        'avatar' => $author->image,
+                        'avatar' => $avatarPath,
                         'position' => $author->work_position,
                         'description' => $author->description,
                         'twitter' => $author->twitter,
                         'facebook' => $author->facebook,
                         'allowed_post_types' => ['article', 'opinion', 'news', 'online'],
                         'post_types_with_hidden_author_name' => $isVisibleInPost === false ? ['news'] : [],
-                        'is_author_page_hidden' => $isVisibleInPost === false ? true : false,
+                        'is_author_page_hidden' => false,
                         'is_columnist_page_hidden' => false,
                     ]
                 );
@@ -242,6 +245,39 @@ class SyncFromLegacyDb extends Command
         } catch (\Exception $e) {
             SyncLog::markAsFailed($entityType, $e->getMessage());
             throw $e;
+        }
+    }
+
+    private function downloadLegacyImage(int $id, ?string $legacyFilename, string $legacySlug, string $imageType): ?string
+    {
+        if (empty($legacyFilename)) {
+            return null;
+        }
+
+        $url = 'https://insidertexts.com/storage/' . $legacySlug . '/' . $id . '/' . $legacyFilename;
+
+        try {
+            $targetPath = ImageService::getImagePath($id, $imageType, ImageService::SIZE_ORIGINAL)
+                . '/' . $legacyFilename;
+
+            Storage::disk('public')->makeDirectory(dirname($targetPath));
+
+            $fullPath = Storage::disk('public')->path($targetPath);
+
+            $response = Http::timeout(30)
+                ->withOptions(['sink' => $fullPath])
+                ->get($url);
+
+            if (!$response->successful()) {
+                @unlink($fullPath);
+                Log::warning("Не удалось загрузить {$imageType} #{$id}: HTTP {$response->status()}");
+                return null;
+            }
+
+            return $targetPath;
+        } catch (\Exception $e) {
+            Log::warning("Ошибка загрузки {$imageType} #{$id}: " . $e->getMessage());
+            return null;
         }
     }
 
@@ -281,6 +317,8 @@ class SyncFromLegacyDb extends Command
             $position = count($themes) * 10;
             
             foreach ($themes as $theme) {
+                $coverImagePath = $this->downloadLegacyImage($theme->id, $theme->image ?? null, 'theme', ImageService::TYPE_THEME_COVER);
+
                 InvestigationTheme::updateOrCreate(
                     ['id' => $theme->id],
                     [
@@ -289,7 +327,7 @@ class SyncFromLegacyDb extends Command
                         'title' => $theme->title,
                         'description' => $theme->description,
                         'position' => !empty($theme->position) ? $theme->position : $position,
-                        'cover_image' => 'https://theins.ru/storage/theme/' . $theme->id . '/' . $theme->image,
+                        'cover_image' => $coverImagePath,
                         'is_main' => $theme->slug === 'otraviteli-iz-fsb' && $languageCode === 'ru',
                         'created_at' => $theme->created_at,
                         'updated_at' => $theme->updated_at,
@@ -350,6 +388,13 @@ class SyncFromLegacyDb extends Command
 
             $syncedCount = 0;
             foreach ($posts as $post) {
+                $imagePath = $this->downloadLegacyImage(
+                    $post->id,
+                    $post->preview_image ?? $post->detail_image ?? null,
+                    'post',
+                    ImageService::TYPE_POST_COVER
+                );
+
                 $syncedPost = Post::updateOrCreate(
                     ['id' => $post->id],
                     [
@@ -369,7 +414,7 @@ class SyncFromLegacyDb extends Command
                             'Post::News' => 'force_hidden',
                             default => 'default'
                         },
-                        'image' => $post->preview_image ?? $post->detail_image ?? null,
+                        'image' => $imagePath,
                         'image_description' => $post->image_description,
                         'published_at' => $post->published_at,
                         'created_at' => $post->created_at,
@@ -389,6 +434,12 @@ class SyncFromLegacyDb extends Command
                     $this->syncPostContent($post->id, $languageCode);
                 }
                 $this->syncPostTags($post->id, $languageCode);
+
+                // Синхронизация связей по id сразу после создания поста
+                $this->syncPostAuthorsForPost($post->id);
+                $this->syncThemePostForPost($post->id);
+                $this->syncAdminRelationsForPost($post->id);
+                $this->syncCollectionsForPost($post->id, $regionId, $languageCode);
                 
                 $syncedCount++;
             }
@@ -402,115 +453,128 @@ class SyncFromLegacyDb extends Command
         }
     }
 
-    private function syncPostAuthors(int $regionId): void
+
+    private function syncPostAuthorsForPost(int $postId): void
     {
-        $entityType = "post_authors_region_{$regionId}";
-        
+        $postAuthors = $this->legacy_db->select('
+            SELECT person_id FROM public.person_relations
+            WHERE (personable2_type = \'Post\' AND personable2_id = ?)
+               OR (personable3_type = \'Post\' AND personable3_id = ?)
+        ', [$postId, $postId]);
+
+        $post = Post::find($postId);
+        if (!$post) {
+            return;
+        }
+
+        foreach ($postAuthors as $pa) {
+            if (!Author::find($pa->person_id)) {
+                continue;
+            }
+            if ($post->type === 'opinion') {
+                $post->columnist_id = $pa->person_id;
+                $post->save();
+            } else {
+                PostAuthor::updateOrCreate(
+                    ['post_id' => $postId, 'author_id' => $pa->person_id]
+                );
+            }
+        }
+    }
+
+    private function syncThemePostForPost(int $postId): void
+    {
+        $themePost = $this->legacy_db->selectOne('
+            SELECT theme_id FROM public.theme_post_relations
+            WHERE post_id = ?
+            LIMIT 1
+        ', [$postId]);
+
+        if ($themePost) {
+            $post = Post::find($postId);
+            $theme = InvestigationTheme::find($themePost->theme_id);
+            if ($post && $theme) {
+                $post->investigation_theme_id = $themePost->theme_id;
+                $post->save();
+            }
+        }
+    }
+
+    private function syncAdminRelationsForPost(int $postId): void
+    {
+        $adminRelations = $this->legacy_db->select('
+            SELECT admin_id, created_at, updated_at
+            FROM public.admin_relations
+            WHERE adminable_type = \'Post\' AND adminable_id = ?
+        ', [$postId]);
+
+        foreach ($adminRelations as $relation) {
+            if (Post::find($postId) && User::find($relation->admin_id)) {
+                PostOwner::updateOrCreate(
+                    ['post_id' => $postId, 'user_id' => $relation->admin_id],
+                    [
+                        'created_at' => $relation->created_at,
+                        'updated_at' => $relation->updated_at,
+                    ]
+                );
+            }
+        }
+    }
+
+    private function syncCollectionsForPost(int $postId, int $regionId, string $languageCode): void
+    {
+        $featured = $this->legacy_db->selectOne('
+            SELECT position FROM public.feature_on_mains
+            JOIN public.region_relations ON region_relations.regionable_id = feature_on_mains.postable_id
+                AND region_relations.regionable_type = \'Post\'
+            WHERE feature_on_mains.postable_type = \'Post\'
+            AND feature_on_mains.postable_id = ?
+            AND region_relations.region_id = ?
+        ', [$postId, $regionId]);
+
+        if ($featured && Post::find($postId)) {
+            CollectionPost::updateOrCreate(
+                [
+                    'language_code' => $languageCode,
+                    'collection_code' => CollectionPost::COLLECTION_CODE_FEATURE,
+                    'post_id' => $postId,
+                ],
+                ['position' => $featured->position ?? 0]
+            );
+        }
+    }
+
+    private function syncCollectionsCleanup(): void
+    {
+        $entityType = "collections";
         try {
             SyncLog::markAsRunning($entityType);
-            
-            $languageCode = $regionId === 1 ? 'ru' : 'en';
             $lastSyncTime = SyncLog::getLastSyncTime($entityType);
-            
-            $this->info("Syncing post authors for region {$regionId} (updated after {$lastSyncTime})");
 
-            // Получаем ID авторов для региона
-            $authorIds = $this->legacy_db->select('
-                SELECT regionable_id FROM public.region_relations
-                WHERE region_id = ? AND regionable_type = \'Person\'
-                ORDER BY id ASC 
-            ', [$regionId]);
+            $allFeaturedPosts = $this->legacy_db->select('
+                SELECT postable_id FROM public.feature_on_mains
+                WHERE postable_type = \'Post\'
+            ');
+            $validPostIds = array_column($allFeaturedPosts, 'postable_id');
 
-            if (empty($authorIds)) {
-                SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-                return;
-            }
-
-            $authorIds = array_column($authorIds, 'regionable_id');
-
-            // Получаем ID постов для региона
-            $postIds = $this->legacy_db->select('
-                SELECT regionable_id FROM public.region_relations
-                WHERE region_id = ? AND regionable_type = \'Post\'
-                ORDER BY id ASC 
-            ', [$regionId]);
-
-            if (empty($postIds)) {
-                SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-                return;
-            }
-
-            $postIds = array_column($postIds, 'regionable_id');
-
-            // Получаем связи между авторами и постами
-            $postAuthors = $this->legacy_db->select('
-                SELECT * FROM public.person_relations
-                WHERE ((personable2_type = \'Post\' AND person_id IN (' . implode(',', $authorIds) . '))
-                OR (personable3_type = \'Post\' AND person_id IN (' . implode(',', $authorIds) . ')))
-                AND updated_at > ?
-                ORDER BY id ASC
-            ', [$lastSyncTime]);
-
-            // Группируем связи по post_id, фильтруя только посты нужного региона
-            $relations = [];
-            foreach ($postAuthors as $postAuthor) {
-                if ($postAuthor->personable2_type === 'Post' && $postAuthor->personable2_id && in_array($postAuthor->personable2_id, $postIds)) {
-                    $relations[$postAuthor->personable2_id][] = $postAuthor->person_id;
-                } elseif ($postAuthor->personable3_type === 'Post' && $postAuthor->personable3_id && in_array($postAuthor->personable3_id, $postIds)) {
-                    $relations[$postAuthor->personable3_id][] = $postAuthor->person_id;
+            if (!empty($validPostIds)) {
+                $deletedCount = CollectionPost::where('collection_code', CollectionPost::COLLECTION_CODE_FEATURE)
+                    ->whereNotIn('post_id', $validPostIds)
+                    ->delete();
+                if ($deletedCount > 0) {
+                    $this->line("  🗑 Deleted {$deletedCount} outdated featured posts");
                 }
             }
 
-            if (empty($relations)) {
-                $this->info("Synced 0 post-author relations for region {$regionId}");
-                SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-                return;
-            }
-
-            $syncedCount = 0;
-            $postIdsToSync = array_keys($relations);
-            
-            // Обрабатываем батчами по 1000 постов
-            foreach (array_chunk($postIdsToSync, 1000) as $batch) {
-                $posts = Post::where('language_code', $languageCode)
-                            ->whereIn('id', $batch)
-                            ->get();
-
-                foreach ($posts as $post) {
-                    if (!isset($relations[$post->id])) {
-                        continue;
-                    }
-                    
-                    foreach ($relations[$post->id] as $authorId) {
-                        // Проверяем существование автора
-                        if (!Author::find($authorId)) {
-                            continue;
-                        }
-                        
-                        // Для постов типа opinion автор записывается в columnist_id
-                        if ($post->type === 'opinion') {
-                            $post->columnist_id = $authorId;
-                            $post->save();
-                        } else {
-                            // Для остальных типов постов - в таблицу post_authors
-                    PostAuthor::updateOrCreate(
-                        [
-                                    'post_id' => $post->id,
-                                    'author_id' => $authorId,
-                        ]
-                    );
-                        }
-                    $syncedCount++;
-                    }
-                }
-            }
-
-            $this->info("Synced {$syncedCount} post-author relations for region {$regionId}");
             SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-
         } catch (\Exception $e) {
-            SyncLog::markAsFailed($entityType, $e->getMessage());
-            throw $e;
+            if (str_contains($e->getMessage(), 'feature_on_mains')) {
+                $this->warn("Table feature_on_mains not found, skipping collections cleanup");
+                SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
+            } else {
+                SyncLog::markAsFailed($entityType, $e->getMessage());
+                throw $e;
+            }
         }
     }
 
@@ -603,8 +667,16 @@ class SyncFromLegacyDb extends Command
                 
                 $templates[$dbTemplate->human_id]['type'] = 'images';
                 foreach ($images as $image) {
+                    $imagePath = $this->downloadLegacyImage(
+                        $image->id,
+                        $image->image ?? null,
+                        'content_block/image',
+                        ImageService::TYPE_CONTENT_IMAGE
+                    );
+
                     $templates[$dbTemplate->human_id]['attributes']['images'][] = [
-                        'link' => 'https://theins.ru/storage/content_block/image/' . $image->id . '/' . $image->image,
+                        'id' => (string) $image->id,
+                        'link' => $imagePath,
                         'author' => $image->credit ?? '',
                         'description' => $image->caption ?? '',
                     ];
@@ -913,7 +985,8 @@ class SyncFromLegacyDb extends Command
                     'outline' => $this->cleanOutline($online->title ?? ''),
                     'text' => $online->text ?? '',
                     'images' => $online->image ? [
-                        'link' => $online->image,
+                        'id' => (string) $online->id,
+                        'link' => $this->downloadLegacyImage($online->id, $online->image, 'online_item', ImageService::TYPE_ONLINE_IMAGE),
                         'author' => '',
                         'description' => '',
                     ] : [],
@@ -924,44 +997,6 @@ class SyncFromLegacyDb extends Command
                     'embed_type' => $online->social_type ?? 'iframe',
                 ]
             );
-        }
-    }
-
-    private function syncThemePosts(): void
-    {
-        $entityType = "theme_posts";
-        
-        try {
-            SyncLog::markAsRunning($entityType);
-            
-            $lastSyncTime = SyncLog::getLastSyncTime($entityType);
-            
-            $this->info("Syncing theme-post relations (updated after {$lastSyncTime})");
-
-            $themePosts = $this->legacy_db->select('
-                SELECT * FROM public.theme_post_relations
-                WHERE updated_at > ?
-                ORDER BY id ASC
-            ', [$lastSyncTime]);
-
-            $syncedCount = 0;
-            foreach ($themePosts as $themePost) {
-                $post = Post::find($themePost->post_id);
-                $theme = InvestigationTheme::find($themePost->theme_id);
-                
-                if ($post && $theme) {
-                    $post->investigation_theme_id = $themePost->theme_id;
-                    $post->save();
-                    $syncedCount++;
-                }
-            }
-
-            $this->info("Synced {$syncedCount} theme-post relations");
-            SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-
-        } catch (\Exception $e) {
-            SyncLog::markAsFailed($entityType, $e->getMessage());
-            throw $e;
         }
     }
 
@@ -1049,95 +1084,6 @@ class SyncFromLegacyDb extends Command
             }
 
             $this->info("Synced {$syncedCount} admins");
-            SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-
-        } catch (\Exception $e) {
-            SyncLog::markAsFailed($entityType, $e->getMessage());
-            throw $e;
-        }
-    }
-
-    private function syncAdminRelations(): void
-    {
-        $entityType = "admin_relations";
-        
-        try {
-            SyncLog::markAsRunning($entityType);
-            
-            $lastSyncTime = SyncLog::getLastSyncTime($entityType);
-            
-            $this->info("Syncing admin-post relations (updated after {$lastSyncTime})");
-
-            $adminRelations = $this->legacy_db->select('
-                SELECT admin_id, adminable_id as post_id, created_at, updated_at 
-                FROM public.admin_relations
-                WHERE adminable_type = \'Post\'
-                AND updated_at > ?
-                ORDER BY id ASC
-            ', [$lastSyncTime]);
-
-            $totalRelations = count($adminRelations);
-            $this->info("Found {$totalRelations} admin-post relations to sync");
-
-            if ($totalRelations === 0) {
-                $this->info("Synced 0 admin-post relations");
-                SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-                return;
-            }
-
-            // Предзагружаем существующие посты и пользователей батчами (чтобы избежать огромных SQL запросов)
-            $postIds = array_unique(array_column($adminRelations, 'post_id'));
-            $adminIds = array_unique(array_column($adminRelations, 'admin_id'));
-            
-            $existingPostIds = [];
-            $existingUserIds = [];
-            
-            // Загружаем посты батчами по 10000
-            foreach (array_chunk($postIds, 10000) as $postIdsChunk) {
-                $existingPostIds = array_merge(
-                    $existingPostIds,
-                    Post::whereIn('id', $postIdsChunk)->pluck('id')->toArray()
-                );
-            }
-            
-            // Загружаем пользователей батчами по 1000
-            foreach (array_chunk($adminIds, 1000) as $adminIdsChunk) {
-                $existingUserIds = array_merge(
-                    $existingUserIds,
-                    User::whereIn('id', $adminIdsChunk)->pluck('id')->toArray()
-                );
-            }
-            
-            $this->line("  Posts found: " . count($existingPostIds) . ", Users found: " . count($existingUserIds));
-
-            $syncedCount = 0;
-            $processedCount = 0;
-            
-            foreach ($adminRelations as $relation) {
-                $processedCount++;
-                
-                // Быстрая проверка через массивы вместо запросов к БД
-                if (in_array($relation->post_id, $existingPostIds) && in_array($relation->admin_id, $existingUserIds)) {
-                    PostOwner::updateOrCreate(
-                        [
-                            'post_id' => $relation->post_id,
-                            'user_id' => $relation->admin_id,
-                        ],
-                        [
-                            'created_at' => $relation->created_at,
-                            'updated_at' => $relation->updated_at,
-                ]
-            );
-                    $syncedCount++;
-                }
-                
-                // Выводим прогресс каждые 1000 записей
-                if ($processedCount % 1000 === 0) {
-                    $this->line("  Progress: {$processedCount}/{$totalRelations} processed, {$syncedCount} synced");
-                }
-            }
-
-            $this->info("Synced {$syncedCount} admin-post relations (processed {$processedCount})");
             SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
 
         } catch (\Exception $e) {
@@ -1293,84 +1239,5 @@ class SyncFromLegacyDb extends Command
         return $html;
     }
 
-    private function syncCollections(): void
-    {
-        $entityType = "collections";
-        
-        try {
-            SyncLog::markAsRunning($entityType);
-            
-            $lastSyncTime = SyncLog::getLastSyncTime($entityType);
-            
-            $this->info("Syncing post collections (updated after {$lastSyncTime})");
-
-            // Получаем ВСЕ актуальные фичеры из старой БД (для удаления устаревших)
-            $allFeaturedPosts = $this->legacy_db->select('
-                SELECT feature_on_mains.postable_id
-                FROM public.feature_on_mains
-                WHERE feature_on_mains.postable_type = \'Post\'
-            ');
-            
-            $validPostIds = array_column($allFeaturedPosts, 'postable_id');
-            
-            // Удаляем фичеры которых больше нет в старой БД
-            if (!empty($validPostIds)) {
-                $deletedCount = CollectionPost::where('collection_code', CollectionPost::COLLECTION_CODE_FEATURE)
-                    ->whereNotIn('post_id', $validPostIds)
-                    ->delete();
-                
-                if ($deletedCount > 0) {
-                    $this->line("  🗑 Deleted {$deletedCount} outdated featured posts");
-                }
-            }
-
-            // Синхронизация фичеров (featured posts) из старой БД
-            $featuredPosts = $this->legacy_db->select('
-                SELECT feature_on_mains.*, region_relations.region_id 
-                FROM public.feature_on_mains
-                JOIN public.region_relations ON region_relations.regionable_id = feature_on_mains.postable_id 
-                    AND region_relations.regionable_type = \'Post\'
-                WHERE feature_on_mains.postable_type = \'Post\'
-                AND feature_on_mains.updated_at > ?
-                ORDER BY feature_on_mains.position ASC
-            ', [$lastSyncTime]);
-
-            $syncedCount = 0;
-            foreach ($featuredPosts as $featured) {
-                // Определяем язык по region_id
-                $languageCode = $featured->region_id === 1 ? 'ru' : 'en';
-                
-                // Проверяем существование поста
-                $post = Post::find($featured->postable_id);
-                if ($post) {
-                    CollectionPost::updateOrCreate(
-                        [
-                            'language_code' => $languageCode,
-                            'collection_code' => CollectionPost::COLLECTION_CODE_FEATURE,
-                            'post_id' => $featured->postable_id,
-                        ],
-                        [
-                            'position' => $featured->position ?? 0,
-                        ]
-                    );
-                    $this->line("  → Featured post ID: {$featured->postable_id} (position: {$featured->position})");
-                    $syncedCount++;
-                }
-            }
-
-            $this->info("Synced {$syncedCount} featured posts");
-            SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-
-        } catch (\Exception $e) {
-            // Если таблица feature_on_mains не существует, это не ошибка
-            if (str_contains($e->getMessage(), 'feature_on_mains')) {
-                $this->warn("Table feature_on_mains not found in legacy database, skipping collections sync");
-                SyncLog::markAsCompleted($entityType, now()->format('Y-m-d H:i:s'));
-            } else {
-                SyncLog::markAsFailed($entityType, $e->getMessage());
-                throw $e;
-            }
-        }
-    }
 }
 

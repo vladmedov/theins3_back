@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 
+use App\Services\ImageService;
+
 class InvestigationTheme extends Model {
     use HasFactory, SortableTrait;
 
@@ -52,6 +54,18 @@ class InvestigationTheme extends Model {
                     ->update(['is_main' => false]);
             }
         });
+
+        static::updated(function ($theme) {
+            if ($theme->wasChanged('cover_image') && !empty($theme->cover_image)) {
+                ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER);
+            }
+        });
+
+        static::created(function ($theme) {
+            if (!empty($theme->cover_image)) {
+                ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER);
+            }
+        });
     }
     
 
@@ -60,6 +74,19 @@ class InvestigationTheme extends Model {
      */
     public function posts() {
         return $this->hasMany(Post::class)->orderBy('published_at', 'desc');
+    }
+
+    public function getCoverImageUrlAttribute()
+    {
+        if (empty($this->cover_image)) {
+            return null;
+        }
+
+        if (str_starts_with($this->cover_image, 'theme/')) {
+            return ImageService::getImageUrl($this->id, $this->cover_image, ImageService::TYPE_THEME_COVER, ImageService::SIZE_ORIGINAL, true);
+        }
+
+        return null;
     }
 
     public function getPath() {

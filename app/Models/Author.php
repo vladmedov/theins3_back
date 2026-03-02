@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 use App\Enums\PostTypes;
+use App\Services\ImageService;
 
 class Author extends Model {
     use HasFactory;
@@ -37,13 +38,38 @@ class Author extends Model {
         'is_columnist_page_hidden' => 'boolean',
     ];
 
+    public static function boot()
+    {
+        parent::boot();
+
+        static::updated(function ($author) {
+            if ($author->wasChanged('avatar') && !empty($author->avatar)) {
+                ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO);
+            }
+        });
+
+        static::created(function ($author) {
+            if (!empty($author->avatar)) {
+                ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO);
+            }
+        });
+    }
+
     public function getFullNameAttribute() {
         return $this->first_name . ' ' . $this->last_name;
     }
 
-    public function getAvatarUrlAttribute() {
-        return $this->avatar ? 'https://insidertexts.com/storage/person/' . $this->id . '/' . $this->avatar : null; // TODO: remove
-        //return $this->avatar ? Storage::disk('public')->url($this->avatar) : null;
+    public function getAvatarUrlAttribute()
+    {
+        if (empty($this->avatar)) {
+            return null;
+        }
+        // Новый формат: avatar = user_photo/original/hash1/hash2/filename
+        if (str_starts_with($this->avatar, 'user_photo/')) {
+            return ImageService::getImageUrl($this->id, $this->avatar, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL, true);
+        } else {
+            return null;
+        }
     }
 
     public function posts() {

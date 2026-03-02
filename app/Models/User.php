@@ -5,14 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
 
 use Carbon\Carbon;
 
 use \App\Enums\UserRoles;
 use \App\Enums\PostTypes;
-
-use App\Services\ImageService;
 
 class User extends Authenticatable
 {
@@ -26,7 +23,6 @@ class User extends Authenticatable
         'password',
 
         'name',
-        'avatar',
 
         'role_code',
         'available_languages',
@@ -152,14 +148,6 @@ class User extends Authenticatable
     //     return $this->{"{$this->locale}_description"};
     // }
     
-    public function getAvatarUrlAttribute() {
-        return $this->avatar ? Storage::disk('public')->url($this->avatar) : null;
-    }
-
-    public function getAvatarCroppedUrlAttribute() {
-        return ImageService::getImageUrl($this->id, $this->avatar, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_CROPPED);
-    }
-
     /**
      * Публикации пользователя
      */

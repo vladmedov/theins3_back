@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@mteam.org',
             'password' => bcrypt('s39AS3fk9@3sh3Nsa.d3q9mc'),
             'name' => 'Admin MTeam',
-            'avatar' => null,
             'role_code' => 'admin',
             'available_languages' => ["ru" => true,"en" => true],
             'timezone' => 'Europe/Moscow',

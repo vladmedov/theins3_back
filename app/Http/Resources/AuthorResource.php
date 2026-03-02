@@ -47,7 +47,8 @@ class AuthorResource extends JsonResource
     {
         return [
             $this->getRandomWidget($this->language_code),
-            $this->getDonateWidget(50),
+            $this->getSubscribeWidget(),
+            $this->getDonateWidget(75),
             $this->getSocialWidget(),
         ];
     }

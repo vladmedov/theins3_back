@@ -39,6 +39,17 @@ class Author extends Resource
             Hidden::make(__('Language code'), 'language_code')
                 ->default(app()->getLocale()),
 
+            Avatar::make(__('Photo'), 'avatar')
+                ->disk('public')
+                ->onlyOnIndex()
+                ->preview(function ($value, $disk) {
+                    $model = $this->resource ?? null;
+                    if (!$model || !$value) return null;
+                    $url = $model->avatar_url;
+                    if (!$url) return null;
+                    return str_starts_with($url, 'http') ? $url : rtrim(config('app.url'), '/') . $url;
+                }),
+
             Slug::make('Slug', 'slug')
                 ->from('last_name', 'last_name')
                 ->sortable()

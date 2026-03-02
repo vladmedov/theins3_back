@@ -12,6 +12,8 @@ class ImageService
     public const TYPE_POST_COVER = 'post_cover';
     public const TYPE_USER_PHOTO = 'user_photo';
     public const TYPE_CONTENT_IMAGE = 'content_image';
+    public const TYPE_THEME_COVER = 'theme';
+    public const TYPE_ONLINE_IMAGE = 'online_image';
 
     public const SIZE_SMALL = 'small';
     public const SIZE_MEDIUM = 'medium';
@@ -22,17 +24,15 @@ class ImageService
 
     public static function getImagePath($id, string $type = self::TYPE_POST_COVER, string $size = self::SIZE_ORIGINAL): string
     {
-        $hashes = self::generateShortHashes((string)$id);
-        return "{$type}/{$size}/{$hashes[0]}/{$hashes[1]}";
-    }
+        $idStr = (string) $id;
 
-    public static function generateShortHashes(string $id): array
-    {
-        $md5Hash = md5($id);
-        $hash1 = substr($md5Hash, 0, 4);
-        $hash2 = substr($md5Hash, 4, 4);
+        if (is_numeric($id)) {
+            $prefix = (string) intdiv((int) $id, 1000);
+        } else {
+            $prefix = substr($idStr, 0, 3);
+        }
 
-        return [$hash1, $hash2];
+        return "{$type}/{$size}/{$prefix}/{$idStr}";
     }
 
     public static function createImageVariants($id, ?string $imagePath, string $type = self::TYPE_POST_COVER): bool
@@ -126,15 +126,19 @@ class ImageService
         }
     }
 
-    public static function getImageUrl($id, ?string $imagePath, string $type = self::TYPE_POST_COVER, string $size = self::SIZE_ORIGINAL): ?string
+    public static function getImageUrl($id, ?string $imagePath, string $type = self::TYPE_POST_COVER, string $size = self::SIZE_ORIGINAL, bool $includeDomain = true): ?string
     {
         if (empty($imagePath)) {
             return null;
         }
-        
+
         $filename = basename($imagePath);
         $path = self::getImagePath($id, $type, $size) . '/' . $filename;
-            
+
+        if (!$includeDomain) {
+            return '/storage/' . $path;
+        }
+
         return Storage::disk('public')->url($path);
     }
 }

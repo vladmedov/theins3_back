@@ -26,8 +26,6 @@ use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\BooleanGroup;
 use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\Badge;
-use Laravel\Nova\Fields\Avatar;
-
 use Medov\DateTimeSplit\DateTimeSplit;
 
 use App\Enums\UserRoles;
@@ -36,19 +34,6 @@ use App\Nova\_Posts\PostArticle;
 use App\Nova\_Posts\PostNews;
 use App\Nova\_Posts\PostOpinion;
 use App\Nova\_Posts\PostOnline;
-
-use App\Services\ImageService;
-use Illuminate\Support\Facades\Storage;
-
-// use Ultrasimplified\ImageCropper\ImageCropper;
-
-// use Marshmallow\AdvancedImage\AdvancedImage;
-
-// use Slim\Image\Image;
-
-use Laravel\Nova\Fields\Image;
-
-use DigitalCreative\Filepond\Filepond;
 
 //use Outl1ne\NovaSortable\Traits\HasSortableManyToManyRows;
 
@@ -71,19 +56,6 @@ class User extends Resource
     public function fields(NovaRequest $request) {
         return array_merge([
             ID::make()->onlyOnDetail(),
-
-            Avatar::make(__('Photo'), 'avatar')
-                ->disk('public')
-                ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120')
-                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
-                })
-                ->thumbnail(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
-                })
-                ->prunable()
-                ->exceptOnForms(),
 
             Text::make(__('Name (RU)'), 'name')
                 ->rules('required', 'max:255'),
@@ -111,19 +83,6 @@ class User extends Resource
                     }
                 })
                 ->help(__('Choose at least one language.')),
-
-            Avatar::make(__('Photo'), 'avatar')
-                ->disk('public')
-                ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120')
-                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
-                })
-                ->thumbnail(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
-                })
-                ->prunable()
-                ->onlyOnForms(),
 
             Select::make(__('Timezone'), 'timezone')
                 ->options(function () {

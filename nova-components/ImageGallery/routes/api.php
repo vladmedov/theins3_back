@@ -1,18 +1,23 @@
 <?php
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use App\Services\ImageService;
 
 Route::post('/upload-image', function (Request $request) {
     $request->validate([
-        'file' => 'required|image|max:2048',
+        'file' => 'required|image|mimes:jpeg,png,jpg,webp|max:20480',
     ]);
 
-    // Сохраняем файл в `storage/app/public/gallery/`
-    $path = $request->file('file')->store('gallery', 'public');
+    $imageId = uniqid('', true);
+    $file = $request->file('file');
+
+    $targetDir = ImageService::getImagePath($imageId, ImageService::TYPE_CONTENT_IMAGE, ImageService::SIZE_ORIGINAL);
+    $path = $file->store($targetDir, 'public');
+
+    ImageService::createImageVariants($imageId, $path, ImageService::TYPE_CONTENT_IMAGE);
 
     return response()->json([
-        'link' => asset("storage/{$path}")
+        'id' => $imageId,
+        'link' => $path,
     ]);
 });

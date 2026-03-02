@@ -44,7 +44,7 @@ class TagResource extends JsonResource
     {
         return [
             $this->getRandomWidget($this->language_code),
-            $this->getDonateWidget(50),
+            $this->getDonateWidget(75),
             $this->getSocialWidget(),
             $this->getPopularWidget($this->language_code),
         ];

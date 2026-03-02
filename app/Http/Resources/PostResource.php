@@ -7,6 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 use App\Enums\PostTypes;
 use App\Models\Post;
+use App\Services\ImageService;
 
 use App\Traits\HasWidgets;
 
@@ -83,6 +84,27 @@ class PostResource extends JsonResource
                 $block['attributes']['related_posts'] = $posts;
                 $blocks[$key] = $block;
             }
+
+            if (in_array($block['type'], ['images', 'online']) && !empty($block['attributes']['images'])) {
+                $images = $block['attributes']['images'];
+                if (isset($images['link'])) {
+                    $images = [$images];
+                }
+                foreach ($images as $i => $image) {
+                    $imageId = $image['id'] ?? null;
+                    $link = $image['link'] ?? null;
+                    if ($link && $imageId) {
+                        $imageType = $block['type'] === 'online'
+                            ? ImageService::TYPE_ONLINE_IMAGE
+                            : ImageService::TYPE_CONTENT_IMAGE;
+                        $images[$i]['link'] = ImageService::getImageUrl(
+                            $imageId, $link, $imageType, ImageService::SIZE_ORIGINAL, true
+                        );
+                    }
+                }
+                $block['attributes']['images'] = $images;
+                $blocks[$key] = $block;
+            }
         }
         return $blocks;
     }
@@ -131,8 +153,13 @@ class PostResource extends JsonResource
 
     private function getPath()
     {
+        $columnistPrefix = ($this->type === PostTypes::OPINION && $this->columnist)
+            ? "{$this->columnist->slug}/"
+            : '';
+
         return '/'
             . ($this->language_code === 'ru' ? "{$this->category->slug}/" : "{$this->language_code}/{$this->category->slug}/")
+            . $columnistPrefix
             . "{$this->slug}";
     }
 }
