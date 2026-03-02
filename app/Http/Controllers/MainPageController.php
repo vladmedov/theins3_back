@@ -166,7 +166,7 @@ class MainPageController extends Controller
             Post
                 ::where('language_code', $language_code)
                 ->where('status', Post::STATUS_PUBLISHED)
-                ->where('category_id', Category::CATEGORY_ID_CONFESSION)
+                ->where('category_id', Category::getConfessionCategoryId($language_code))
                 ->orderBy('published_at', 'desc')
                 ->simplePaginate(36)
         )->toArray(request());

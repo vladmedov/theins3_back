@@ -15,7 +15,15 @@ class Category extends Model {
 
     use HasFactory, SortableTrait;
 
-    const CATEGORY_ID_CONFESSION = 16;
+    public const CONFESSION_BY_LANGUAGE = [
+        'ru' => 11,
+        'en' => 60,
+    ];
+
+    public static function getConfessionCategoryId(string $language_code): int
+    {
+        return self::CONFESSION_BY_LANGUAGE[$language_code] ?? self::CONFESSION_BY_LANGUAGE['ru'];
+    }
 
     public $table = 'categories';
 
