@@ -165,11 +165,8 @@ class WidgetController extends Controller
         $columnistsIds = $columnistsData->pluck('id');
         
         $columnists = Author::whereIn('id', $columnistsIds)
+            ->where('is_columnist_page_hidden', false)
             ->get()
-            ->filter(function ($author) {
-                return is_array($author->allowed_post_types) 
-                    && in_array('opinion', $author->allowed_post_types);
-            })
             ->sortBy(function ($author) use ($columnistsIds) {
                 return $columnistsIds->search($author->id);
             })

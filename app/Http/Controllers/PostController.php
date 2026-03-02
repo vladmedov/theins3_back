@@ -66,7 +66,7 @@ class PostController extends Controller
             'termins',
             'authors',
             'columnist',
-        ])->where('slug', $slug)->firstOrFail();
+        ])->where('slug', $slug)->where('status', Post::STATUS_PUBLISHED)->firstOrFail();
 
         //dd((new PostResource($post))->toArray(request()));
 

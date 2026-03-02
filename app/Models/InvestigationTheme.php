@@ -73,7 +73,9 @@ class InvestigationTheme extends Model {
      * Публикации, относящиеся к теме расследования.
      */
     public function posts() {
-        return $this->hasMany(Post::class)->orderBy('published_at', 'desc');
+        return $this->hasMany(Post::class)
+            ->where('status', Post::STATUS_PUBLISHED)
+            ->orderBy('published_at', 'desc');
     }
 
     public function getCoverImageUrlAttribute()
@@ -83,7 +85,7 @@ class InvestigationTheme extends Model {
         }
 
         if (str_starts_with($this->cover_image, 'theme/')) {
-            return ImageService::getImageUrl($this->id, $this->cover_image, ImageService::TYPE_THEME_COVER, ImageService::SIZE_ORIGINAL, true);
+            return ImageService::getImageUrl($this->id, $this->cover_image, ImageService::TYPE_THEME_COVER, ImageService::SIZE_ORIGINAL, false);
         }
 
         return null;

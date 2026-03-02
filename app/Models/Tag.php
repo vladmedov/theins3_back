@@ -17,6 +17,8 @@ class Tag extends Model {
     ];
 
     public function posts() {
-        return $this->belongsToMany(Post::class, 'post_tags');
+        return $this->belongsToMany(Post::class, 'post_tags')
+            ->where('status', Post::STATUS_PUBLISHED)
+            ->orderBy('published_at', 'desc');
     }
 }

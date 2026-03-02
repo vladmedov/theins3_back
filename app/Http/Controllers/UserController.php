@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 
 use App\Models\Author;
+use App\Models\Post;
 use App\Enums\PostTypes;
 
 use App\Http\Resources\AuthorResource;
@@ -17,12 +19,15 @@ class UserController extends Controller
         $author = Author::where('language_code', $language_code)
             ->where('slug', $slug)
             ->where('is_author_page_hidden', false)
-            // ->where(function($query) {
-            //     $query
-            //         ->whereJsonContains('allowed_post_types', PostTypes::ARTICLE)
-            //         ->orWhereJsonContains('allowed_post_types', PostTypes::NEWS)
-            //         ->orWhereJsonContains('allowed_post_types', PostTypes::ONLINE);
-            // })
+            ->whereExists(function ($query) use ($language_code) {
+                $query->select(DB::raw(1))
+                    ->from('posts')
+                    ->join('post_authors', 'posts.id', '=', 'post_authors.post_id')
+                    ->whereColumn('post_authors.author_id', 'authors.id')
+                    ->where('posts.status', Post::STATUS_PUBLISHED)
+                    ->where('posts.language_code', $language_code)
+                    ->whereIn('posts.type', [PostTypes::ARTICLE, PostTypes::NEWS, PostTypes::ONLINE]);
+            })
             ->firstOrFail();
 
         return new AuthorResource($author, false);
@@ -33,10 +38,16 @@ class UserController extends Controller
         $columnist = Author::where('language_code', $language_code)
             ->where('slug', $slug)
             ->where('is_columnist_page_hidden', false)
-            // ->whereJsonContains('allowed_post_types', PostTypes::OPINION)
+            ->whereExists(function ($query) use ($language_code) {
+                $query->select(DB::raw(1))
+                    ->from('posts')
+                    ->whereColumn('posts.columnist_id', 'authors.id')
+                    ->where('posts.status', Post::STATUS_PUBLISHED)
+                    ->where('posts.type', PostTypes::OPINION)
+                    ->where('posts.language_code', $language_code);
+            })
             ->firstOrFail();
+
         return new ColumnistResource($columnist, false);
     }
-
-    
 }

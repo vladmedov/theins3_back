@@ -209,10 +209,29 @@ class SyncFromLegacyDb extends Command
                 ORDER BY id ASC
             ', [$lastSyncTime]);
 
+            $authorRoleId = $languageCode === 'ru' ? 1 : 4;
+            $columnistRoleId = $languageCode === 'ru' ? 2 : 3;
+
             $syncedCount = 0;
             foreach ($authors as $author) {
-                // Обрабатываем visible_in_post из старой БД
                 $isVisibleInPost = $author->visible_in_post ?? true;
+
+                $roles = $this->legacy_db->select('
+                    SELECT role_id FROM public.person_roles
+                    WHERE person_id = ?
+                ', [$author->id]);
+                $roleIds = array_column($roles, 'role_id');
+
+                $isAuthor = in_array($authorRoleId, $roleIds);
+                $isColumnist = in_array($columnistRoleId, $roleIds);
+
+                $allowedPostTypes = [];
+                if ($isAuthor) {
+                    array_push($allowedPostTypes, 'article', 'news', 'online');
+                }
+                if ($isColumnist) {
+                    $allowedPostTypes[] = 'opinion';
+                }
 
                 $avatarPath = $this->downloadLegacyImage($author->id, $author->image ?? null, 'person', ImageService::TYPE_USER_PHOTO);
                 
@@ -228,13 +247,19 @@ class SyncFromLegacyDb extends Command
                         'description' => $author->description,
                         'twitter' => $author->twitter,
                         'facebook' => $author->facebook,
-                        'allowed_post_types' => ['article', 'opinion', 'news', 'online'],
+                        'allowed_post_types' => $allowedPostTypes,
                         'post_types_with_hidden_author_name' => $isVisibleInPost === false ? ['news'] : [],
-                        'is_author_page_hidden' => false,
-                        'is_columnist_page_hidden' => false,
+                        'is_author_page_hidden' => !$isAuthor,
+                        'is_columnist_page_hidden' => !$isColumnist,
                     ]
                 );
-                $this->line("  → Author ID: {$author->id} - {$author->first_name} {$author->last_name}" . 
+
+                $rolesLabel = implode(', ', array_filter([
+                    $isAuthor ? 'author' : null,
+                    $isColumnist ? 'columnist' : null,
+                ])) ?: 'no roles';
+
+                $this->line("  → Author ID: {$author->id} - {$author->first_name} {$author->last_name} [{$rolesLabel}]" . 
                     ($isVisibleInPost === false ? ' [hidden in news]' : ''));
                 $syncedCount++;
             }

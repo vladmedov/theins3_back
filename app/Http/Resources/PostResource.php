@@ -70,6 +70,7 @@ class PostResource extends JsonResource
             'seo_title' => $this->seo_title ?? "",
             'seo_description' => $this->seo_description ?? "",
             'seo_keywords' => $this->seo_keywords ?? "",
+            'share_image' => \App\Services\ShareImageService::getShareImageUrl($this->resource) ?? "",
             'widgets' => $this->getWidgets(),
         ]);
     }
@@ -98,7 +99,7 @@ class PostResource extends JsonResource
                             ? ImageService::TYPE_ONLINE_IMAGE
                             : ImageService::TYPE_CONTENT_IMAGE;
                         $images[$i]['link'] = ImageService::getImageUrl(
-                            $imageId, $link, $imageType, ImageService::SIZE_ORIGINAL, true
+                            $imageId, $link, $imageType, ImageService::SIZE_ORIGINAL, false
                         );
                     }
                 }

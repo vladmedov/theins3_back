@@ -19,6 +19,7 @@ use \App\Models\PostTypes\OnlineMessage;
 
 use App\Services\ChangeDetectorService;
 use App\Services\ImageService;
+use App\Services\ShareImageService;
 
 use Illuminate\Support\Facades\Log;
 use Laravel\Scout\Searchable;
@@ -102,20 +103,10 @@ class Post extends Model { //implements HasMedia {
 
         static::created(function ($post) use ($createHistory) {
             $createHistory($post, [], $post->getAttributes(), 'created');
-            
-            if (!empty($post->image)) {
-                $post->createImageVariants();
-            }
         });
 
         static::updating(function ($post) use ($createHistory) {
             $createHistory($post, $post->getOriginal(), $post->getAttributes(), 'updated');
-        });
-        
-        static::updated(function ($post) {
-            if ($post->wasChanged('image') && !empty($post->image)) {
-                $post->createImageVariants();
-            }
         });
 
         static::deleting(function ($post) use ($createHistory) {
@@ -148,7 +139,25 @@ class Post extends Model { //implements HasMedia {
             if ($updated) {
                 $post->saveQuietly();
             }
-        });        
+
+            $shouldGenerateImages = !empty($post->image)
+                && ($post->wasRecentlyCreated || $post->wasChanged('image'));
+
+            if ($shouldGenerateImages) {
+                $post->createImageVariants();
+            }
+
+            // Sync Elasticsearch index: remove draft/deleted posts from the index
+            if ($post->shouldBeSearchable()) {
+                $post->searchable();
+            } else {
+                $post->unsearchable();
+            }
+        });
+
+        static::deleted(function ($post) {
+            $post->unsearchable();
+        });
 
         if (defined('static::TYPE')) {
             static::creating(function ($post) {
@@ -208,7 +217,7 @@ class Post extends Model { //implements HasMedia {
         }
         
         if (str_starts_with($this->image, 'post_cover/')) {
-            return $this->getImageUrl(ImageService::SIZE_ORIGINAL, includeDomain: true);
+            return $this->getImageUrl(ImageService::SIZE_ORIGINAL, includeDomain: false);
         } else {
             return null;
         }
@@ -298,7 +307,28 @@ class Post extends Model { //implements HasMedia {
 
     public function createImageVariants()
     {
-        ImageService::createImageVariants($this->id, $this->image);
+        $imagePath = $this->image;
+
+        if (empty($imagePath)) {
+            return;
+        }
+
+        // Nova uploads the image before the post ID is assigned during creation,
+        // resulting in a malformed path like "post_cover/original///filename.jpg".
+        // After the post is saved and the ID is available, move the file to the correct path.
+        $correctDir = ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL);
+        $filename = basename($imagePath);
+        $correctPath = $correctDir . '/' . $filename;
+
+        if ($imagePath !== $correctPath && Storage::disk('public')->exists($imagePath)) {
+            Storage::disk('public')->move($imagePath, $correctPath);
+            $this->image = $correctPath;
+            $this->saveQuietly();
+            $imagePath = $correctPath;
+        }
+
+        ImageService::createImageVariants($this->id, $imagePath);
+        ShareImageService::generate($this);
     }
 
     public function getImageUrl($size = ImageService::SIZE_ORIGINAL, bool $includeDomain = false)

@@ -66,7 +66,7 @@ class Author extends Model {
         }
         // Новый формат: avatar = user_photo/original/hash1/hash2/filename
         if (str_starts_with($this->avatar, 'user_photo/')) {
-            return ImageService::getImageUrl($this->id, $this->avatar, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL, true);
+            return ImageService::getImageUrl($this->id, $this->avatar, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL, false);
         } else {
             return null;
         }
@@ -75,7 +75,8 @@ class Author extends Model {
     public function posts() {
         return $this
             ->belongsToMany(Post::class, 'post_authors', 'author_id', 'post_id')
-            ->where('language_code', $this->language_code);
+            ->where('language_code', $this->language_code)
+            ->where('status', Post::STATUS_PUBLISHED);
     }
 
     public function news() {

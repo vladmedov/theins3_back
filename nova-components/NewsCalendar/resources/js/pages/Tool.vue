@@ -137,6 +137,9 @@ export default {
         eventTitle.style.margin = '0';
         eventTitle.style.padding = '0';
         eventTitle.style.lineHeight = '1.1';
+        eventTitle.style.overflow = 'hidden';
+        eventTitle.style.textOverflow = 'ellipsis';
+        eventTitle.style.whiteSpace = 'nowrap';
 
         // Имя автора под заголовком с компактным отступом
         let eventAuthor = document.createElement('div');

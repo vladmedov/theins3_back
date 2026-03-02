@@ -48,21 +48,20 @@ class CategoryResource extends JsonResource
         if ($this->type === 'news') {
             $widgets = [
                 $this->getSubscribeWidget(),
-                $this->getDonateWidget(75),
-                $this->getRandomWidget($this->language_code, ['social', 'opinions']),
+                $this->getRandomWidget($this->language_code, ['opinions', 'popular', 'donate']),
+                $this->getSocialWidget(),
             ];
         } elseif ($this->type === 'opinion') {
             $widgets = [
                 $this->getSubscribeWidget(),
-                $this->getColumnistsWidget($this->language_code),
-                $this->getDonateWidget(75),
+                $this->getRandomWidget($this->language_code, ['columnists', 'donate']),
                 $this->getSocialWidget(),
             ];
         } else {
             $widgets = [
                 $this->getSubscribeWidget(),
-                $this->getRandomWidget($this->language_code, ['top_news', 'opinions']),
-                $this->getDonateWidget(75),
+                $this->getPopularWidget($this->language_code),
+                $this->getRandomWidget($this->language_code, ['top_news', 'opinions', 'donate']),
                 $this->getSocialWidget(),
             ];
         }

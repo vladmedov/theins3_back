@@ -9,6 +9,7 @@ use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 
 use App\Enums\PostTypes;
+use App\Models\Post;
 
 class Category extends Model {
 
@@ -57,6 +58,8 @@ class Category extends Model {
     }
 
     public function posts() {
-        return $this->hasMany(Post::class);
+        return $this->hasMany(Post::class)
+            ->where('status', Post::STATUS_PUBLISHED)
+            ->orderBy('published_at', 'desc');
     }
 }

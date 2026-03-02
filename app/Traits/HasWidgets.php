@@ -67,7 +67,7 @@ trait HasWidgets
     
     protected function getDonateWidget($probability = 100): array
     {
-        $cacheKey = "donate_widget_show_" . floor(time() / 30);
+        $cacheKey = "donate_widget_show_{$probability}_" . floor(time() / 30);
         
         $shouldShow = cache()->remember($cacheKey, 30, function () use ($probability) {
             return (rand(1, 100) <= $probability);
@@ -80,7 +80,7 @@ trait HasWidgets
         return ['type' => 'donate', 'attributes' => []];
     }
     
-    protected function getRandomWidget($language_code, $widgetTypes = ['top_news', 'opinions', 'subscribe']): array
+    protected function getRandomWidget($language_code, $widgetTypes = ['top_news', 'opinions']): array
     {
         $cacheKey = "random_widget_{$language_code}_" . implode('_', $widgetTypes) . "_" . floor(time() / 300);
         

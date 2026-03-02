@@ -38,6 +38,16 @@ Schedule::command('update:oil')
         \Log::info('UpdateOilPrice scheduled task completed successfully');
     });
 
+Schedule::command('generate:sitemap')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        \Log::error('GenerateSitemap scheduled task failed');
+    })
+    ->onSuccess(function () {
+        \Log::info('GenerateSitemap scheduled task completed successfully');
+    });
+
 Schedule::command('sync:legacy')
     ->everyMinute()
     ->withoutOverlapping()

@@ -22,7 +22,7 @@ class SearchController extends Controller
                 'data' => [],
                 'total' => 0,
                 'page' => 1,
-                'per_page' => 20,
+                'per_page' => 36,
             ];
         }
 
@@ -30,7 +30,7 @@ class SearchController extends Controller
             // Используем прямой запрос к Elasticsearch через клиент
             $client = app(ElasticsearchClient::class);
             
-            $perPage = 20;
+            $perPage = 36;
             $page = $request->input('page', 1);
             $from = ($page - 1) * $perPage;
             
@@ -150,7 +150,7 @@ class SearchController extends Controller
                 'data' => [],
                 'total' => 0,
                 'page' => 1,
-                'per_page' => 20,
+                'per_page' => 36,
                 'error' => $e->getMessage(),
             ];
         }

@@ -43,10 +43,11 @@ class TagResource extends JsonResource
     private function getWidgets(): array
     {
         return [
-            $this->getRandomWidget($this->language_code),
-            $this->getDonateWidget(75),
-            $this->getSocialWidget(),
+            $this->getSubscribeWidget(),
             $this->getPopularWidget($this->language_code),
+            $this->getDonateWidget(75),
+            $this->getRandomWidget($this->language_code),
+            $this->getSocialWidget(),
         ];
     }
 

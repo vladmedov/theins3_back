@@ -132,10 +132,20 @@ abstract class Post extends Resource
 
     public function fields(Request $request) {
 
+        $postUrl = ($this->exists && $this->category)
+            ? rtrim(config('app.site_url', config('app.url')), '/') . $this->getPath()
+            : null;
+
         $general = [
             Text::make(__('Type'), 'type')
                 ->onlyOnDetail()
                 ->default(__(static::getPostType())),
+
+            Heading::make($postUrl
+                    ? "<div class='text-right text-sm text-gray-400'>URL: <a href='{$postUrl}' target='_blank' class='text-sm text-gray-400 hover:text-gray-600'>{$postUrl}</a></div>"
+                    : '')
+                ->hideWhenCreating()
+                ->asHtml(),
 
             Select::make(__('Status'), 'status')
                 ->options([
@@ -510,6 +520,11 @@ abstract class Post extends Resource
         return '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';
     }
 
+    public static function defaultOrderings(\Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
+    {
+        return $query->orderByRaw('published_at DESC NULLS LAST');
+    }
+
     public static function indexQuery(NovaRequest $request, $query) {
         if (static::getPostType()) {
             $query->where('language_code', app()->getLocale());
@@ -520,8 +535,6 @@ abstract class Post extends Resource
                     $q->where('user_id', auth()->user()->id);
                 });
             }
-
-            $query->orderBy('published_at', 'desc');
 
             return $query;
         }
