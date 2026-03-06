@@ -106,4 +106,14 @@ class InvestigationTheme extends Resource
         $query->where('language_code', app()->getLocale());
         return parent::indexQuery($request, static::indexSortableQuery($request, $query));
     }
+
+    public static function createButtonLabel(): string
+    {
+        return __('Create');
+    }
+
+    public static function updateButtonLabel(): string
+    {
+        return __('Save');
+    }
 }

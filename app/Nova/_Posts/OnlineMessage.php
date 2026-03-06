@@ -219,4 +219,14 @@ class OnlineMessage extends Resource
 
         return $query;
     }
+
+    public static function createButtonLabel(): string
+    {
+        return __('Create');
+    }
+
+    public static function updateButtonLabel(): string
+    {
+        return __('Save');
+    }
 }

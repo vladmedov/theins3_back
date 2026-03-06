@@ -156,6 +156,16 @@ class User extends Resource
         return $this->posts()->count();
     }
 
+    public static function createButtonLabel(): string
+    {
+        return __('Create');
+    }
+
+    public static function updateButtonLabel(): string
+    {
+        return __('Save');
+    }
+
     protected static function getUserRole() {
         return false;
     }

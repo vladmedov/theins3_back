@@ -168,4 +168,14 @@ class Author extends Resource
             ->where('language_code', app()->getLocale())
             ->whereJsonContains('allowed_post_types', [$request->newResource()->getPostType()]);
     }
+
+    public static function createButtonLabel(): string
+    {
+        return __('Create');
+    }
+
+    public static function updateButtonLabel(): string
+    {
+        return __('Save');
+    }
 }

@@ -64,4 +64,14 @@ class Termin extends Resource
         return $query
             ->where('language_code', app()->getLocale());
     }
+
+    public static function createButtonLabel(): string
+    {
+        return __('Create');
+    }
+
+    public static function updateButtonLabel(): string
+    {
+        return __('Save');
+    }
 }
