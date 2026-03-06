@@ -91,12 +91,12 @@ class Author extends Resource
                 Boolean::make(__('Hide author page'), 'is_author_page_hidden')
                     ->onlyOnForms()
                     ->sortable()
-                    ->help(__('Does not affect users who have only the columnist role.')),
+                    ->help(__('Does not affect users who have no published news, articles, or online broadcasts.')),
 
                 Boolean::make(__('Hide columnist page'), 'is_columnist_page_hidden')
                     ->onlyOnForms()
                     ->sortable()
-                    ->help(__('Does not affect users who do not have the columnist role.')),
+                    ->help(__('Does not affect users who have no published opinions.')),
             ]),
 
             Panel::make(__('User Information'), [
