@@ -256,14 +256,12 @@ abstract class Post extends Resource
                             //->default(auth()->user())
                             ->when($this->exists, function($field) {
                                 return $field->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
-                                    $authors = $request->{$requestAttribute};
+                                    $authors = $request->{$requestAttribute} ?? [];
                                     $syncData = [];
-                                    if ($authors) {
-                                        foreach ($authors as $index => $authorId) {
-                                            $syncData[$authorId] = ['position' => $index + 1];
-                                        }
-                                        $model->authors()->sync($syncData);
+                                    foreach ($authors as $index => $authorId) {
+                                        $syncData[$authorId] = ['position' => $index + 1];
                                     }
+                                    $model->authors()->sync($syncData);
                                 });
                             }),
                 

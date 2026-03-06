@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Nova;
 
 use Illuminate\Http\Request;
 
-use App\Models\User;
+use App\Models\Author;
 use App\Models\Post;
 use App\Models\PostTypes\PostArticle;
 use App\Models\PostTypes\PostNews;
@@ -12,7 +12,6 @@ use App\Models\PostTypes\PostOpinion;
 use App\Models\PostTypes\PostOnline;
 
 use App\Enums\PostTypes;
-use App\Enums\UserRoles;
 
 use App\Http\Controllers\Controller;
 
@@ -34,6 +33,8 @@ class NewsCalendarController extends Controller
 
     public function getResources()
     {
+        $locale = app()->getLocale();
+
         return [
             'post_types' => [
                 ['label' => __('Articles'), 'value' => PostTypes::ARTICLE],
@@ -41,22 +42,22 @@ class NewsCalendarController extends Controller
                 ['label' => __('Opinions'), 'value' => PostTypes::OPINION],
                 ['label' => __('Onlines'), 'value' => PostTypes::ONLINE],
             ],
-            'authors' => User::all()->filter(function ($user) {
-                return $user->hasRole([UserRoles::AUTHOR, UserRoles::NEWS_WRITER]) || $user->canViewAll();
-            })->map(function ($author) {
-                return [
-                    'id' => $author->id,
-                    'name' => $author->full_name,
-                ];
-            })->values(),
-            'columnists' => User::all()->filter(function ($user) {
-                return $user->hasRole(UserRoles::COLUMNIST);
-            })->map(function ($columnist) {
-                return [
-                    'id' => $columnist->id,
-                    'name' => $columnist->full_name,
-                ];
-            })->values(),
+            'authors' => Author::where('language_code', $locale)
+                ->orderBy('last_name')
+                ->get()
+                ->filter(fn($a) => !empty(array_intersect($a->allowed_post_types ?? [], [
+                    PostTypes::ARTICLE,
+                    PostTypes::NEWS,
+                    PostTypes::ONLINE,
+                ])))
+                ->map(fn($a) => ['id' => $a->id, 'name' => $a->full_name])
+                ->values(),
+            'columnists' => Author::where('language_code', $locale)
+                ->whereJsonContains('allowed_post_types', PostTypes::OPINION)
+                ->orderBy('last_name')
+                ->get()
+                ->map(fn($a) => ['id' => $a->id, 'name' => $a->full_name])
+                ->values(),
         ];
     }
 
@@ -82,7 +83,7 @@ class NewsCalendarController extends Controller
 
         if ($request->author_id && $request->resource !== PostTypes::OPINION) {
             $query->whereHas('authors', function ($q) use ($request) {
-                $q->where('users.id', $request->author_id);
+                $q->where('authors.id', $request->author_id);
             });
         }
 
@@ -97,10 +98,17 @@ class NewsCalendarController extends Controller
 
         $events = $query->get()->map(function ($event) use ($request) {
             if ($event->type === PostTypes::OPINION) {
-                $authorName = $event->columnist ? $event->columnist->full_name : 'The Insider';
+                $authorName = $event->columnist ? $event->columnist->full_name : '—';
             } else {
                 $firstAuthor = $event->authors->first();
-                $authorName = $firstAuthor ? $firstAuthor->full_name : 'The Insider';
+                if ($firstAuthor) {
+                    $authorName = $firstAuthor->full_name;
+                    if ($event->authors->count() > 1) {
+                        $authorName .= ' [+]';
+                    }
+                } else {
+                    $authorName = '—';
+                }
             }
 
             return [
