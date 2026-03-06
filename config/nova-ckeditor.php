@@ -157,11 +157,22 @@ return [
                 'numberedList',
                 'alignment',
                 '|',
-                'code',
+                'terminPicker',
                 '|',
                 'removeFormat',
                 'showBlocks',
                 'sourceEditing',
+            ],
+
+            'html-support' => [
+                'allow' => [
+                    [
+                        'name'       => 'span',
+                        'classes'    => ['termin'],
+                        'attributes' => ['data-id' => true],
+                    ],
+                ],
+                'disallow' => [],
             ],
 
             'options' => [

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "afdc45a545e1d65fed235b536478a015",
+    "content-hash": "059244424e3ea00454d0c1094d5da104",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -4017,17 +4017,11 @@
         },
         {
             "name": "mostafaznv/nova-ckeditor",
-            "version": "7.7.6",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/mostafaznv/nova-ckeditor.git",
-                "reference": "c2579fb2451c4b352f745d543593b266b95dd848"
-            },
+            "version": "7.7.99",
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/mostafaznv/nova-ckeditor/zipball/c2579fb2451c4b352f745d543593b266b95dd848",
-                "reference": "c2579fb2451c4b352f745d543593b266b95dd848",
-                "shasum": ""
+                "type": "path",
+                "url": "./nova-components/nova-ckeditor",
+                "reference": "a1284f7550c9a5da3b9027c52db413fd675822f4"
             },
             "require": {
                 "intervention/image": "^3.1.0",
@@ -4051,14 +4045,14 @@
                     "Mostafaznv\\NovaCkEditor\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
-            "description": "CkEditor for Laravel Nova",
+            "description": "CkEditor for Laravel Nova (forked with TerminPicker)",
             "keywords": [
-                "CKEditor",
+                "WYSIWYG Editor",
                 "audio picker",
+                "ckeditor",
                 "ckeditor 5",
                 "image picker",
                 "laravel",
@@ -4066,14 +4060,12 @@
                 "nova",
                 "rich text editor",
                 "snippets",
-                "video picker",
-                "wysiwyg editor"
+                "video picker"
             ],
-            "support": {
-                "issues": "https://github.com/mostafaznv/nova-ckeditor/issues",
-                "source": "https://github.com/mostafaznv/nova-ckeditor/tree/7.7.6"
-            },
-            "time": "2025-02-24T19:15:12+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "mostafaznv/nova-video",

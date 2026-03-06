@@ -153,6 +153,21 @@ class Post extends Model { //implements HasMedia {
             } else {
                 $post->unsearchable();
             }
+
+            // Sync post_termins pivot based on <span data-id="X"> tags in content.
+            $raw = \Illuminate\Support\Facades\DB::table('posts')->where('id', $post->id)->value('content');
+            if (!empty($raw)) {
+                $blocks = json_decode($raw, true) ?? [];
+                $terminIds = [];
+                foreach ($blocks as $block) {
+                    if (($block['type'] ?? '') === 'text') {
+                        $html = $block['attributes']['text'] ?? '';
+                        preg_match_all('/data-id="(\d+)"/', $html, $matches);
+                        $terminIds = array_merge($terminIds, $matches[1]);
+                    }
+                }
+                $post->termins()->sync(array_unique(array_map('intval', $terminIds)));
+            }
         });
 
         static::deleted(function ($post) {

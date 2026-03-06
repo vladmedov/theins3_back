@@ -29,7 +29,7 @@ class SyncFromLegacyDb extends Command
                             {--post= : Восстановить/пересинхронизировать один пост по legacy ID}';
     protected $description = 'Incrementally sync data from legacy database';
 
-    private $legacy_db;
+    protected $legacy_db;
     private const LOCK_TIMEOUT = 180; // 3 minutes (short cache lock, real check is via sync_logs)
     private const ACTIVITY_CHECK_MINUTES = 1; // Consider process dead if no updates for 1 minute
 
@@ -281,7 +281,7 @@ class SyncFromLegacyDb extends Command
         }
     }
 
-    private function downloadLegacyImage(int $id, ?string $legacyFilename, string $legacySlug, string $imageType): ?string
+    protected function downloadLegacyImage(int $id, ?string $legacyFilename, string $legacySlug, string $imageType): ?string
     {
         if (empty($legacyFilename)) {
             return null;
@@ -749,7 +749,7 @@ class SyncFromLegacyDb extends Command
         }
     }
 
-    private function syncPostContent(int $postId, string $languageCode): void
+    protected function syncPostContent(int $postId, string $languageCode): void
     {
         $currentPost = Post::find($postId);
 
@@ -873,27 +873,42 @@ class SyncFromLegacyDb extends Command
                 }
                 $text = $blockContent->text;
 
-                // Заменяем все ссылки на термины на код
+                // Заменяем все ссылки на термины на span с data-id
                 $text = preg_replace_callback('/<a\s+href="\{\{term_([^}]+)\}\}"[^>]*>(.*?)<\/a\s*>/is', function($matches) use ($termins, $currentPost) {
                     $terminId = $matches[1];
-                    $terminTermin = $matches[2];
                     $terminCode = "{{term_" . $terminId . "}}";
                     $terminDescription = $termins[$terminCode] ?? '';
-                    
-                    $termin = Termin::where('termin', $terminTermin)->first();
+
+                    // Отображаемое слово: убираем вложенные теги и лишние пробелы
+                    $displayWord = trim(strip_tags($matches[2]));
+                    $displayWord = preg_replace('/\s+/', ' ', $displayWord);
+
+                    // Каноническая форма термина совпадает с отображаемым словом (из legacy — это одно и то же)
+                    $canonicalTermin = $displayWord;
+
+                    if ($displayWord === '' || $terminDescription === '') {
+                        return $matches[0]; // не трогаем если пусто или нет описания
+                    }
+
+                    // Match by description + language so that all declensions of the
+                    // same word resolve to a single Termin record within the language.
+                    $termin = Termin::where('description', $terminDescription)
+                        ->where('language_code', $currentPost->language_code)
+                        ->first();
                     if (!$termin) {
                         $termin = Termin::create([
                             'language_code' => $currentPost->language_code,
-                            'termin' => $terminTermin,
-                            'description' => $terminDescription,
+                            'termin'        => Termin::uniqueName($canonicalTermin),
+                            'description'   => $terminDescription,
                         ]);
                     }
-                    $currentPost->termins()->syncWithoutDetaching($termin->id);
-                    if ($termin) {
-                        return '<code>' . $termin->termin . '</code>';
-                    }
+                    return '<span class="termin" data-id="' . $termin->id . '">' . e($displayWord) . '</span>';
                 }, $text);
-                
+
+                // Promote <p><strong>Heading</strong></p> → <h3>Heading</h3>
+                // so the h3-splitting logic below picks them up correctly.
+                $text = $this->transformStrongParagraphsToH3($text);
+
                 // Находим все вхождения h3 и шаблонов и обрабатываем их по порядку
                 $matches = [];
 
@@ -1085,6 +1100,20 @@ class SyncFromLegacyDb extends Command
         Post::where('id', $postId)->update([
             'content' => json_encode($content),
         ]);
+
+        // Post::where()->update() bypasses Eloquent events, so sync termins manually.
+        $terminIds = [];
+        foreach ($content as $block) {
+            if (($block['type'] ?? '') === 'text') {
+                $html = $block['attributes']['text'] ?? '';
+                preg_match_all('/data-id="(\d+)"/', $html, $matches);
+                $terminIds = array_merge($terminIds, $matches[1]);
+            }
+        }
+        $terminIds = array_unique(array_map('intval', $terminIds));
+        if (!empty($terminIds)) {
+            $currentPost->termins()->syncWithoutDetaching($terminIds);
+        }
     }
 
     private function syncOnlineMessages(int $postId, string $languageCode): void
@@ -1228,7 +1257,7 @@ class SyncFromLegacyDb extends Command
     /**
      * Очищает outline от HTML entities и спецсимволов
      */
-    private function cleanOutline(string $outline): string
+    protected function cleanOutline(string $outline): string
     {
         $clean = html_entity_decode($outline, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $clean = strip_tags($clean);
@@ -1239,7 +1268,7 @@ class SyncFromLegacyDb extends Command
     /**
      * Нормализует HTML-содержимое текстового блока
      */
-    private function normalizeHtml(string $html): string
+    protected function normalizeHtml(string $html): string
     {
         // Удаляем символ ◀ в конце текста
         $html = preg_replace('/\s*◀\s*$/', '', $html);
@@ -1335,7 +1364,7 @@ class SyncFromLegacyDb extends Command
     /**
      * Удаляет пустые параграфы
      */
-    private function removeEmptyParagraphs(string $html): string
+    protected function removeEmptyParagraphs(string $html): string
     {
         if (empty(trim($html))) {
             return $html;
@@ -1371,6 +1400,29 @@ class SyncFromLegacyDb extends Command
         
         return $html;
     }
+
+    /**
+     * Replaces <p><strong>Heading</strong></p> with <h3>Heading</h3>.
+     * Only acts when <strong> is the sole child and contains plain text (no nested tags).
+     */
+    protected function transformStrongParagraphsToH3(string $html): string
+    {
+        return preg_replace_callback(
+            '/<p(\s[^>]*)?>\s*<strong(\s[^>]*)?>(.*?)<\/strong>\s*<\/p>/is',
+            function (array $m): string {
+                $inner = $m[3];
+                // Skip if <strong> contains other tags (not a plain heading)
+                if (str_contains($inner, '<')) {
+                    return $m[0];
+                }
+                // Strip inline styles
+                $inner = preg_replace('/\s+style\s*=\s*["\'][^"\']*["\']/i', '', $inner);
+                return '<h3>' . $inner . '</h3>';
+            },
+            $html
+        );
+    }
+
 
 }
 

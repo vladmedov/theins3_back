@@ -68,7 +68,6 @@ use App\Nova\_Users\UserAuthor;
 use App\Nova\_Taxonomy\Category;
 use App\Nova\_Taxonomy\InvestigationTheme;
 use App\Nova\_Taxonomy\Tag;
-use App\Nova\_Taxonomy\Termin;
 use App\Nova\_Taxonomy\Author;
 
 use App\Nova\Metrics\PostsPerDay;
@@ -210,7 +209,8 @@ abstract class Post extends Resource
 
             Text::make(__('Title'), 'title')
                 ->sortable()
-                ->rules('required', 'max:255')
+                ->rules('required', 'max:140')
+                ->withMeta(['extraAttributes' => ['data-char-counter' => 'title', 'maxlength' => '140']])
                 ->displayUsing(function ($title, $resource) use ($request) {
                     $url =  config('nova.path') . static::redirectAfterUpdate($request, $this);
                     return $resource->is_super_news 
@@ -310,15 +310,7 @@ abstract class Post extends Resource
 
         $content = [
 
-            TagField::make(__('Termins'), 'termins', Termin::class)
-                ->hideFromIndex()
-                ->hideFromDetail()
-                ->fullWidth()
-                ->searchable()
-                ->nullable()
-                ->preload(),
-                
-            Flexible::make(__('Blocks'), 'content')
+            Flexible::make('', 'content')
                 ->hideFromDetail()
                 ->menu('custom-flexible-menu')
                 ->fullWidth()

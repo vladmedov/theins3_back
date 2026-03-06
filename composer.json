@@ -120,6 +120,13 @@
         "5": {
             "type": "path",
             "url": "./nova-components/TopUsersCard"
+        },
+        "6": {
+            "type": "path",
+            "url": "./nova-components/nova-ckeditor",
+            "options": {
+                "symlink": true
+            }
         }
     }
 }
