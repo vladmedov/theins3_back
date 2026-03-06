@@ -143,7 +143,8 @@ export default {
     imageSrc(link) {
       if (!link) return '';
       if (link.startsWith('http')) return link;
-      return '/storage/' + link;
+      const base = (this.field.storageUrl || '/storage').replace(/\/$/, '');
+      return base + '/' + link;
     },
 
     removeImage(index) {
