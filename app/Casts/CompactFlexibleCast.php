@@ -82,7 +82,9 @@ class CompactFlexibleCast implements CastsAttributes
         $formattedBlock = [];
 
         foreach ($value as $block) {
-            if (empty($block['key']) || empty($block['layout']) || empty($block['attributes'])) {
+            // key может быть 0 (первый блок) — empty(0) в PHP true, поэтому не используем empty()
+            if (!array_key_exists('key', $block) || $block['key'] === '' || $block['key'] === null
+                || empty($block['layout']) || empty($block['attributes'])) {
                 continue;
             }
 

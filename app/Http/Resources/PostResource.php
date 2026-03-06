@@ -60,6 +60,9 @@ class PostResource extends JsonResource
                 return (new InvestigationThemeResource($this->investigationTheme))->toArray($request);
             }),
             'translation' => $this->whenLoaded('translation', function () use ($request) {
+                if (!$this->translation || $this->translation->status !== 'published') {
+                    return null;
+                }
                 return (new PostResource($this->translation))->toArray($request);
             }),
             'lead' => $this->lead ?? "",

@@ -24,7 +24,9 @@ use App\Models\CollectionPost;
 
 class SyncFromLegacyDb extends Command
 {
-    protected $signature = 'sync:legacy {--reset-stuck : Reset stuck sync processes}';
+    protected $signature = 'sync:legacy
+                            {--reset-stuck : Reset stuck sync processes}
+                            {--post= : Восстановить/пересинхронизировать один пост по legacy ID}';
     protected $description = 'Incrementally sync data from legacy database';
 
     private $legacy_db;
@@ -49,6 +51,12 @@ class SyncFromLegacyDb extends Command
             
             $this->info('Stuck processes and locks have been reset');
             return 0;
+        }
+
+        // Восстановление одного поста из legacy по ID
+        $singlePostId = $this->option('post');
+        if ($singlePostId !== null && $singlePostId !== '') {
+            return $this->restoreSinglePost((int) $singlePostId);
         }
 
         // Проверяем активные процессы по таблице sync_logs
@@ -478,6 +486,106 @@ class SyncFromLegacyDb extends Command
         }
     }
 
+    /**
+     * Восстановить/пересинхронизировать один пост из legacy по ID (legacy post id = id в текущей БД).
+     */
+    private function restoreSinglePost(int $legacyPostId): int
+    {
+        $this->info("Restoring single post (legacy ID): {$legacyPostId}");
+
+        $regions = $this->legacy_db->select('
+            SELECT region_id FROM public.region_relations
+            WHERE regionable_type = \'Post\' AND regionable_id = ?
+        ', [$legacyPostId]);
+
+        if (empty($regions)) {
+            $this->error("Post {$legacyPostId} not found in legacy region_relations.");
+            return 1;
+        }
+
+        $regionId = (int) $regions[0]->region_id;
+        $languageCode = $regionId === 1 ? 'ru' : 'en';
+
+        $posts = $this->legacy_db->select('
+            SELECT posts.*, rubric_relations.rubric_id FROM public.posts
+            LEFT JOIN (
+                SELECT rubricable_id, MIN(rubric_id) as rubric_id
+                FROM public.rubric_relations
+                WHERE rubricable_type = \'Post\'
+                GROUP BY rubricable_id
+            ) as rubric_relations ON rubric_relations.rubricable_id = posts.id
+            WHERE posts.id = ?
+        ', [$legacyPostId]);
+
+        if (empty($posts)) {
+            $this->error("Post {$legacyPostId} not found in legacy posts table.");
+            return 1;
+        }
+
+        $post = $posts[0];
+
+        try {
+            $imagePath = $this->downloadLegacyImage(
+                $post->id,
+                $post->preview_image ?? $post->detail_image ?? null,
+                'post',
+                ImageService::TYPE_POST_COVER
+            );
+
+            Post::updateOrCreate(
+                ['id' => $post->id],
+                [
+                    'language_code' => $languageCode,
+                    'slug' => $post->slug ?? $post->id,
+                    'type' => match ($post->type) {
+                        'Post::News' => 'news',
+                        'Post::Opinion' => 'opinion',
+                        'Post::Article' => 'article',
+                        'Post::Online' => 'online',
+                        'Post::Card' => 'article',
+                    },
+                    'category_id' => $post->rubric_id,
+                    'title' => $post->title,
+                    'status' => $post->published ? 'published' : 'draft',
+                    'author_visibility' => match ($post->type) {
+                        'Post::News' => 'force_hidden',
+                        default => 'default'
+                    },
+                    'image' => $imagePath,
+                    'image_description' => $post->image_description,
+                    'published_at' => $post->published_at,
+                    'created_at' => $post->created_at,
+                    'updated_at' => $post->updated_at,
+                    'lead' => $post->lead,
+                    'is_super_news' => $post->super_news,
+                    'views_count' => $post->viewed,
+                ]
+            );
+
+            $this->line("  → Post ID: {$post->id} - {$post->title}");
+
+            if ($post->type === 'Post::Online') {
+                $this->syncOnlineMessages($post->id, $languageCode);
+            } else {
+                $this->syncPostContent($post->id, $languageCode);
+            }
+            $this->syncPostTags($post->id, $languageCode);
+            $this->syncPostAuthorsForPost($post->id);
+            $this->syncThemePostForPost($post->id);
+            $this->syncAdminRelationsForPost($post->id);
+            $this->syncCollectionsForPost($post->id, $regionId, $languageCode);
+
+            $this->info("Post {$legacyPostId} restored successfully.");
+            return 0;
+        } catch (\Exception $e) {
+            $this->error('Restore failed: ' . $e->getMessage());
+            Log::error('Legacy single post restore failed: ' . $e->getMessage(), [
+                'post_id' => $legacyPostId,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return 1;
+        }
+    }
 
     private function syncPostAuthorsForPost(int $postId): void
     {

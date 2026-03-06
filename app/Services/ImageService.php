@@ -21,6 +21,8 @@ class ImageService
     public const SIZE_CROPPED = 'cropped';
     private const WIDTH_SMALL = 768;
     private const WIDTH_MEDIUM = 1536;
+    /** Минимальная ширина оригинала, при которой создаём уменьшенный small; иначе копируем без ресайза (чтобы не сжимать картинки 768–1024px) */
+    private const MIN_WIDTH_TO_RESIZE_SMALL = 1024;
 
     public static function getImagePath($id, string $type = self::TYPE_POST_COVER, string $size = self::SIZE_ORIGINAL): string
     {
@@ -56,7 +58,7 @@ class ImageService
                 return false;
             }
             
-            $smallSuccess = $originalWidth > self::WIDTH_SMALL 
+            $smallSuccess = $originalWidth >= self::MIN_WIDTH_TO_RESIZE_SMALL
                 ? self::createResizedImage($originalPath, $id, $filename, $type, self::SIZE_SMALL, self::WIDTH_SMALL)
                 : self::createImageCopy($originalPath, $id, $filename, $type, self::SIZE_SMALL);
             

@@ -49,7 +49,7 @@ class User extends Resource
     public static $model = \App\Models\User::class;
 
     public static $title = 'name';
-    public static $search = ['id', 'email', 'slug', 'name'];
+    public static $search = ['id', 'email', 'name'];
 
     public static $clickAction = 'edit';
     

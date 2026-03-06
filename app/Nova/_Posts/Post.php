@@ -92,7 +92,7 @@ abstract class Post extends Resource
     // ];
 
     public static $title = 'title';
-    public static $search = ['id', 'title', 'lead'];
+    public static $search = ['id', 'title'];
 
     public static $clickAction = 'edit';
 
@@ -136,16 +136,51 @@ abstract class Post extends Resource
             ? rtrim(config('app.site_url', config('app.url')), '/') . $this->getPath()
             : null;
 
+        $saveJs = "document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click()";
+        $publishJs = "(function(){" .
+            "var s=Array.from(document.querySelectorAll('select')).find(function(el){return Array.from(el.options).some(function(o){return o.value==='published'});});" .
+            "if(s){s.value='published';s.dispatchEvent(new Event('change',{bubbles:true}));s.dispatchEvent(new Event('input',{bubbles:true}));}" .
+            "setTimeout(function(){document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click();},100);" .
+        "})()";
+
+        $unpublishJs = "(function(){" .
+            "var s=Array.from(document.querySelectorAll('select')).find(function(el){return Array.from(el.options).some(function(o){return o.value==='published'});});" .
+            "if(s){s.value='draft';s.dispatchEvent(new Event('change',{bubbles:true}));s.dispatchEvent(new Event('input',{bubbles:true}));}" .
+            "setTimeout(function(){document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click();},100);" .
+        "})()";
+
+        $isPublished = $this->exists && $this->status === 'published';
+
+        $toggleLabel  = $isPublished ? __('Unpublish') : __('Publish');
+        $toggleJs     = $isPublished ? $unpublishJs : $publishJs;
+        $toggleColor  = $isPublished ? '#dc2626' : '#16a34a';
+        $toggleBorder = $isPublished ? '#b91c1c' : '#15803d';
+
+        $btnStyle    = "display:inline-flex;align-items:center;height:36px;padding:0 12px;font-size:14px;font-weight:700;border-radius:4px;border-width:1px;border-style:solid;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;white-space:nowrap;line-height:1;";
+        $saveBtnStyle   = $btnStyle . "background:#111827;color:#fff;border-color:#1f2937;";
+        $toggleBtnStyle = "display:inline-flex;align-items:center;height:36px;padding:0 4px;font-size:14px;font-weight:500;background:none;border:none;cursor:pointer;white-space:nowrap;color:{$toggleColor};text-decoration:underline;";
+
+        $infoHtml = "<div id='nova-info-bar' style='display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:0px;'>"
+            . ($postUrl
+                ? "<span style='flex:1;overflow:hidden;display:flex;align-items:center;gap:6px;min-width:0;'>"
+                . "<span style='font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;'>URL</span>"
+                . "<a href='{$postUrl}' target='_blank' style='font-size:13px;color:#374151;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-bottom:1px solid #d1d5db;line-height:1.3;'>{$postUrl}</a>"
+                . "</span>"
+                : "<span style='flex:1'></span>")
+            . "<button type='button' onclick=\"{$toggleJs}\" style='{$toggleBtnStyle}'>{$toggleLabel}</button>"
+            . "<button type='button' onclick=\"{$saveJs}\" style='{$saveBtnStyle}'>" . ($this->exists ? __('Save') : __('Create')) . "</button>"
+            . "</div>";
+
+        $info = [
+            Heading::make($infoHtml)
+                ->onlyOnForms()
+                ->asHtml()
+        ];
+
         $general = [
             Text::make(__('Type'), 'type')
                 ->onlyOnDetail()
                 ->default(__(static::getPostType())),
-
-            Heading::make($postUrl
-                    ? "<div class='text-right text-sm text-gray-400'>URL: <a href='{$postUrl}' target='_blank' class='text-sm text-gray-400 hover:text-gray-600'>{$postUrl}</a></div>"
-                    : '')
-                ->hideWhenCreating()
-                ->asHtml(),
 
             Select::make(__('Status'), 'status')
                 ->options([
@@ -232,6 +267,36 @@ abstract class Post extends Resource
                                 });
                             }),
                 
+            Image::make(__('Image file'), 'image') 
+                ->hideFromDetail()
+                ->hideFromIndex()
+                ->disk('public')
+                ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
+                ->nullable()
+                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
+                ->preview(function ($value, $disk) {
+                    return $value ? Storage::disk($disk)->url($value) : null;
+                })
+                ->thumbnail(function ($value, $disk) {
+                    return $value ? Storage::disk($disk)->url($value) : null;
+                }),
+            
+            Text::make(__('Image description'), 'image_description')
+                ->hideFromDetail()
+                ->hideFromIndex()
+                ->sortable()
+                ->rules('max:255'),
+        
+            // Textarea::make(__('Lead text'), 'lead')
+            //     ->hideFromDetail()
+            //     ->rules('nullable', 'max:500'),
+
+            CkEditor::make(__('Lead text'), 'lead')
+                ->toolbar('toolbar-theins-small')
+                ->hideFromIndex()
+                ->hideFromDetail()
+                ->rules('nullable'),
+
             Text::make(__('Views'), function () {
                 return $this->views_count;
                 })->hideFromDetail(),
@@ -247,35 +312,13 @@ abstract class Post extends Resource
 
         $content = [
 
-            Image::make(__('Image file'), 'image') 
-                ->hideFromDetail()
+            TagField::make(__('Termins'), 'termins', Termin::class)
                 ->hideFromIndex()
-                ->disk('public')
-                ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
+                ->hideFromDetail()
+                ->fullWidth()
+                ->searchable()
                 ->nullable()
-                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
-                })
-                ->thumbnail(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
-                }),
-
-            Text::make(__('Image description'), 'image_description')
-                ->hideFromDetail()
-                ->hideFromIndex()
-                ->sortable()
-                ->rules('max:255'),
-
-            // Textarea::make(__('Lead text'), 'lead')
-            //     ->hideFromDetail()
-            //     ->rules('nullable', 'max:500'),
-
-            CkEditor::make(__('Lead text'), 'lead')
-                ->toolbar('toolbar-theins-small')
-                ->hideFromIndex()
-                ->hideFromDetail()
-                ->rules('nullable'),
+                ->preload(),
                 
             Flexible::make(__('Blocks'), 'content')
                 ->hideFromDetail()
@@ -415,14 +458,6 @@ abstract class Post extends Resource
                 ->nullable()
                 ->preload(),
 
-            TagField::make(__('Termins'), 'termins', Termin::class)
-                ->hideFromIndex()
-                ->hideFromDetail()
-                ->fullWidth()
-                ->searchable()
-                ->nullable()
-                ->preload(),
-
             BelongsTo::make(__('Investigation Theme'), 'investigationtheme', InvestigationTheme::class)
                 ->hideFromIndex()
                 ->hideFromDetail()
@@ -472,15 +507,16 @@ abstract class Post extends Resource
                 ->withSubtitles()
                 ->resolveUsing(function ($value, $model) {
                     if (!$model->exists) {
-                        return $value ?: [["display" => auth()->user()->fullname, "value" => auth()->user()->id]];
+                        return $value ?: [["display" => auth()->user()->name, "value" => auth()->user()->id]];
                     }
                     return $value;
                 })
-                ->immutable(fn ($request) => ! $this->authorizedToDelete($request)),
+                ->immutable(fn ($request) => $this->exists && ! $this->authorizedToDelete($request)),
         ];
 
         if (static::getPostType() !== PostTypes::ONLINE) {
             $publicationGroup = Tab::group(__('Publication'), [
+                Tab::make(__('General'), $general),
                 Tab::make(__('Content'), $content),
                 Tab::make(__('Settings'), $settings),
             ]);
@@ -501,7 +537,8 @@ abstract class Post extends Resource
             Hidden::make(__('Language'), 'language_code')->default(app()->getLocale()),
             Hidden::make(__('Type'), 'type')->default(static::getPostType()),
 
-            Panel::make(__('Publication settings'), $general),
+            ...$info,
+            
             PostHistory::make(),
 
             $publicationGroup,
@@ -520,9 +557,24 @@ abstract class Post extends Resource
         return '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';
     }
 
+    public static function createButtonLabel(): string
+    {
+        return __('Create');
+    }
+
+    public static function updateButtonLabel(): string
+    {
+        return __('Save');
+    }
+
     public static function defaultOrderings(\Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
     {
         return $query->orderByRaw('published_at DESC NULLS LAST');
+    }
+
+    public static function usesScout(): bool
+    {
+        return false;
     }
 
     public static function indexQuery(NovaRequest $request, $query) {

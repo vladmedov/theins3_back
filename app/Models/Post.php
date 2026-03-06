@@ -378,7 +378,7 @@ class Post extends Model { //implements HasMedia {
      */
     public function searchableAs(): string
     {
-        return 'posts_' . $this->language_code;
+        return 'posts';
     }
 
     /**

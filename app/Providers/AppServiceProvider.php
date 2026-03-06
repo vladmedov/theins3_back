@@ -5,8 +5,9 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Laravel\Scout\EngineManager;
-use Elastic\Elasticsearch\ClientBuilder;
+use Elastic\Elasticsearch\Client;
 use Matchish\ScoutElasticSearch\Engines\ElasticSearchEngine;
+use Matchish\ScoutElasticSearch\ElasticSearchServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,22 +16,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Регистрируем PSR-18 HTTP клиент для Elasticsearch
-        $this->app->bind(\Psr\Http\Client\ClientInterface::class, function () {
-            return new \GuzzleHttp\Client();
-        });
-
-        // Регистрируем Elasticsearch клиент
-        $this->app->singleton(\Elastic\Elasticsearch\Client::class, function ($app) {
-            $httpClient = new \GuzzleHttp\Client();
-            $hosts = config('scout.elasticsearch.hosts', ['elasticsearch:9200']);
-            
-            $clientBuilder = ClientBuilder::create();
-            $clientBuilder->setHosts($hosts);
-            $clientBuilder->setHttpClient($httpClient);
-            
-            return $clientBuilder->build();
-        });
+        // В matchish/laravel-scout-elasticsearch 8.x биндинги клиента Elasticsearch
+        // и HitsIteratorAggregate вынесены в отдельный провайдер.
+        $this->app->register(ElasticSearchServiceProvider::class);
     }
 
     /**
@@ -40,14 +28,12 @@ class AppServiceProvider extends ServiceProvider
     {
         JsonResource::withoutWrapping();
 
-        // Расширяем Scout для поддержки Elasticsearch
+        // Backward-compatible alias: many installs use SCOUT_DRIVER=elasticsearch.
+        // matchish registers the engine under ElasticSearchEngine::class.
         resolve(EngineManager::class)->extend('elasticsearch', function ($app) {
-            $client = $app->make(\Elastic\Elasticsearch\Client::class);
+            $client = $app->make(Client::class);
 
-            return new ElasticSearchEngine(
-                $client,
-                config('scout.elasticsearch.update_mapping', true)
-            );
+            return new ElasticSearchEngine($client);
         });
     }
 }
