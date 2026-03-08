@@ -352,8 +352,12 @@ class Post extends Model { //implements HasMedia {
     }
 
     public function getPath() {
+        $columnistPrefix = ($this->type === PostTypes::OPINION && $this->columnist)
+            ? "{$this->columnist->slug}/"
+            : '';
         return '/'
             . ($this->language_code === 'ru' ? $this->category->slug . '/' : "{$this->language_code}/{$this->category->slug}/")
+            . $columnistPrefix
             . "{$this->slug}";
     }
 

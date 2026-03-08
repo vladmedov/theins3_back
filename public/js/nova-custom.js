@@ -57,6 +57,47 @@
     startPoll();
 }());
 
+// ─── Copy post URL button ────────────────────────────────────────────────────
+(function () {
+    function initCopyButtons() {
+        document.querySelectorAll('.js-copy-post-url').forEach(function (btn) {
+            if (btn.dataset.copyListener) return;
+            btn.dataset.copyListener = '1';
+            btn.addEventListener('click', function () {
+                var url = btn.dataset.copyUrl;
+                if (!url) return;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(function () {
+                        var oldTitle = btn.getAttribute('title');
+                        btn.setAttribute('title', 'Copied!');
+                        setTimeout(function () { btn.setAttribute('title', oldTitle || ''); }, 1500);
+                    });
+                } else {
+                    var ta = document.createElement('textarea');
+                    ta.value = url;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try {
+                        document.execCommand('copy');
+                        var oldTitle = btn.getAttribute('title');
+                        btn.setAttribute('title', 'Copied!');
+                        setTimeout(function () { btn.setAttribute('title', oldTitle || ''); }, 1500);
+                    } catch (e) {}
+                    document.body.removeChild(ta);
+                }
+            });
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCopyButtons);
+    } else {
+        initCopyButtons();
+    }
+    new MutationObserver(function () { initCopyButtons(); }).observe(document.documentElement, { childList: true, subtree: true });
+}());
+
 // ─── Fixed save button: hide on post-* resources ─────────────────────────────
 (function () {
     var lastPath = null;

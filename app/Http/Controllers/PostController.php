@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use App\Models\Post;
 use App\Enums\PostTypes;
 use App\Http\Resources\PostResource;
+use App\Services\PostPreviewTokenService;
 
 class PostController extends Controller
 {
@@ -34,6 +35,38 @@ class PostController extends Controller
             return response()->json(['redirect' => $post->getPath()], 301);
         }
 
+        return new PostResource($post, false);
+    }
+
+    /**
+     * Preview a draft post by temporary token (valid 15 minutes).
+     * Frontend calls this when URL contains ?preview=TOKEN.
+     */
+    public function getPostPreview($language_code, PostPreviewTokenService $previewTokens)
+    {
+        $token = request()->query('token');
+        if (!$token) {
+            abort(404);
+        }
+        $postId = $previewTokens->validateToken($token);
+        if (!$postId) {
+            abort(404);
+        }
+        $post = Post::with([
+            'category',
+            'investigationTheme',
+            'translation',
+            'translation.category',
+            'translation.authors',
+            'translation.columnist',
+            'tags',
+            'termins',
+            'authors',
+            'columnist',
+        ])->find($postId);
+        if (!$post || $post->language_code !== $language_code) {
+            abort(404);
+        }
         return new PostResource($post, false);
     }
 

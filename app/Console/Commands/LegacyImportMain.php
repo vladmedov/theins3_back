@@ -358,7 +358,7 @@ class LegacyImportMain extends Command
             'published_at'     => $post->published_at,
             'created_at'       => $post->created_at,
             'updated_at'       => $post->updated_at,
-            'lead'             => $post->lead,
+            'lead'             => $this->cleanLead($post->lead),
             'is_super_news'    => $post->super_news,
             'views_count'      => $post->viewed,
         ];
@@ -380,6 +380,39 @@ class LegacyImportMain extends Command
         $this->syncThemePostForPost($post->id);
         $this->syncAdminRelationsForPost($post->id);
         $this->syncCollectionsForPost($post->id, $regionId, $languageCode);
+    }
+
+    // -------------------------------------------------------------------------
+    // Lead cleanup
+    // -------------------------------------------------------------------------
+
+    /**
+     * Strip cosmetic trailing/leading line-breaks from an HTML lead string.
+     *
+     * Removes patterns like:
+     *   - <br>\n&nbsp; at the end of the last <p> before </p>
+     *   - &nbsp;<br> at the beginning of a <p>
+     *   - standalone &nbsp; lines that act as blank spacers
+     */
+    private function cleanLead(?string $html): ?string
+    {
+        if ($html === null || $html === '') {
+            return $html;
+        }
+
+        // Remove <br> (optionally followed by whitespace / &nbsp;) before </p>
+        $html = preg_replace('/(<br\s*\/?>)\s*(&nbsp;)?\s*(<\/p>)/i', '$3', $html);
+
+        // Remove &nbsp; (optionally preceded by whitespace) before </p>
+        $html = preg_replace('/\s*&nbsp;\s*(<\/p>)/i', '$1', $html);
+
+        // Remove <br> (optionally preceded by whitespace / &nbsp;) after <p> or <p ...>
+        $html = preg_replace('/(<p(?:\s[^>]*)?>)\s*(&nbsp;)?\s*(<br\s*\/?>)\s*/i', '$1', $html);
+
+        // Remove a leading &nbsp; right after <p> or <p ...>
+        $html = preg_replace('/(<p(?:\s[^>]*)?>)\s*&nbsp;\s*/i', '$1', $html);
+
+        return trim($html);
     }
 
     // -------------------------------------------------------------------------

@@ -29,6 +29,7 @@ Route::prefix('{language_code}')->group(function () {
     Route::get('/columnist/{slug}', [UserController::class, 'getColumnist']);
 
     Route::get('/post/{category_slug}/{slug}', [PostController::class, 'getPost']);
+    Route::get('/post-preview', [PostController::class, 'getPostPreview']);
     
     Route::post('/track-view', [TrackingPixelController::class, 'trackView']);
     

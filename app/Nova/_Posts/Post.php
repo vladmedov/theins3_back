@@ -78,6 +78,7 @@ use Laravel\Nova\Nova;
 use Medov\PostHistory\PostHistory;
 
 use App\Services\ImageService;
+use App\Services\PostPreviewTokenService;
 
 //use Outl1ne\NovaSortable\Traits\HasSortableManyToManyRows;
 
@@ -135,6 +136,12 @@ abstract class Post extends Resource
             ? rtrim(config('app.site_url', config('app.url')), '/') . $this->getPath()
             : null;
 
+        $isDraft = $this->exists && $this->status === 'draft';
+        if ($postUrl && $isDraft) {
+            $token = app(PostPreviewTokenService::class)->createToken($this->resource);
+            $postUrl .= (str_contains($postUrl, '?') ? '&' : '?') . 'preview=' . $token;
+        }
+
         $saveJs = "document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click()";
         $publishJs = "(function(){" .
             "var s=Array.from(document.querySelectorAll('select')).find(function(el){return Array.from(el.options).some(function(o){return o.value==='published'});});" .
@@ -159,13 +166,32 @@ abstract class Post extends Resource
         $saveBtnStyle   = $btnStyle . "background:#111827;color:#fff;border-color:#1f2937;";
         $toggleBtnStyle = "display:inline-flex;align-items:center;height:36px;padding:0 4px;font-size:14px;font-weight:500;background:none;border:none;cursor:pointer;white-space:nowrap;color:{$toggleColor};text-decoration:underline;";
 
-        $infoHtml = "<div id='nova-info-bar' style='display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:0px;'>"
-            . ($postUrl
-                ? "<span style='flex:1;overflow:hidden;display:flex;align-items:center;gap:6px;min-width:0;'>"
+        $previewNotice = '';
+        if ($isDraft && $postUrl) {
+            $expiresAt = Carbon::now()->addMinutes(PostPreviewTokenService::TTL_MINUTES);
+            $userTz = auth()->user()->timezone ?? config('app.timezone');
+            if ($userTz && in_array($userTz, timezone_identifiers_list(), true)) {
+                $expiresAt = $expiresAt->copy()->setTimezone($userTz);
+            }
+            $previewNotice = __('Preview valid until') . ' ' . $expiresAt->format('d.m.Y H:i');
+            $previewNotice .= ' · ' . __('To refresh the token, reload the page or save the publication.');
+        }
+        $postUrlEscaped = $postUrl ? htmlspecialchars($postUrl, ENT_QUOTES, 'UTF-8') : '';
+        $copyIcon = "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>";
+        $urlBlock = $postUrl
+            ? "<span style='flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;'>"
+                . "<span style='display:flex;align-items:center;gap:6px;flex-wrap:wrap;'>"
                 . "<span style='font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;'>URL</span>"
-                . "<a href='{$postUrl}' target='_blank' style='font-size:13px;color:#374151;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-bottom:1px solid #d1d5db;line-height:1.3;'>{$postUrl}</a>"
+                . "<span style='display:inline-flex;align-items:center;gap:6px;width:fit-content;max-width:100%;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:3px 4px 3px 6px;'>"
+                . "<a href='{$postUrl}' target='_blank' style='margin-top:1px;font-size:11px;color:#0f172a;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;'>{$postUrl}</a>"
+                . "<button type='button' class='js-copy-post-url' data-copy-url='{$postUrlEscaped}' title='" . htmlspecialchars(__('Copy link'), ENT_QUOTES, 'UTF-8') . "' style='flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:none;border-radius:3px;background:#fff;color:#64748b;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.06);' onmouseover='this.style.background=\"#e2e8f0\";this.style.color=\"#334155\"' onmouseout='this.style.background=\"#fff\";this.style.color=\"#64748b\"'>{$copyIcon}</button>"
                 . "</span>"
-                : "<span style='flex:1'></span>")
+                . "</span>"
+                . ($previewNotice ? "<span style='font-size:11px;color:#64748b;line-height:1.5;'>" . $previewNotice . "</span>" : '')
+                . "</span>"
+            : "<span style='flex:1'></span>";
+        $infoHtml = "<div id='nova-info-bar' style='display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:0px;'>"
+            . $urlBlock
             . "<button type='button' onclick=\"{$toggleJs}\" style='{$toggleBtnStyle}'>{$toggleLabel}</button>"
             . "<button type='button' onclick=\"{$saveJs}\" style='{$saveBtnStyle}'>" . ($this->exists ? __('Save') : __('Create')) . "</button>"
             . "</div>";
