@@ -47,7 +47,7 @@ export default {
         style() {
             if (!this.rect) return {}
             return {
-                top:  (this.rect.top - 10) + 'px',
+                top:  (this.rect.top - 16) + 'px',
                 left: (this.rect.left + this.rect.width / 2) + 'px',
             }
         },
@@ -84,6 +84,8 @@ export default {
             this.rect      = rect
             this.isVisible = true
 
+            this._setActiveSpan(terminId)
+
             if (this.currentTerminId !== terminId) {
                 this.currentTerminId = terminId
                 this.termin  = null
@@ -106,7 +108,21 @@ export default {
 
         hide() {
             this.isVisible = false
+            this._clearActiveSpan()
             this._removeDocListener()
+        },
+
+        _setActiveSpan(terminId) {
+            this._clearActiveSpan()
+            document.querySelectorAll(`.ck-termin-highlight[data-id="${terminId}"]`).forEach(el => {
+                el.classList.add('ck-termin-highlight--active')
+            })
+        },
+
+        _clearActiveSpan() {
+            document.querySelectorAll('.ck-termin-highlight--active').forEach(el => {
+                el.classList.remove('ck-termin-highlight--active')
+            })
         },
 
         edit() {
@@ -142,14 +158,21 @@ export default {
     position: fixed;
     transform: translateX(-50%) translateY(-100%);
     background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-    padding: 10px 14px;
+    border: 3px solid #000;
+    border-radius: 12px;
+    padding: 0;
     min-width: 200px;
-    max-width: 280px;
+    max-width: 22rem;
+    max-height: 360px;
+    display: flex;
+    flex-direction: column;
     z-index: 99990;
     pointer-events: all;
+    font-size: 1rem;
+    font-weight: 200;
+    line-height: 1.5rem;
+    color: #333;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* Arrow pointing down */
@@ -159,8 +182,8 @@ export default {
     top: 100%;
     left: 50%;
     transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: #e5e7eb;
+    border: 7px solid transparent;
+    border-top-color: #000;
 }
 .ck-termin-tooltip::before {
     content: '';
@@ -171,44 +194,66 @@ export default {
     border: 5px solid transparent;
     border-top-color: #fff;
     z-index: 1;
-    margin-top: -1px;
+    margin-top: -2px;
 }
 
 .ck-termin-tooltip__state {
-    font-size: 13px;
+    font-size: 0.9rem;
+    font-weight: 200;
     color: #9ca3af;
-    padding: 4px 0;
+    padding: 0.6rem 0.75rem;
 }
 
 .ck-termin-tooltip__name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 2px;
+    font-size: 1rem;
+    font-weight: 300;
+    color: #fff;
+    background: #000;
+    padding: 0.5rem 0.75rem;
 }
 
 .ck-termin-tooltip__desc {
-    font-size: 12px;
-    color: #6b7280;
-    margin-bottom: 8px;
-    line-height: 1.4;
+    font-size: 0.9rem;
+    font-weight: 200;
+    color: #333;
+    line-height: 1.4rem;
+    padding: 0.75rem 0.75rem 0.6rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.ck-termin-tooltip__desc p {
+    margin-bottom: 0.5rem;
+}
+
+.ck-termin-tooltip__desc p:last-child {
+    margin-bottom: 0;
+}
+
+.ck-termin-tooltip__desc a {
+    color: #E54839;
+}
+
+.ck-termin-tooltip__desc a:hover {
+    text-decoration: underline;
 }
 
 .ck-termin-tooltip__edit {
     width: 100%;
-    padding: 5px 10px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 6px;
-    color: #1d4ed8;
-    font-size: 13px;
-    font-weight: 500;
+    padding: 0.4rem 0.75rem;
+    background: #fff;
+    border: none;
+    border-top: 2px solid #000;
+    color: #000;
+    font-size: 0.9rem;
+    font-weight: 200;
     cursor: pointer;
     text-align: center;
-    transition: background 0.1s;
-    margin-top: 4px;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
 }
 .ck-termin-tooltip__edit:hover {
-    background: #dbeafe;
+    background: #000;
+    color: #fff;
 }
 </style>
