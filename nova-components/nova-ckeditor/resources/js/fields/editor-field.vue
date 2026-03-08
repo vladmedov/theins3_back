@@ -375,7 +375,7 @@ export default {
     .ck-editor__editable_inline
         border-radius: 0 0 10px 10px
         margin: 0
-        padding: 0 10px
+        padding: 0 1.5rem
         @import "../../sass/field"
 
     .ck.ck-editor__editable:not(.ck-editor__nested-editable).ck-focused

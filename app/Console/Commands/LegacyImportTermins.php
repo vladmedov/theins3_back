@@ -65,6 +65,8 @@ class LegacyImportTermins extends Command
         $descriptionByHumanId = [];
         // md5 => ['termin' => '', 'description' => '']  (termin name filled in step 3)
         $entriesToCache = [];
+        // All unique md5s seen across all blocks (including already-cached ones)
+        $allUniqueMd5s = [];
 
         foreach ($termBlocks as $block) {
             if (empty($block->human_id)) {
@@ -78,9 +80,16 @@ class LegacyImportTermins extends Command
                 continue;
             }
 
+            $description = self::normalizeDescription($description);
+
+            if ($description === '') {
+                continue;
+            }
+
             $descriptionByHumanId[$block->human_id] = $description;
 
             $md5 = $this->descriptionMd5($description);
+            $allUniqueMd5s[$md5] = true;
 
             // If --force is not set, skip entries that are already in cache.
             if (!$force && Cache::has(self::CACHE_PREFIX . $md5)) {
@@ -97,8 +106,9 @@ class LegacyImportTermins extends Command
         }
 
         $this->info(sprintf(
-            '  Found %d term block(s), %d unique md5(s) to process.',
+            '  Found %d term block(s), %d unique md5(s) total, %d to process.',
             count($descriptionByHumanId),
+            count($allUniqueMd5s),
             count($entriesToCache)
         ));
 
@@ -127,6 +137,8 @@ class LegacyImportTermins extends Command
         $displayWordByHumanId = [];
         $offset               = 0;
         $chunkSize            = 500;
+        $totalReferences      = 0;          // all term link occurrences in text
+        $referencedHumanIds   = [];         // unique human_ids actually used in text
 
         do {
             $textBlocks = $this->legacy_db->select("
@@ -154,6 +166,9 @@ class LegacyImportTermins extends Command
                         $displayWord = trim(strip_tags($match[2]));
                         $displayWord = preg_replace('/\s+/', ' ', $displayWord);
 
+                        $totalReferences++;
+                        $referencedHumanIds[$humanId] = true;
+
                         if ($displayWord !== '' && !isset($displayWordByHumanId[$humanId])) {
                             $displayWordByHumanId[$humanId] = $displayWord;
                         }
@@ -168,6 +183,21 @@ class LegacyImportTermins extends Command
 
         $bar->finish();
         $this->newLine();
+
+        // Unique md5s among actually-referenced terms
+        $referencedUniqueMd5s = [];
+        foreach (array_keys($referencedHumanIds) as $humanId) {
+            if (isset($descriptionByHumanId[$humanId])) {
+                $referencedUniqueMd5s[$this->descriptionMd5($descriptionByHumanId[$humanId])] = true;
+            }
+        }
+
+        $this->info(sprintf(
+            '  Term references in text: %d total, %d unique human_id(s), %d unique description(s) by md5.',
+            $totalReferences,
+            count($referencedHumanIds),
+            count($referencedUniqueMd5s)
+        ));
 
         // ------------------------------------------------------------------
         // Step 3: Populate the "termin" field in each pending cache entry
@@ -212,6 +242,54 @@ class LegacyImportTermins extends Command
         }
 
         // ------------------------------------------------------------------
+        // Step 4b: Estimate how many new Termins will be created.
+        //
+        // A cache entry with empty 'ids' means no existing DB record matched
+        // it → legacy:import_main will create a new Termin for it.
+        // Entries already in cache (skipped this run) are checked separately.
+        // ------------------------------------------------------------------
+        $willCreate  = 0;
+        $willReuse   = 0;
+
+        foreach ($entriesToCache as $entry) {
+            if (empty($entry['ids'])) {
+                $willCreate++;
+            } else {
+                $willReuse++;
+            }
+        }
+
+        // Also scan already-cached entries (not rebuilt this run) for their
+        // ids state so the forecast covers the full legacy term set.
+        $alreadyCachedCreate = 0;
+        $alreadyCachedReuse  = 0;
+
+        foreach ($allUniqueMd5s as $md5 => $_) {
+            if (isset($entriesToCache[$md5])) {
+                continue; // already counted above
+            }
+            $cached = Cache::get(self::CACHE_PREFIX . $md5);
+            if ($cached === null) {
+                $alreadyCachedCreate++;
+            } elseif (empty($cached['ids'])) {
+                $alreadyCachedCreate++;
+            } else {
+                $alreadyCachedReuse++;
+            }
+        }
+
+        $totalWillCreate = $willCreate + $alreadyCachedCreate;
+        $totalWillReuse  = $willReuse  + $alreadyCachedReuse;
+
+        $this->newLine();
+        $this->info(sprintf(
+            '  Forecast for legacy:import_main: ~%d new Termin(s) will be created, ~%d will be reused.',
+            $totalWillCreate,
+            $totalWillReuse
+        ));
+        $this->newLine();
+
+        // ------------------------------------------------------------------
         // Step 5: Write all new/rebuilt entries to cache.
         // ------------------------------------------------------------------
         $this->info('  Writing cache entries...');
@@ -242,14 +320,31 @@ class LegacyImportTermins extends Command
     }
 
     /**
-     * Compute md5 of a description with only alphanumeric characters kept.
+     * Normalize a raw description before hashing or storing:
+     * strips BOM / zero-width chars, <p> tags, collapses whitespace.
+     */
+    public static function normalizeDescription(string $text): string
+    {
+        // Strip BOM and zero-width chars
+        $text = preg_replace('/[\x{FEFF}\x{200B}\x{200C}\x{200D}\x{00AD}]/u', '', $text);
+        // Strip wrapping <p> tags
+        $text = str_replace(['<p>', '</p>'], '', $text);
+        // Decode HTML entities so &nbsp; doesn't pollute the string
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Collapse whitespace (includes \xA0 from decoded &nbsp;)
+        $text = preg_replace('/[\s\x{00A0}]+/u', ' ', $text);
+        return trim($text);
+    }
+
+    /**
+     * Compute md5 of a description with only letters and digits kept.
+     * Immune to HTML tags, HTML entities (&nbsp; → stripped, not "nbsp"),
+     * punctuation, whitespace, BOM, and formatting differences.
      */
     public static function descriptionMd5(string $description): string
     {
-        // Keep all Unicode letters (Latin, Cyrillic, etc.) and digits; strip
-        // everything else (HTML tags, whitespace, punctuation).  Using only
-        // ASCII [a-zA-Z0-9] was wrong: Cyrillic characters were stripped,
-        // making many different Russian descriptions hash to the same MD5.
-        return md5(preg_replace('/[^\p{L}\p{N}]/u', '', $description));
+        $text = html_entity_decode($description, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = strip_tags($text);
+        return md5(preg_replace('/[^\p{L}\p{N}]/u', '', $text));
     }
 }

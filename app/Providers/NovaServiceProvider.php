@@ -83,7 +83,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
 
             ];
 
-            foreach (auth()->user()->available_languages as $language => $active) {
+            foreach (auth()->user()?->available_languages ?? [] as $language => $active) {
                 if ($active == true && !app()->isLocale($language)) {
                     $menu = array_merge([
                         MenuItem::externalLink(strtoupper($language), '/set-locale/' . $language),

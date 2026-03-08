@@ -19,6 +19,7 @@ use App\Models\PostTypes\OnlineMessage;
 use App\Models\User;
 use App\Models\PostOwner;
 use App\Models\CollectionPost;
+use App\Console\Commands\LegacyImportTermins;
 
 /**
  * Shared helpers for legacy import commands.
@@ -868,6 +869,10 @@ trait LegacyImportHelpersTrait
             if (!isset($b->human_id) || $b->human_id === '' || $txt === '') {
                 continue;
             }
+            $txt = $this->normalizeTerminDescription($txt);
+            if ($txt === '') {
+                continue;
+            }
             $termins[$b->human_id] = $txt;
         }
 
@@ -1124,6 +1129,11 @@ trait LegacyImportHelpersTrait
      * Resolve (find or create) a Termin record for a given display word and description.
      * Override this method in subclasses to change the resolution strategy (e.g. use md5 cache).
      */
+    protected function normalizeTerminDescription(string $text): string
+    {
+        return LegacyImportTermins::normalizeDescription($text);
+    }
+
     protected function resolveTermin(string $displayWord, string $terminDescription, Post $post): ?Termin
     {
         $termin = Termin::where('description', $terminDescription)

@@ -71,9 +71,7 @@
                                 @click="selectTermin(termin)"
                             >
                                 <span class="ck-termin-item__name">{{ termin.termin }}</span>
-                                <span v-if="termin.description" class="ck-termin-item__desc">
-                                    {{ stripMarkdown(termin.description) }}
-                                </span>
+                                <span v-if="termin.description" class="ck-termin-item__desc" v-html="htmlExcerpt(termin.description, 120)"></span>
                             </button>
                         </div>
                     </div>
@@ -111,6 +109,12 @@
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Selected term description preview -->
+                    <div v-if="!creating && selectedTermin && selectedTermin.description" class="ck-termin-preview">
+                        <div class="ck-termin-preview__label">Описание термина</div>
+                        <div class="ck-termin-preview__body" v-html="selectedTermin.description"></div>
                     </div>
 
                     <!-- Footer: search view -->
@@ -217,9 +221,17 @@ export default {
             this.isOpen         = true
 
             if (terminId) {
-                // Editing an existing termin: load it by ID and pre-select it
+                // Editing an existing termin: load it by ID, pre-select it,
+                // then immediately run a search by its name to show neighbours
                 await this.loadById(terminId)
-                this.$nextTick(() => this.$refs.displayInput?.focus())
+                if (this.selectedTermin) {
+                    this.searchQuery = this.selectedTermin.termin.replace(/\s*\(\d+\)\s*$/, '').trim()
+                    await this.search()
+                    // Ensure the pre-selected item stays highlighted after search
+                    const found = this.termins.find(t => t.id === this.selectedTermin.id)
+                    if (found) this.selectedTermin = found
+                }
+                this.$nextTick(() => this.$refs.searchInput?.focus())
             } else {
                 // New termin: use selected text as initial search query
                 this.$nextTick(() => {
@@ -354,9 +366,13 @@ export default {
             }
         },
 
-        stripMarkdown(text) {
-            if (!text) return ''
-            return text.replace(/[#*`_~[\]()>]/g, '').substring(0, 120)
+        htmlExcerpt(html, maxLen) {
+            if (!html) return ''
+            const div = document.createElement('div')
+            div.innerHTML = html
+            const text = (div.textContent || div.innerText || '').trim()
+            if (text.length <= maxLen) return html
+            return text.slice(0, maxLen).replace(/\s+\S*$/, '') + '…'
         },
     },
 }
@@ -519,6 +535,39 @@ export default {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.ck-termin-preview {
+    margin: 0 20px 16px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.ck-termin-preview__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    margin-bottom: 6px;
+}
+
+.ck-termin-preview__body {
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+.ck-termin-preview__body p { margin: 0 0 6px; }
+.ck-termin-preview__body p:last-child { margin-bottom: 0; }
+.ck-termin-preview__body a { color: #2563eb; }
+.ck-termin-preview__body strong { font-weight: 600; }
+.ck-termin-preview__body em { font-style: italic; }
+.ck-termin-preview__body ul,
+.ck-termin-preview__body ol { margin: 0 0 6px 18px; }
 
 .ck-termin-modal__footer {
     display: flex;

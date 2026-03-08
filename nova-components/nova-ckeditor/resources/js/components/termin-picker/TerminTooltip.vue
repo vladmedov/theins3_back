@@ -9,7 +9,7 @@
             <div v-if="loading" class="ck-termin-tooltip__state">Загрузка...</div>
             <template v-else-if="termin">
                 <div class="ck-termin-tooltip__name">{{ termin.termin }}</div>
-                <div v-if="shortDesc" class="ck-termin-tooltip__desc">{{ shortDesc }}</div>
+                <div v-if="shortDesc" class="ck-termin-tooltip__desc" v-html="shortDesc"></div>
                 <!-- .prevent keeps the editor focused so its selection is preserved -->
                 <button
                     type="button"
@@ -52,8 +52,19 @@ export default {
             }
         },
         shortDesc() {
-            if (!this.termin?.description) return ''
-            return this.termin.description.replace(/[#*`_~[\]()>]/g, '').substring(0, 120)
+            const raw = this.termin?.description
+            if (!raw) return ''
+
+            // Extract plain text from HTML so we can safely measure length
+            const div = document.createElement('div')
+            div.innerHTML = raw
+            const text = (div.textContent || div.innerText || '').trim()
+
+            if (text.length <= 160) return raw   // short enough — render as-is
+
+            // Truncate plain text at word boundary, then return as paragraph
+            const truncated = text.slice(0, 160).replace(/\s+\S*$/, '') + '…'
+            return `<p>${truncated}</p>`
         },
     },
 

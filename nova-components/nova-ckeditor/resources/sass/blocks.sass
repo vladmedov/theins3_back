@@ -1,21 +1,170 @@
+@font-face
+    font-family: 'RFDewi'
+    src: url('/fonts/RFDewi-Regular/RFDewi-Regular.woff2') format('woff2'), url('/fonts/RFDewi-Regular/RFDewi-Regular.woff') format('woff')
+    font-weight: 200
+    font-style: normal
+    font-display: swap
+
+@font-face
+    font-family: 'RFDewi'
+    src: url('/fonts/RFDewi-Bold/RFDewi-Bold.woff2') format('woff2'), url('/fonts/RFDewi-Bold/RFDewi-Bold.woff') format('woff')
+    font-weight: 300
+    font-style: normal
+    font-display: swap
+
+@font-face
+    font-family: 'RFDewi'
+    src: url('/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff2') format('woff2'), url('/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff') format('woff')
+    font-weight: 400
+    font-style: normal
+    font-display: swap
+
+@font-face
+    font-family: 'RFDewi'
+    src: url('/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff2') format('woff2'), url('/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff') format('woff')
+    font-weight: 500
+    font-style: normal
+    font-display: swap
+
+@font-face
+    font-family: 'RFDewi'
+    src: url('/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff2') format('woff2'), url('/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff') format('woff')
+    font-weight: 600
+    font-style: normal
+    font-display: swap
+
+@font-face
+    font-family: 'RFDewi'
+    src: url('/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff2') format('woff2'), url('/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff') format('woff')
+    font-weight: 700
+    font-style: normal
+    font-display: swap
+
+@font-face
+    font-family: 'RFDewi'
+    src: url('/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff2') format('woff2'), url('/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff') format('woff')
+    font-weight: 900
+    font-style: normal
+    font-display: swap
+
 *
-    font-family: Arial, Helvetica, sans-serif
+    font-family: 'RFDewi', Arial, Helvetica, sans-serif
+    -webkit-font-smoothing: antialiased
 
-p, ol, ul, li, blockquote
-    font-size: 13pt !important
-    line-height: 1.6 !important
+// Base text
+p, li, blockquote
+    font-size: 1.075rem
+    font-weight: 200
+    line-height: 1.625rem
+    color: #333
 
-h1, h2, h3, h4, h5, h6, p, ol, ul, blockquote
-    margin: 15px 0
+// Block margins
+p, h1, h2, h3, h4, h5, h6, blockquote, ul, ol, hr
+    margin-bottom: 1.5rem
 
+// Headings
 h1, h2, h3, h4, h5, h6
-    clear-after: both
+    color: #000
+
+h3
+    font-size: 1.5rem !important
+    font-weight: 700 !important
+    line-height: 1.2
+
+h4
+    font-size: 1.25rem !important
+    font-weight: 700 !important
+    line-height: 1.2
+
+h5
+    font-size: 1.125rem !important
+    font-weight: 900 !important
+    line-height: 1.2
+
+// Bold
+b, strong
+    font-weight: 300
+
+// Links
+a
+    font-weight: 200
+    color: #e54839
+    transition: all 0.2s ease-in-out
+    &:hover
+        text-decoration: underline
+
+// Blockquote
+blockquote
+    font-size: 1.075rem
+    line-height: 1.625rem
+    font-weight: 200
+    padding-left: 1.25rem
+    border-left: 1px solid #e54839 !important
+    background: none !important
+
+// Unordered list — custom red bullet
+ul
+    list-style: none
+    padding-left: 0
+
+    li
+        position: relative
+        padding-left: 1.25rem
+        margin-bottom: 0.75rem
+        font-size: 1.075rem
+        font-weight: 200
+        line-height: 1.5rem
+
+        &::before
+            content: ''
+            position: absolute
+            left: 0
+            top: 0.5em
+            width: 6px
+            height: 6px
+            background-color: #e54839
+            border-radius: 50%
+
+// Ordered list — custom red counter
+ol
+    list-style: none
+    padding-left: 0
+    counter-reset: ol-counter
+
+    li
+        position: relative
+        padding-left: 1.75rem
+        margin-bottom: 0.75rem
+        font-size: 1.075rem
+        font-weight: 200
+        line-height: 1.5rem
+        counter-increment: ol-counter
+
+        &::before
+            content: counter(ol-counter) '.'
+            position: absolute
+            left: 0
+            top: 0
+            color: #e54839
+            font-weight: 400
+            font-size: 1.075rem
+            line-height: 1.5rem
+
+// Termin highlight inside editor
+.ck-termin-highlight
+    display: inline
+    cursor: pointer
+    background-color: #EBEBEB
+    color: #E54839
+    padding: 0 0.375rem 0.125rem 0.375rem
+    border-radius: 2px
+    border-bottom: 2px solid #E54839
+    transition: background-color 0.15s ease, color 0.15s ease
 
 hr
     background-color: #eee
     border: none
     height: 5px
     padding: 0
-    margin: 20px 0
     display: block
     clear: both

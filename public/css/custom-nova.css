@@ -25,54 +25,6 @@
 
 /* СТИЛИ РЕДАКТОРА */
 
-.ck-content h2 {
-    color: #000;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.ck-content h3 {
-    color: #000;
-    font-size: 26px;
-    font-weight: bold;
-}
-
-.ck-content h4 {
-    color: #000;
-    font-size: 22px;
-    font-weight: bold;
-}
-
-.ck-content h5 {
-    color: #000;
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.ck-content p {
-    color: #333 !important;
-}
-
-.ck-heading_heading5 {
-    color: #000;
-    font-size: 26px;
-    font-weight: bold;
-}
-
-.ck-content blockquote {
-    color: #000;
-    border-left: 5px solid #e54839 !important;
-}
-
-.ck-content p {
-    color: #666;
-}
-
-.ck-content a, .ck-link_selected {
-    color: rgb(68, 68, 236);
-    text-decoration: underline;
-}
-
 /* КНОПКА СОХРАНЕНИЯ СУЩНОСТИ */
 
 form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 {

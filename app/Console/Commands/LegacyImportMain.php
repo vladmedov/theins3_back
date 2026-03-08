@@ -456,7 +456,7 @@ class LegacyImportMain extends Command
                 if (
                     $candidate
                     && $candidate->language_code === $post->language_code
-                    && $candidate->description   === $terminDescription
+                    && LegacyImportTermins::descriptionMd5($candidate->description) === $md5
                 ) {
                     $termin   = $candidate;
                     $validIds = [$candidateId];
