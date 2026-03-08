@@ -401,6 +401,7 @@ export default {
 .ck-termin-modal {
     background: #fff;
     border-radius: 12px;
+    border: 3px solid #000;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
     width: 480px;
     max-width: 95vw;
@@ -414,29 +415,29 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 12px 20px;
+    background: #000;
 }
 
 .ck-termin-modal__title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #111827;
+    font-size: 15px;
+    font-weight: 300;
+    color: #fff;
 }
 
 .ck-termin-modal__close {
     background: none;
     border: none;
     cursor: pointer;
-    color: #9ca3af;
+    color: #999;
     font-size: 18px;
     line-height: 1;
     padding: 4px;
     border-radius: 4px;
 }
 .ck-termin-modal__close:hover {
-    color: #374151;
-    background: #f3f4f6;
+    color: #fff;
+    background: rgba(255,255,255,0.1);
 }
 
 .ck-termin-modal__body {
@@ -477,8 +478,8 @@ export default {
     box-sizing: border-box;
 }
 .ck-termin-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    border-color: #000;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.08);
 }
 
 .ck-termin-results {
@@ -513,10 +514,10 @@ export default {
     border-bottom: none;
 }
 .ck-termin-item:hover {
-    background: #eff6ff;
+    background: #f5f5f5;
 }
 .ck-termin-item--selected {
-    background: #dbeafe;
+    background: #ebebeb;
 }
 
 .ck-termin-item__name {
@@ -563,7 +564,7 @@ export default {
 
 .ck-termin-preview__body p { margin: 0 0 6px; }
 .ck-termin-preview__body p:last-child { margin-bottom: 0; }
-.ck-termin-preview__body a { color: #2563eb; }
+.ck-termin-preview__body a { color: #E54839; }
 .ck-termin-preview__body strong { font-weight: 600; }
 .ck-termin-preview__body em { font-style: italic; }
 .ck-termin-preview__body ul,
@@ -573,8 +574,9 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
-    border-top: 1px solid #e5e7eb;
+    padding: 12px 20px;
+    border-top: 1px solid #e0e0e0;
+    background: #f5f5f5;
     gap: 12px;
 }
 
@@ -598,33 +600,36 @@ export default {
 }
 
 .ck-termin-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 7px 16px 5px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 200;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     cursor: pointer;
     border: none;
-    transition: background 0.1s, opacity 0.1s;
+    transition: background 0.15s, color 0.15s;
 }
 
 .ck-termin-btn--cancel {
-    background: #f3f4f6;
-    color: #374151;
-    border: 1px solid #e5e7eb;
+    background: #fff;
+    color: #666;
+    border: 1px solid #d0d0d0;
 }
 .ck-termin-btn--cancel:hover {
-    background: #e5e7eb;
+    background: #ebebeb;
+    color: #333;
 }
 
 .ck-termin-btn--confirm {
-    background: #3b82f6;
+    background: #000;
     color: #fff;
 }
 .ck-termin-btn--confirm:hover:not(:disabled) {
-    background: #2563eb;
+    background: #333;
 }
 .ck-termin-btn--confirm:disabled {
-    background: #93c5fd;
+    background: #999;
     cursor: not-allowed;
     opacity: 0.7;
 }
@@ -639,13 +644,13 @@ export default {
     background: none;
     border: none;
     border-bottom: 1px solid #e5e7eb;
-    color: #2563eb;
+    color: #E54839;
     font-size: 13px;
     cursor: pointer;
     transition: background 0.12s;
 }
 .ck-termin-create-btn:hover {
-    background: #eff6ff;
+    background: #f5f5f5;
 }
 .ck-termin-create-btn__icon {
     display: flex;
@@ -655,11 +660,11 @@ export default {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    border: 1.5px solid #2563eb;
+    border: 1.5px solid #E54839;
     font-size: 15px;
     line-height: 1;
     font-weight: 400;
-    color: #2563eb;
+    color: #E54839;
 }
 .ck-termin-create-btn__text {
     font-weight: 500;

@@ -240,20 +240,23 @@ export default {
 
 .ck-termin-tooltip__edit {
     width: 100%;
-    padding: 0.4rem 0.75rem;
-    background: #fff;
+    padding: 0.45rem 0.75rem;
+    background: #f5f5f5;
     border: none;
-    border-top: 2px solid #000;
-    color: #000;
-    font-size: 0.9rem;
+    border-top: 1px solid #e0e0e0;
+    border-radius: 0 0 9px 9px;
+    color: #666;
+    font-size: 0.8rem;
     font-weight: 200;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     cursor: pointer;
     text-align: center;
     transition: background 0.15s, color 0.15s;
     flex-shrink: 0;
 }
 .ck-termin-tooltip__edit:hover {
-    background: #000;
-    color: #fff;
+    background: #ebebeb;
+    color: #333;
 }
 </style>
