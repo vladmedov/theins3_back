@@ -57,19 +57,30 @@
     startPoll();
 }());
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Ищем блок с кнопками
-    const buttonContainer = document.querySelector('.flex.flex-col.md\\:flex-row.md\\:items-center.justify-center.md\\:justify-end.space-y-2.md\\:space-y-0.md\\:space-x-3');
-    
-    if (buttonContainer) {
-        // Клонируем кнопки
-        const fixedButtons = buttonContainer.cloneNode(true);
-        fixedButtons.classList.add('fixed-action-buttons');
-        
-        // Добавляем их в конец body
-        document.body.appendChild(fixedButtons);
+// ─── Fixed save button: hide on post-* resources ─────────────────────────────
+(function () {
+    var lastPath = null;
+
+    function update() {
+        if (/\/resources\/post-/.test(window.location.pathname)) {
+            document.body.classList.add('nova-no-fixed-save');
+        } else {
+            document.body.classList.remove('nova-no-fixed-save');
+        }
     }
-});
+
+    // Run immediately so class is set before Vue renders
+    update();
+
+    // Handle SPA navigation
+    new MutationObserver(function () {
+        var path = window.location.pathname;
+        if (path !== lastPath) {
+            lastPath = path;
+            update();
+        }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+}());
 
 // ─── Tab memory: remember last active tab per resource type ───────────────────
 // Nova's TabGroup (headlessui) stores no state between navigations.
