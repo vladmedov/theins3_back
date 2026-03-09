@@ -49,4 +49,13 @@ return [
         'secret_key' => env('RECAPTCHA_SECRET_KEY'),
     ],
 
+    'frontend_revalidation' => [
+        'url' => env(
+            'FRONTEND_REVALIDATE_URL',
+            rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost')), '/') . '/api/revalidate'
+        ),
+        'secret' => env('FRONTEND_REVALIDATE_SECRET'),
+        'timeout' => env('FRONTEND_REVALIDATE_TIMEOUT', 10),
+    ],
+
 ];

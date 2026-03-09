@@ -123,7 +123,7 @@ class FeedController extends Controller
 
     private function getSiteUrl(): string
     {
-        return rtrim(config('app.site_url'), '/');
+        return rtrim(config('app.frontend_url'), '/');
     }
 
     private function getSiteDescription(string $lang): string

@@ -18,6 +18,8 @@ use \App\Enums\PostTypes;
 use \App\Models\PostTypes\OnlineMessage;
 
 use App\Services\ChangeDetectorService;
+use App\Services\FrontendCacheTagService;
+use App\Services\FrontendRevalidationService;
 use App\Services\ImageService;
 use App\Services\ShareImageService;
 
@@ -79,6 +81,8 @@ class Post extends Model { //implements HasMedia {
         'author_visibility' => 'string',
     ];
 
+    protected ?array $frontendRevalidationOriginalSnapshot = null;
+
     public static function boot() {
         parent::boot();
 
@@ -103,6 +107,25 @@ class Post extends Model { //implements HasMedia {
 
         static::created(function ($post) use ($createHistory) {
             $createHistory($post, [], $post->getAttributes(), 'created');
+        });
+
+        static::saving(function ($post) {
+            if (!$post->exists || $post->frontendRevalidationOriginalSnapshot !== null) {
+                return;
+            }
+
+            $originalPost = static::query()
+                ->with([
+                    'category:id,slug',
+                    'tags:id,slug',
+                    'authors:id,slug',
+                    'columnist:id,slug',
+                    'investigationTheme:id,slug',
+                ])
+                ->find($post->getKey());
+
+            $post->frontendRevalidationOriginalSnapshot = app(FrontendCacheTagService::class)
+                ->snapshotPost($originalPost);
         });
 
         static::updating(function ($post) use ($createHistory) {
@@ -168,10 +191,25 @@ class Post extends Model { //implements HasMedia {
                 }
                 $post->termins()->sync(array_unique(array_map('intval', $terminIds)));
             }
+
+            app(FrontendRevalidationService::class)->queuePostChange(
+                $post->getKey(),
+                $post->frontendRevalidationOriginalSnapshot
+            );
+
+            $post->frontendRevalidationOriginalSnapshot = null;
         });
 
         static::deleted(function ($post) {
             $post->unsearchable();
+
+            app(FrontendRevalidationService::class)->queuePostChange(
+                $post->getKey(),
+                $post->frontendRevalidationOriginalSnapshot
+                    ?? app(FrontendCacheTagService::class)->snapshotPost($post)
+            );
+
+            $post->frontendRevalidationOriginalSnapshot = null;
         });
 
         if (defined('static::TYPE')) {

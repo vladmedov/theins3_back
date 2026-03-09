@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 use App\Enums\PostTypes;
+use App\Services\FrontendCacheTagService;
+use App\Services\FrontendRevalidationService;
 use App\Services\ImageService;
 
 class Author extends Model {
@@ -38,9 +40,20 @@ class Author extends Model {
         'is_columnist_page_hidden' => 'boolean',
     ];
 
+    protected ?array $frontendRevalidationOriginalSnapshot = null;
+
     public static function boot()
     {
         parent::boot();
+
+        static::saving(function ($author) {
+            if (!$author->exists || $author->frontendRevalidationOriginalSnapshot !== null) {
+                return;
+            }
+
+            $author->frontendRevalidationOriginalSnapshot = app(FrontendCacheTagService::class)
+                ->snapshotAuthor(static::find($author->getKey()));
+        });
 
         static::updated(function ($author) {
             if ($author->wasChanged('avatar') && !empty($author->avatar)) {
@@ -52,6 +65,32 @@ class Author extends Model {
             if (!empty($author->avatar)) {
                 ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO);
             }
+        });
+
+        static::saved(function ($author) {
+            $tagService = app(FrontendCacheTagService::class);
+
+            app(FrontendRevalidationService::class)->queueTags(
+                $tagService->unique(array_merge(
+                    $tagService->tagsForAuthorSnapshot($author->frontendRevalidationOriginalSnapshot),
+                    $tagService->tagsForAuthorSnapshot($tagService->snapshotAuthor($author)),
+                ))
+            );
+
+            $author->frontendRevalidationOriginalSnapshot = null;
+        });
+
+        static::deleted(function ($author) {
+            $tagService = app(FrontendCacheTagService::class);
+
+            app(FrontendRevalidationService::class)->queueTags(
+                $tagService->tagsForAuthorSnapshot(
+                    $author->frontendRevalidationOriginalSnapshot
+                        ?? $tagService->snapshotAuthor($author)
+                )
+            );
+
+            $author->frontendRevalidationOriginalSnapshot = null;
         });
     }
 

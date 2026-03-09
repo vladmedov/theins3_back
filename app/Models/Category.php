@@ -10,6 +10,8 @@ use Spatie\EloquentSortable\SortableTrait;
 
 use App\Enums\PostTypes;
 use App\Models\Post;
+use App\Services\FrontendCacheTagService;
+use App\Services\FrontendRevalidationService;
 
 class Category extends Model {
 
@@ -49,15 +51,52 @@ class Category extends Model {
         'widgets' => 'array',
     ];
 
+    protected ?array $frontendRevalidationOriginalSnapshot = null;
+
     protected static function boot()
     {
         parent::boot();
         
+        static::saving(function ($category) {
+            if (!$category->exists || $category->frontendRevalidationOriginalSnapshot !== null) {
+                return;
+            }
+
+            $category->frontendRevalidationOriginalSnapshot = app(FrontendCacheTagService::class)
+                ->snapshotCategory(static::find($category->getKey()));
+        });
+
         static::creating(function ($category) {
             if (!$category->position) {
                 $nextPosition = (Category::max('position') ?? 0) + 1;
                 $category->position = $nextPosition;
             }
+        });
+
+        static::saved(function ($category) {
+            $tagService = app(FrontendCacheTagService::class);
+
+            app(FrontendRevalidationService::class)->queueTags(
+                $tagService->unique(array_merge(
+                    $tagService->tagsForCategorySnapshot($category->frontendRevalidationOriginalSnapshot),
+                    $tagService->tagsForCategorySnapshot($tagService->snapshotCategory($category)),
+                ))
+            );
+
+            $category->frontendRevalidationOriginalSnapshot = null;
+        });
+
+        static::deleted(function ($category) {
+            $tagService = app(FrontendCacheTagService::class);
+
+            app(FrontendRevalidationService::class)->queueTags(
+                $tagService->tagsForCategorySnapshot(
+                    $category->frontendRevalidationOriginalSnapshot
+                        ?? $tagService->snapshotCategory($category)
+                )
+            );
+
+            $category->frontendRevalidationOriginalSnapshot = null;
         });
     }
 

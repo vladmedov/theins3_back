@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 
+use App\Services\FrontendCacheTagService;
+use App\Services\FrontendRevalidationService;
 use App\Services\ImageService;
 
 class InvestigationTheme extends Model {
@@ -35,10 +37,21 @@ class InvestigationTheme extends Model {
         'is_main' => 'boolean',
     ];
 
+    protected ?array $frontendRevalidationOriginalSnapshot = null;
+
     protected static function boot()
     {
         parent::boot();
         
+        static::saving(function ($investigationTheme) {
+            if (!$investigationTheme->exists || $investigationTheme->frontendRevalidationOriginalSnapshot !== null) {
+                return;
+            }
+
+            $investigationTheme->frontendRevalidationOriginalSnapshot = app(FrontendCacheTagService::class)
+                ->snapshotInvestigationTheme(static::find($investigationTheme->getKey()));
+        });
+
         static::creating(function ($investigationTheme) {
             if (!$investigationTheme->position) {
                 $prevPosition = (InvestigationTheme::min('position') ?? 0) - 1;
@@ -65,6 +78,32 @@ class InvestigationTheme extends Model {
             if (!empty($theme->cover_image)) {
                 ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER);
             }
+        });
+
+        static::saved(function ($theme) {
+            $tagService = app(FrontendCacheTagService::class);
+
+            app(FrontendRevalidationService::class)->queueTags(
+                $tagService->unique(array_merge(
+                    $tagService->tagsForInvestigationThemeSnapshot($theme->frontendRevalidationOriginalSnapshot),
+                    $tagService->tagsForInvestigationThemeSnapshot($tagService->snapshotInvestigationTheme($theme)),
+                ))
+            );
+
+            $theme->frontendRevalidationOriginalSnapshot = null;
+        });
+
+        static::deleted(function ($theme) {
+            $tagService = app(FrontendCacheTagService::class);
+
+            app(FrontendRevalidationService::class)->queueTags(
+                $tagService->tagsForInvestigationThemeSnapshot(
+                    $theme->frontendRevalidationOriginalSnapshot
+                        ?? $tagService->snapshotInvestigationTheme($theme)
+                )
+            );
+
+            $theme->frontendRevalidationOriginalSnapshot = null;
         });
     }
     

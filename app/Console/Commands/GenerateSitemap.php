@@ -22,7 +22,7 @@ class GenerateSitemap extends Command
 
     public function handle(): int
     {
-        $this->baseUrl = rtrim(config('app.site_url'), '/');
+        $this->baseUrl = rtrim(config('app.frontend_url'), '/');
         $startTime = microtime(true);
 
         $this->info('Generating sitemaps...');

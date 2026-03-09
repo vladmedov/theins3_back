@@ -55,7 +55,7 @@ class ShareImageService
             return null;
         }
 
-        $siteUrl = rtrim(config('app.site_url'), '/');
+        $siteUrl = rtrim(config('app.frontend_url'), '/');
         return $siteUrl . '/storage/' . $path;
     }
 

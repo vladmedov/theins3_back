@@ -187,7 +187,7 @@ class ContentRenderer
 
     public static function getPostUrl(Post $post): string
     {
-        return rtrim(config('app.site_url'), '/') . $post->getPath();
+        return rtrim(config('app.frontend_url'), '/') . $post->getPath();
     }
 
     public static function getPostImageUrl(Post $post): ?string
@@ -198,7 +198,7 @@ class ContentRenderer
         }
 
         $appUrl = rtrim(config('app.url'), '/');
-        $siteUrl = rtrim(config('app.site_url'), '/');
+        $siteUrl = rtrim(config('app.frontend_url'), '/');
 
         if ($appUrl !== $siteUrl && str_starts_with($localUrl, $appUrl)) {
             return $siteUrl . substr($localUrl, strlen($appUrl));
