@@ -943,7 +943,7 @@ trait LegacyImportHelpersTrait
         // --- Process main content blocks ---
         $content     = [];
         $mainKinds   = ['number', 'text', 'social', 'related_posts', 'audio', 'iframe'];
-        $socialTypes = ['iframe', 'telegram', 'twitter', 'facebook', 'instagram', 'vk', 'audio'];
+        $socialTypes = ['iframe', 'telegram', 'twitter', 'facebook', 'instagram', 'vk', 'ok', 'audio'];
 
         foreach ($allBlocks as $block) {
             if (!in_array($block->kind, $mainKinds)) {
@@ -1026,6 +1026,21 @@ trait LegacyImportHelpersTrait
                     ];
                 }
 
+                preg_match_all(
+                    '/\[embed\](.*?)\[\/embed\]/is',
+                    $text,
+                    $embedMatches,
+                    PREG_OFFSET_CAPTURE
+                );
+                foreach ($embedMatches[0] as $match) {
+                    $matches[] = [
+                        'type'      => 'legacy_embed',
+                        'fullMatch' => $match[0],
+                        'offset'    => $match[1],
+                        'length'    => strlen($match[0]),
+                    ];
+                }
+
                 usort($matches, fn ($a, $b) => $a['offset'] - $b['offset']);
 
                 // Step 2: split into blocks; apply transformStrongParagraphsToH3
@@ -1046,6 +1061,11 @@ trait LegacyImportHelpersTrait
                             if ($imageBlock !== null) {
                                 $content[] = $imageBlock;
                             }
+                        } elseif ($match['type'] === 'legacy_embed') {
+                            $embedBlock = $this->buildLegacyEmbedBlock($match['fullMatch']);
+                            if ($embedBlock !== null) {
+                                $content[] = $embedBlock;
+                            }
                         } elseif (isset($templates[$match['fullMatch']])) {
                             $content[] = $templates[$match['fullMatch']];
                         }
@@ -1063,22 +1083,13 @@ trait LegacyImportHelpersTrait
                 if (!isset($blockContent->social_embed) || $blockContent->social_embed === '') {
                     continue;
                 }
-                $embedCode  = $blockContent->social_embed;
-                $socialType = 'iframe';
-                if (str_contains($embedCode, 'twitter.com') || str_contains($embedCode, 'x.com')) {
-                    $socialType = 'twitter';
-                } elseif (str_contains($embedCode, 't.me')) {
-                    $socialType = 'telegram';
-                } elseif (str_contains($embedCode, 'facebook.com')) {
-                    $socialType = 'facebook';
-                } elseif (str_contains($embedCode, 'instagram.com')) {
-                    $socialType = 'instagram';
-                } elseif (str_contains($embedCode, 'vk.com')) {
-                    $socialType = 'vk';
-                } elseif (isset($blockContent->social_type) && in_array($blockContent->social_type, $socialTypes)) {
-                    $socialType = $blockContent->social_type;
-                }
-                $content[] = ['type' => 'embed', 'attributes' => ['embed_code' => $embedCode, 'embed_type' => $socialType]];
+                $fallbackType = isset($blockContent->social_type) && in_array($blockContent->social_type, $socialTypes)
+                    ? $blockContent->social_type
+                    : 'iframe';
+                $content[] = [
+                    'type' => 'embed',
+                    'attributes' => $this->buildEmbedAttributes((string) $blockContent->social_embed, $fallbackType),
+                ];
             }
 
             if ($block->kind === 'audio') {
@@ -1556,6 +1567,89 @@ trait LegacyImportHelpersTrait
     {
         $html = $this->transformLegacyIndentedQuotesToBlockquotes($html);
         return $this->transformStrongParagraphsToH3($html);
+    }
+
+    protected function buildLegacyEmbedBlock(string $html): ?array
+    {
+        if (!preg_match('/\[embed\](.*?)\[\/embed\]/is', $html, $matches)) {
+            return null;
+        }
+
+        $embedSource = trim(html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($embedSource === '') {
+            return null;
+        }
+
+        return [
+            'type' => 'embed',
+            'attributes' => $this->buildEmbedAttributes($embedSource),
+        ];
+    }
+
+    protected function buildEmbedAttributes(string $embedCode, ?string $fallbackType = null): array
+    {
+        $embedCode = trim($embedCode);
+        $embedType = $this->detectLegacyEmbedType($embedCode) ?? ($fallbackType ?: 'iframe');
+
+        if ($this->isPlainUrl($embedCode) && $this->embedTypeRequiresHtmlCode($embedType)) {
+            $embedCode = $this->wrapUrlAsAnchor($embedCode);
+        }
+
+        return [
+            'embed_code' => $embedCode,
+            'embed_type' => $embedType,
+        ];
+    }
+
+    protected function detectLegacyEmbedType(string $embedCode): ?string
+    {
+        $embedCode = mb_strtolower($embedCode);
+
+        if (str_contains($embedCode, '<iframe')) {
+            return 'iframe';
+        }
+
+        if (str_contains($embedCode, 'instagram.com')) {
+            return 'instagram';
+        }
+
+        if (str_contains($embedCode, 't.me') || str_contains($embedCode, 'telegram.me')) {
+            return 'telegram';
+        }
+
+        if (str_contains($embedCode, 'twitter.com') || str_contains($embedCode, 'x.com')) {
+            return 'twitter';
+        }
+
+        if (str_contains($embedCode, 'facebook.com') || str_contains($embedCode, 'fb.watch')) {
+            return 'facebook';
+        }
+
+        if (str_contains($embedCode, 'vk.com') || str_contains($embedCode, 'vkvideo.ru')) {
+            return 'vk';
+        }
+
+        if (str_contains($embedCode, 'ok.ru') || str_contains($embedCode, 'odnoklassniki.ru')) {
+            return 'ok';
+        }
+
+        return null;
+    }
+
+    protected function isPlainUrl(string $value): bool
+    {
+        return preg_match('#^https?://\S+$#i', trim($value)) === 1;
+    }
+
+    protected function embedTypeRequiresHtmlCode(string $embedType): bool
+    {
+        return in_array($embedType, ['twitter', 'facebook', 'vk', 'ok', 'iframe'], true);
+    }
+
+    protected function wrapUrlAsAnchor(string $url): string
+    {
+        $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return '<a href="' . $safeUrl . '">' . $safeUrl . '</a>';
     }
 
     protected function buildLegacyWpContentImageBlock(string $html, int $postId): ?array
