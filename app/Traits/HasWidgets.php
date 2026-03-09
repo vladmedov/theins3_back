@@ -67,44 +67,43 @@ trait HasWidgets
     
     protected function getDonateWidget($probability = 100): array
     {
-        $cacheKey = "donate_widget_show_{$probability}_" . floor(time() / 30);
-        
-        $shouldShow = cache()->remember($cacheKey, 30, function () use ($probability) {
-            return (rand(1, 100) <= $probability);
-        });
-        
-        if (!$shouldShow) {
+        if (rand(1, 100) > $probability) {
             return ['type' => 'donate_hidden', 'attributes' => []];
         }
-        
         return ['type' => 'donate', 'attributes' => []];
+    }
+    
+    protected function getVpnWidget($probability = 100): array
+    {
+        if (rand(1, 100) > $probability) {
+            return ['type' => 'vpn_hidden', 'attributes' => []];
+        }
+        return ['type' => 'vpn', 'attributes' => []];
     }
     
     protected function getRandomWidget($language_code, $widgetTypes = ['top_news', 'opinions']): array
     {
-        $cacheKey = "random_widget_{$language_code}_" . implode('_', $widgetTypes) . "_" . floor(time() / 300);
+        $randomType = $widgetTypes[array_rand($widgetTypes)];
         
-        return cache()->remember($cacheKey, 300, function () use ($language_code, $widgetTypes) {
-            $randomType = $widgetTypes[array_rand($widgetTypes)];
-            
-            switch ($randomType) {
-                case 'top_news':
-                    return $this->getTopNewsWidget($language_code);
-                case 'opinions':
-                    return $this->getOpinionsWidget($language_code);
-                case 'subscribe':
-                    return $this->getSubscribeWidget();
-                case 'columnists':
-                    return $this->getColumnistsWidget($language_code);
-                case 'popular':
-                    return $this->getPopularWidget($language_code);
-                case 'social':
-                    return $this->getSocialWidget();
-                case 'donate':
-                    return $this->getDonateWidget();
-                default:
-                    return $this->getSubscribeWidget();
-            }
-        });
+        switch ($randomType) {
+            case 'top_news':
+                return $this->getTopNewsWidget($language_code);
+            case 'opinions':
+                return $this->getOpinionsWidget($language_code);
+            case 'subscribe':
+                return $this->getSubscribeWidget();
+            case 'columnists':
+                return $this->getColumnistsWidget($language_code);
+            case 'popular':
+                return $this->getPopularWidget($language_code);
+            case 'social':
+                return $this->getSocialWidget();
+            case 'donate':
+                return $this->getDonateWidget();
+            case 'vpn':
+                return $this->getVpnWidget();
+            default:
+                return $this->getSubscribeWidget();
+        }
     }
 }

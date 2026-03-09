@@ -44,24 +44,25 @@ class CategoryResource extends JsonResource
     private function getWidgets(): array
     {
         $widgets = [];
-        
+        $isRu = $this->language_code === 'ru';
+
         if ($this->type === 'news') {
             $widgets = [
                 $this->getSubscribeWidget(),
-                $this->getRandomWidget($this->language_code, ['opinions', 'popular', 'donate']),
+                $this->getRandomWidget($this->language_code, $isRu ? ['opinions', 'popular', 'donate', 'vpn'] : ['opinions', 'popular', 'donate']),
                 $this->getSocialWidget(),
             ];
         } elseif ($this->type === 'opinion') {
             $widgets = [
                 $this->getSubscribeWidget(),
-                $this->getRandomWidget($this->language_code, ['columnists', 'donate']),
+                $this->getRandomWidget($this->language_code, $isRu ? ['columnists', 'donate', 'vpn'] : ['columnists', 'donate']),
                 $this->getSocialWidget(),
             ];
         } else {
             $widgets = [
                 $this->getSubscribeWidget(),
                 $this->getPopularWidget($this->language_code),
-                $this->getRandomWidget($this->language_code, ['top_news', 'opinions', 'donate']),
+                $this->getRandomWidget($this->language_code, $isRu ? ['top_news', 'opinions', 'donate', 'vpn'] : ['top_news', 'opinions', 'donate']),
                 $this->getSocialWidget(),
             ];
         }

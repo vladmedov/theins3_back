@@ -93,7 +93,7 @@ class MainPageController extends Controller
                 ->where('status', Post::STATUS_PUBLISHED)
                 ->where('type', PostTypes::NEWS)
                 ->orderBy('published_at', 'desc')
-                ->limit(10)
+                ->limit(15)
                 ->get()
         );
     }
