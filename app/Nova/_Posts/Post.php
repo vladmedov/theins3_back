@@ -537,7 +537,10 @@ abstract class Post extends Resource
                 Tab::make(__('Settings'), $settings),
             ]);
         } else {
-            $publicationGroup = Panel::make(__('Settings'), $settings);
+            $publicationGroup = Tab::group(__('Publication'), [
+                Tab::make(__('General'), $general),
+                Tab::make(__('Settings'), $settings),
+            ]);
         }
 
         return [
