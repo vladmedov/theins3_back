@@ -984,8 +984,8 @@ trait LegacyImportHelpersTrait
                     return '<span class="termin" data-id="' . $termin->id . '">' . e($displayWord) . '</span>';
                 }, $text);
 
-                // Step 1: scan for REAL <h3> (existing in original markup) and
-                // template placeholders — these determine outline entries.
+                // Step 1: scan for REAL <h3> (existing in original markup),
+                // legacy inline wp-content images, and template placeholders.
                 // transformStrongParagraphsToH3 runs later, per text-chunk, so
                 // <p><strong>…</strong></p> headings are NOT added to the outline.
                 $matches = [];
@@ -1011,21 +1011,41 @@ trait LegacyImportHelpersTrait
                     ];
                 }
 
+                preg_match_all(
+                    '/(?:<a\b[^>]*>\s*)?<img\b(?=[^>]*\bsrc=["\'](?:https?:\/\/theins\.ru)?\/wp-content\/[^"\']+["\'])[^>]*\/?>(?:\s*<\/a>)?/is',
+                    $text,
+                    $imageMatches,
+                    PREG_OFFSET_CAPTURE
+                );
+                foreach ($imageMatches[0] as $match) {
+                    $matches[] = [
+                        'type'      => 'legacy_wp_image',
+                        'fullMatch' => $match[0],
+                        'offset'    => $match[1],
+                        'length'    => strlen($match[0]),
+                    ];
+                }
+
                 usort($matches, fn ($a, $b) => $a['offset'] - $b['offset']);
 
                 // Step 2: split into blocks; apply transformStrongParagraphsToH3
                 // only on text chunks (not on outline or template markers).
                 if (empty($matches)) {
-                    $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformStrongParagraphsToH3($text))]];
+                    $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformLegacyTextMarkup($text))]];
                 } else {
                     $currentPosition = 0;
                     foreach ($matches as $match) {
                         $textBefore = substr($text, $currentPosition, $match['offset'] - $currentPosition);
                         if (!empty(trim($textBefore))) {
-                            $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformStrongParagraphsToH3($textBefore))]];
+                            $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformLegacyTextMarkup($textBefore))]];
                         }
                         if ($match['type'] === 'h3') {
                             $content[] = ['type' => 'outline', 'attributes' => ['outline' => $this->cleanOutline($match['content'])]];
+                        } elseif ($match['type'] === 'legacy_wp_image') {
+                            $imageBlock = $this->buildLegacyWpContentImageBlock($match['fullMatch'], $postId);
+                            if ($imageBlock !== null) {
+                                $content[] = $imageBlock;
+                            }
                         } elseif (isset($templates[$match['fullMatch']])) {
                             $content[] = $templates[$match['fullMatch']];
                         }
@@ -1033,7 +1053,7 @@ trait LegacyImportHelpersTrait
                     }
                     $textAfter = substr($text, $currentPosition);
                     if (!empty(trim($textAfter))) {
-                        $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformStrongParagraphsToH3($textAfter))]];
+                        $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformLegacyTextMarkup($textAfter))]];
                     }
                 }
             }
@@ -1412,15 +1432,7 @@ trait LegacyImportHelpersTrait
             }
         }
 
-        // Only wrap in <p> if the content starts with inline content (not a block-level element).
-        // Wrapping block elements like <h3>, <ul>, <ol> etc. inside <p> produces invalid HTML:
-        // browsers auto-close the <p> before the block element, creating a spurious empty paragraph.
-        if (
-            !preg_match('/^\s*<(?:p|h[1-6]|ul|ol|blockquote|div|table|figure|pre)(?:\s[^>]*)?>/i', $html)
-            && trim($html) !== ''
-        ) {
-            $html = "<p>$html</p>";
-        }
+        $html = $this->wrapLooseParagraphsInPTags($html);
 
         $cleanEnd      = true;
         $maxIterations = 20;
@@ -1446,6 +1458,45 @@ trait LegacyImportHelpersTrait
         $html = $this->removeEmptyParagraphs($html);
 
         return $html;
+    }
+
+    protected function wrapLooseParagraphsInPTags(string $html): string
+    {
+        if (trim($html) === '') {
+            return $html;
+        }
+
+        // Isolate block-level fragments so mixed content like
+        // "plain text <blockquote>...</blockquote> more text" gets split into
+        // separate chunks before we wrap loose text in <p> tags.
+        $html = preg_replace(
+            '/\s*(<(?:p|h[1-6]|ul|ol|blockquote|div|table|figure|pre)\b[\s\S]*?<\/(?:p|h[1-6]|ul|ol|blockquote|div|table|figure|pre)>)\s*/i',
+            "\n\n$1\n\n",
+            $html
+        );
+
+        $parts = preg_split('/(?:\r?\n\s*){2,}/', $html);
+        if ($parts === false) {
+            return $html;
+        }
+
+        $wrapped = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+
+            // Leave already block-level fragments untouched; wrap loose inline/text fragments.
+            if (preg_match('/^<(?:p|h[1-6]|ul|ol|blockquote|div|table|figure|pre)(?:\s[^>]*)?>/i', $part)) {
+                $wrapped[] = $part;
+                continue;
+            }
+
+            $wrapped[] = "<p>{$part}</p>";
+        }
+
+        return implode('', $wrapped);
     }
 
     protected function removeEmptyParagraphs(string $html): string
@@ -1490,6 +1541,128 @@ trait LegacyImportHelpersTrait
             },
             $html
         );
+    }
+
+    protected function transformLegacyIndentedQuotesToBlockquotes(string $html): string
+    {
+        return preg_replace(
+            '/<p\b([^>]*)\bstyle\s*=\s*(["\'])[^"\']*\bpadding-left\s*:\s*\d+px\b[^"\']*\2([^>]*)>\s*<em(?:\s[^>]*)?>(.*?)<\/em>\s*<\/p>/is',
+            '<blockquote>$4</blockquote>',
+            $html
+        );
+    }
+
+    protected function transformLegacyTextMarkup(string $html): string
+    {
+        $html = $this->transformLegacyIndentedQuotesToBlockquotes($html);
+        return $this->transformStrongParagraphsToH3($html);
+    }
+
+    protected function buildLegacyWpContentImageBlock(string $html, int $postId): ?array
+    {
+        if (!preg_match('/<img\b[^>]*\bsrc=["\']([^"\']+)["\'][^>]*\/?>/i', $html, $srcMatch)) {
+            return null;
+        }
+
+        $imgSrc = html_entity_decode($srcMatch[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $href = null;
+        if (preg_match('/<a\b[^>]*\bhref=["\']([^"\']+)["\'][^>]*>/i', $html, $hrefMatch)) {
+            $href = html_entity_decode($hrefMatch[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        $preferredPath = $this->normalizeLegacyWpContentPath($href);
+        if ($preferredPath === null) {
+            $preferredPath = $this->normalizeLegacyWpContentPath($imgSrc);
+        }
+
+        if ($preferredPath === null) {
+            return null;
+        }
+
+        $alt = '';
+        if (preg_match('/<img\b[^>]*\balt=["\']([^"\']*)["\'][^>]*\/?>/i', $html, $altMatch)) {
+            $alt = trim(html_entity_decode($altMatch[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        }
+
+        $downloaded = $this->downloadLegacyWpContentImage($preferredPath, $postId);
+        if ($downloaded === null) {
+            return null;
+        }
+
+        return [
+            'type' => 'images',
+            'attributes' => [
+                'images' => [[
+                    'id'          => $downloaded['id'],
+                    'link'        => $downloaded['link'],
+                    'author'      => '',
+                    'description' => $alt,
+                ]],
+            ],
+        ];
+    }
+
+    protected function normalizeLegacyWpContentPath(?string $url): ?string
+    {
+        if (empty($url)) {
+            return null;
+        }
+
+        $url = trim($url);
+        if (str_starts_with($url, '/wp-content/')) {
+            return $url;
+        }
+
+        if (preg_match('#^https?://(?:www\.)?theins\.ru(/wp-content/[^?\#]+)#i', $url, $m)) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    protected function downloadLegacyWpContentImage(string $wpContentPath, int $postId): ?array
+    {
+        $path = $this->normalizeLegacyWpContentPath($wpContentPath);
+        if ($path === null) {
+            return null;
+        }
+
+        $filename = basename(parse_url($path, PHP_URL_PATH) ?? '');
+        if ($filename === '' || $filename === '.' || $filename === '..') {
+            return null;
+        }
+
+        $imageId = 'wpimg_' . $postId . '_' . substr(md5($path), 0, 12);
+        $targetPath = ImageService::getImagePath($imageId, ImageService::TYPE_CONTENT_IMAGE, ImageService::SIZE_ORIGINAL)
+            . '/' . $filename;
+
+        if (Storage::disk('public')->exists($targetPath)) {
+            return ['id' => $imageId, 'link' => $targetPath];
+        }
+
+        $url = 'https://theins.ru' . $path;
+
+        try {
+            Storage::disk('public')->makeDirectory(dirname($targetPath));
+            $fullPath = Storage::disk('public')->path($targetPath);
+
+            $response = Http::timeout(30)
+                ->withOptions(['sink' => $fullPath])
+                ->get($url);
+
+            if (!$response->successful()) {
+                @unlink($fullPath);
+                Log::warning("Не удалось загрузить legacy wp-content image for post #{$postId}: HTTP {$response->status()} ({$url})");
+                return null;
+            }
+
+            return ['id' => $imageId, 'link' => $targetPath];
+        } catch (\Exception $e) {
+            Log::warning("Ошибка загрузки legacy wp-content image for post #{$postId}: " . $e->getMessage(), [
+                'url' => $url,
+            ]);
+            return null;
+        }
     }
 
     // -------------------------------------------------------------------------
