@@ -68,8 +68,8 @@ trait LegacyImportHelpersTrait
                 $bar->setMessage($this->barLabel("#{$admin->id} {$admin->name}"));
                 $roleCode = match ($admin->team_role_id) {
                     1 => 'admin',
-                    2 => 'editor',
-                    3 => 'journalist',
+                    3 => 'editor',
+                    2 => 'journalist',
                     default => 'journalist',
                 };
 
@@ -98,6 +98,7 @@ trait LegacyImportHelpersTrait
                 User::updateOrCreate(
                     ['id' => $admin->id],
                     [
+                        'id' => $admin->id,
                         'email' => $admin->email,
                         'password' => $password,
                         'name' => $admin->name,

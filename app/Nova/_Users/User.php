@@ -3,6 +3,7 @@
 namespace App\Nova\_Users;
 
 use App\Support\Nova\FormActionBar;
+use App\Support\Nova\RelatedPostsPanel;
 use Laravel\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -56,6 +57,49 @@ class User extends Resource
     public static $clickAction = 'edit';
     
     public function fields(NovaRequest $request) {
+        $relatedPostsPageFromReferer = null;
+        $refererUrl = $request->headers->get('referer');
+        if ($refererUrl) {
+            $refererQuery = parse_url($refererUrl, PHP_URL_QUERY);
+            if ($refererQuery) {
+                parse_str($refererQuery, $refererQueryParams);
+                $relatedPostsPageFromReferer = isset($refererQueryParams['related_posts_page'])
+                    ? (int) $refererQueryParams['related_posts_page']
+                    : null;
+            }
+        }
+
+        $userEditBaseUrl = $this->resource?->exists
+            ? '/admin/resources/' . static::uriKey() . '/' . $this->resource->getKey() . '/edit'
+            : null;
+        $buildUserEditPageUrl = function (int $page) use ($userEditBaseUrl, $request) {
+            if (!$userEditBaseUrl) {
+                return null;
+            }
+
+            $query = array_filter([
+                'viaResource' => $request->query('viaResource'),
+                'viaResourceId' => $request->query('viaResourceId'),
+                'viaRelationship' => $request->query('viaRelationship'),
+                'relationshipType' => $request->query('relationshipType'),
+                'related_posts_page' => $page,
+            ], fn ($value) => $value !== null && $value !== '');
+
+            return $userEditBaseUrl . (!empty($query) ? '?' . http_build_query($query) : '');
+        };
+        $relatedPostsPage = max(
+            1,
+            (int) ($request->get('related_posts_page')
+                ?? $relatedPostsPageFromReferer
+                ?? 1)
+        );
+        $relatedPostsPaginator = $this->resource?->exists
+            ? $this->resource->posts()
+                ->select('posts.id', 'posts.title', 'posts.type', 'posts.published_at')
+                ->orderByDesc('published_at')
+                ->paginate(5, ['*'], 'related_posts_page', $relatedPostsPage)
+            : null;
+        $postsCount = $relatedPostsPaginator?->total() ?? 0;
         $actionBarHtml = FormActionBar::render([
             'metaBlock' => $this->resource?->exists ? [
                 'items' => [
@@ -72,6 +116,10 @@ class User extends Resource
             'saveAction' => [
                 'label' => $this->exists ? __('Save') : __('Create'),
             ],
+        ]);
+        $relatedPostsHtml = RelatedPostsPanel::render($relatedPostsPaginator, $buildUserEditPageUrl, [
+            'showHeader' => false,
+            'withOuterCard' => false,
         ]);
         $generalFields = [
             ID::make()->onlyOnDetail(),
@@ -135,6 +183,18 @@ class User extends Resource
                 ->asHtml(),
 
             Panel::make(__('General'), $generalFields),
+
+            ...(
+                !empty($request->resourceId) && $postsCount > 0
+                    ? [
+                        Panel::make(__('related_posts_panel.heading'), [
+                            Heading::make($relatedPostsHtml)
+                                ->onlyOnForms()
+                                ->asHtml(),
+                        ]),
+                    ]
+                    : []
+            ),
 
             DateTimeSplit::make(__('Created'), 'created_at')->onlyOnDetail(),
             DateTimeSplit::make(__('Updated'), 'updated_at')->onlyOnDetail(),

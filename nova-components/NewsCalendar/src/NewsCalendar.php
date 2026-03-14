@@ -9,6 +9,11 @@ use Laravel\Nova\Tool;
 
 class NewsCalendar extends Tool
 {
+    public function authorize(Request $request)
+    {
+        return !$request->user()?->isJournalist();
+    }
+
     /**
      * Perform any tasks that need to happen when the tool is booted.
      */

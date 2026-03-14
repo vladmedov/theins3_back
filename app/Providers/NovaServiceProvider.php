@@ -48,7 +48,8 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                 
                 MenuGroup::make(__('Analytics'), [
                     MenuItem::dashboard(\App\Nova\Dashboards\ContentDashboard::class),
-                    MenuItem::link(__('News calendar'), '/news-calendar'),
+                    MenuItem::link(__('News calendar'), '/news-calendar')
+                        ->canSee(fn ($request) => !$request->user()?->isJournalist()),
                 ])->collapsable(),
 
                 MenuGroup::make(__('Posts'), [
