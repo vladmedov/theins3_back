@@ -98,31 +98,6 @@
     new MutationObserver(function () { initCopyButtons(); }).observe(document.documentElement, { childList: true, subtree: true });
 }());
 
-// ─── Fixed save button: hide on post-* resources ─────────────────────────────
-(function () {
-    var lastPath = null;
-
-    function update() {
-        if (/\/resources\/post-/.test(window.location.pathname)) {
-            document.body.classList.add('nova-no-fixed-save');
-        } else {
-            document.body.classList.remove('nova-no-fixed-save');
-        }
-    }
-
-    // Run immediately so class is set before Vue renders
-    update();
-
-    // Handle SPA navigation
-    new MutationObserver(function () {
-        var path = window.location.pathname;
-        if (path !== lastPath) {
-            lastPath = path;
-            update();
-        }
-    }).observe(document.documentElement, { childList: true, subtree: true });
-}());
-
 // ─── Tab memory: remember last active tab per resource type ───────────────────
 // Nova's TabGroup (headlessui) stores no state between navigations.
 // panel.attribute is random on every request, so we key by:

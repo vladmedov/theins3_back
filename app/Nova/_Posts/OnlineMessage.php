@@ -2,6 +2,7 @@
 
 namespace App\Nova\_Posts;
 
+use App\Support\Nova\FormActionBar;
 use Laravel\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Textarea;
+use Laravel\Nova\Fields\Heading;
 
 use Mostafaznv\NovaCkEditor\CkEditor;
 use Medov\ImageGallery\ImageGallery;
@@ -36,11 +38,40 @@ class OnlineMessage extends Resource
 
     public function fields(NovaRequest $request): array
     {
+        $actionBarHtml = FormActionBar::render([
+            'metaBlock' => $this->resource?->exists ? [
+                'items' => [
+                    [
+                        'label' => __('form_action_bar.created_at'),
+                        'date' => $this->resource->created_at,
+                    ],
+                    [
+                        'label' => __('form_action_bar.updated_at'),
+                        'date' => $this->resource->updated_at,
+                    ],
+                ],
+            ] : null,
+            'saveAction' => [
+                'label' => $this->exists ? __('Save') : __('Create'),
+            ],
+        ]);
+        $generalFields = [
+            BelongsTo::make(__('Online'), 'online', PostOnline::class)
+                ->onlyOnForms(),
+
+            DateTimeSplit::make(__('Publication date'), 'published_at')
+                ->default(now())
+                ->rules('required'),
+        ];
+
         return [
             Hidden::make(__('Language'), 'language_code')->default(app()->getLocale()),
 
-            BelongsTo::make(__('Online'), 'online', PostOnline::class)
-                ->onlyOnForms(),
+            Heading::make($actionBarHtml)
+                ->onlyOnForms()
+                ->asHtml(),
+
+            Panel::make(__('General'), $generalFields),
 
             Text::make(__('Title'), 'online')
                 ->exceptOnForms()
@@ -51,10 +82,6 @@ class OnlineMessage extends Resource
                     return "<a href='{$url}'><div class='nova_view_post_title'>{$online->title}</div></a>";
                 })
                 ->asHtml(),
-
-            DateTimeSplit::make(__('Publication date'), 'published_at')
-                ->default(now())
-                ->rules('required'),
                 
             Panel::make(__('Key event'), [
                 Boolean::make(__('Enable'), 'is_key_event')

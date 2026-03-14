@@ -2,6 +2,7 @@
 
 namespace App\Nova\_Collections;
 
+use App\Support\Nova\FormActionBar;
 use Laravel\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -14,6 +15,8 @@ use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\Hidden;
 use Laravel\Nova\Fields\Badge;
+use Laravel\Nova\Fields\Heading;
+use Laravel\Nova\Panel;
 
 use Outl1ne\NovaSortable\Traits\HasSortableRows;
 
@@ -63,10 +66,25 @@ class Collection extends Resource
      */
     public function fields(NovaRequest $request): array
     {
-        return [
-            Hidden::make(__('Language code'), 'language_code')->default(app()->getLocale()),
-            Hidden::make('collection_code')->default(static::getCollectionType()),
-
+        $currentPostId = $this->resolveCurrentPostId($request);
+        $actionBarHtml = FormActionBar::render([
+            'metaBlock' => $this->resource?->exists ? [
+                'items' => [
+                    [
+                        'label' => __('form_action_bar.created_at'),
+                        'date' => $this->resource->created_at,
+                    ],
+                    [
+                        'label' => __('form_action_bar.updated_at'),
+                        'date' => $this->resource->updated_at,
+                    ],
+                ],
+            ] : null,
+            'saveAction' => [
+                'label' => $this->exists ? __('Save') : __('Create'),
+            ],
+        ]);
+        $generalFields = [
             Badge::make(__('Status'), function () {
                 return $this->post->status;
             })->map([
@@ -79,27 +97,34 @@ class Collection extends Resource
             DateTimeSplit::make(__('Publication date'), function () {
                 return $this->post->published_at;
             }),
-            
+
             BelongsTo::make(__('Title'), 'post', PostCollection::class)
                 ->searchable()
                 ->withSubtitles()
-                ->relatableQueryUsing(function (NovaRequest $request, Builder $query) {
+                ->relatableQueryUsing(function (NovaRequest $request, Builder $query) use ($currentPostId) {
+                    $query->where('language_code', app()->getLocale());
+
                     if ($postType = static::filterPostType()) {
                         $query->where('type', $postType);
                     }
 
-                    $query
-                        ->where('language_code', app()->getLocale())
-                        ->whereNotIn('id', function ($subquery) {
+                    $query->where(function (Builder $collectionQuery) use ($currentPostId) {
+                        $collectionQuery->whereNotIn('id', function ($subquery) {
                             $subquery
                                 ->select('post_id')
                                 ->from('collection_post')
-                                ->where('collection_code', static::getCollectionType());
+                                ->where('collection_code', static::getCollectionType())
+                                ->where('language_code', app()->getLocale());
                         });
+
+                        if ($currentPostId) {
+                            $collectionQuery->orWhere('id', $currentPostId);
+                        }
+                    });
                 }),
 
             Text::make(__('Category'), function () {
-                return $this->post->category->title;
+                return $this->post?->category?->title;
             }),
 
             Text::make(__('Author'), function () {
@@ -111,6 +136,17 @@ class Collection extends Resource
                 }
                 
             })->asHtml(),
+        ];
+
+        return [
+            Hidden::make(__('Language code'), 'language_code')->default(app()->getLocale()),
+            Hidden::make('collection_code')->default(static::getCollectionType()),
+
+            Heading::make($actionBarHtml)
+                ->onlyOnForms()
+                ->asHtml(),
+
+            Panel::make(__('General'), $generalFields),
         ];
     }
 
@@ -184,5 +220,36 @@ class Collection extends Resource
 
     protected static function getCollectionType(): string {
         return 'feature';
+    }
+
+    public static function createButtonLabel(): string
+    {
+        return __('Create');
+    }
+
+    public static function updateButtonLabel(): string
+    {
+        return __('Save');
+    }
+
+    public function title(): string
+    {
+        return $this->post?->title ?? (string) $this->id;
+    }
+
+    protected function resolveCurrentPostId(NovaRequest $request): ?int
+    {
+        if (!empty($this->resource?->post_id)) {
+            return (int) $this->resource->post_id;
+        }
+
+        if (empty($request->resourceId)) {
+            return null;
+        }
+
+        /** @var \App\Models\CollectionPost|null $collectionPost */
+        $collectionPost = static::$model::query()->find($request->resourceId);
+
+        return $collectionPost?->post_id ? (int) $collectionPost->post_id : null;
     }
 }

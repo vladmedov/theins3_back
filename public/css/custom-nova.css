@@ -25,37 +25,10 @@
 
 /* СТИЛИ РЕДАКТОРА */
 
-/* КНОПКА СОХРАНЕНИЯ СУЩНОСТИ */
-
-body.nova-no-fixed-save form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 {
-    display: none !important;
-}
-
+/* Скрываем стандартный нижний блок действий Nova:
+   сохранение теперь вынесено в верхний FormActionBar. */
 form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(180, 180, 180, 0.2);
-    background-color: #fff;
-    padding: 10px 20px;
-    padding-left: 10px;
-    border-top: 3px solid #e54839; 
-    border: 3px solid #e54839;
-    z-index: 1000;
-    box-shadow: none;
-}
-
-form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 button:nth-child(1),
-form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 button:nth-child(2) {
-    display: none;
-}
-
-form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-end.space-y-2.md\:space-y-0.md\:space-x-3 button:nth-child(3) {
-    display: inline-block;
-}
-
-form {
-    padding-bottom: 80px;
+    display: none !important;
 }
 
 /* СТИЛЬ МЕНЮ */
@@ -153,6 +126,7 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 
 /* БЛОК URL + КНОПКИ */
 
+.overflow-hidden:has(#nova-form-action-bar),
 .overflow-hidden:has(#nova-info-bar) {
     background: #f8f8f8 !important;
     box-shadow: none !important;
@@ -160,6 +134,8 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
     border-radius: 6px !important;
 }
 
+.overflow-hidden:has(#nova-form-action-bar) > *,
+.overflow-hidden:has(#nova-form-action-bar) .heading,
 .overflow-hidden:has(#nova-info-bar) > *,
 .overflow-hidden:has(#nova-info-bar) .heading {
     padding: 0 !important;

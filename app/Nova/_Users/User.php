@@ -2,6 +2,7 @@
 
 namespace App\Nova\_Users;
 
+use App\Support\Nova\FormActionBar;
 use Laravel\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Laravel\Nova\Resource as NovaResource;
 
 use Laravel\Nova\Fields\FormData;
 use Laravel\Nova\Panel;
+use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Textarea;
@@ -54,7 +56,24 @@ class User extends Resource
     public static $clickAction = 'edit';
     
     public function fields(NovaRequest $request) {
-        return array_merge([
+        $actionBarHtml = FormActionBar::render([
+            'metaBlock' => $this->resource?->exists ? [
+                'items' => [
+                    [
+                        'label' => __('form_action_bar.created_at'),
+                        'date' => $this->resource->created_at,
+                    ],
+                    [
+                        'label' => __('form_action_bar.updated_at'),
+                        'date' => $this->resource->updated_at,
+                    ],
+                ],
+            ] : null,
+            'saveAction' => [
+                'label' => $this->exists ? __('Save') : __('Create'),
+            ],
+        ]);
+        $generalFields = [
             ID::make()->onlyOnDetail(),
 
             Text::make(__('Name (RU)'), 'name')
@@ -107,7 +126,15 @@ class User extends Resource
                 ->searchable()
                 ->rules('required')
                 ->default('Europe/Moscow')
-                ->help(__('Select your local timezone')),   
+                ->help(__('Select your local timezone')),
+        ];
+
+        return array_merge([
+            Heading::make($actionBarHtml)
+                ->onlyOnForms()
+                ->asHtml(),
+
+            Panel::make(__('General'), $generalFields),
 
             DateTimeSplit::make(__('Created'), 'created_at')->onlyOnDetail(),
             DateTimeSplit::make(__('Updated'), 'updated_at')->onlyOnDetail(),

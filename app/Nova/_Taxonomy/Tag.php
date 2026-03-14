@@ -2,6 +2,7 @@
 
 namespace App\Nova\_Taxonomy;
 
+use App\Support\Nova\FormActionBar;
 use Laravel\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -14,6 +15,8 @@ use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Slug;
 use Laravel\Nova\Fields\Hidden;
+use Laravel\Nova\Fields\Heading;
+use Laravel\Nova\Panel;
 
 class Tag extends Resource
 {
@@ -25,10 +28,24 @@ class Tag extends Resource
     public static $clickAction = 'edit';
 
     public function fields(Request $request) {
-        return [
-            Hidden::make(__('Language code'), 'language_code')
-                ->default(app()->getLocale()),
-
+        $actionBarHtml = FormActionBar::render([
+            'metaBlock' => $this->resource?->exists ? [
+                'items' => [
+                    [
+                        'label' => __('form_action_bar.created_at'),
+                        'date' => $this->resource->created_at,
+                    ],
+                    [
+                        'label' => __('form_action_bar.updated_at'),
+                        'date' => $this->resource->updated_at,
+                    ],
+                ],
+            ] : null,
+            'saveAction' => [
+                'label' => $this->exists ? __('Save') : __('Create'),
+            ],
+        ]);
+        $generalFields = [
             Text::make(__('Title'), 'title')
                 ->sortable()
                 ->rules('required', 'max:255'),
@@ -42,6 +59,17 @@ class Tag extends Resource
                 return $this->posts()->count();
             }),
         ];
+
+        return [
+            Hidden::make(__('Language code'), 'language_code')
+                ->default(app()->getLocale()),
+
+            Heading::make($actionBarHtml)
+                ->onlyOnForms()
+                ->asHtml(),
+
+            Panel::make(__('General'), $generalFields),
+        ];
     }
 
     public static function label() {
@@ -52,14 +80,14 @@ class Tag extends Resource
         return __('Tag');
     }
 
-    public static function redirectAfterCreate(NovaRequest $request, NovaResource $resource)
+    public static function redirectAfterCreate(NovaRequest $request, Resource $resource)
     {
-        return '/resources/'.static::uriKey();
+        return '/resources/' . static::uriKey() . '/' . $resource->getKey() . '/edit';
     }
 
-    public static function redirectAfterUpdate(NovaRequest $request, NovaResource $resource)
+    public static function redirectAfterUpdate(NovaRequest $request, Resource $resource)
     {
-        return '/resources/'.static::uriKey();
+        return '/resources/' . static::uriKey() . '/' . $resource->getKey() . '/edit';
     }
 
     public static function indexQuery(NovaRequest $request, Builder $query): Builder

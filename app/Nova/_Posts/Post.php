@@ -61,6 +61,7 @@ use Carbon\Carbon;
 use App\Enums\UserRoles;
 use App\Enums\PostTypes;
 use App\Enums\CategoryTypes;
+use App\Support\Nova\FormActionBar;
 
 use App\Nova\_Collections\PostCollection;
 use App\Nova\_Users\User;
@@ -159,12 +160,6 @@ abstract class Post extends Resource
 
         $toggleLabel  = $isPublished ? __('Unpublish') : __('Publish');
         $toggleJs     = $isPublished ? $unpublishJs : $publishJs;
-        $toggleColor  = $isPublished ? '#dc2626' : '#16a34a';
-        $toggleBorder = $isPublished ? '#b91c1c' : '#15803d';
-
-        $btnStyle    = "display:inline-flex;align-items:center;height:36px;padding:0 12px;font-size:14px;font-weight:700;border-radius:4px;border-width:1px;border-style:solid;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;white-space:nowrap;line-height:1;";
-        $saveBtnStyle   = $btnStyle . "background:#111827;color:#fff;border-color:#1f2937;";
-        $toggleBtnStyle = "display:inline-flex;align-items:center;height:36px;padding:0 4px;font-size:14px;font-weight:500;background:none;border:none;cursor:pointer;white-space:nowrap;color:{$toggleColor};text-decoration:underline;";
 
         $previewNotice = '';
         if ($isDraft && $postUrl) {
@@ -176,25 +171,21 @@ abstract class Post extends Resource
             $previewNotice = __('Preview valid until') . ' ' . $expiresAt->format('d.m.Y H:i');
             $previewNotice .= ' · ' . __('To refresh the token, reload the page or save the publication.');
         }
-        $postUrlEscaped = $postUrl ? htmlspecialchars($postUrl, ENT_QUOTES, 'UTF-8') : '';
-        $copyIcon = "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>";
-        $urlBlock = $postUrl
-            ? "<span style='flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;'>"
-                . "<span style='display:flex;align-items:center;gap:6px;flex-wrap:wrap;'>"
-                . "<span style='font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;'>URL</span>"
-                . "<span style='display:inline-flex;align-items:center;gap:6px;width:fit-content;max-width:100%;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:3px 4px 3px 6px;'>"
-                . "<a href='{$postUrl}' target='_blank' style='margin-top:1px;font-size:11px;color:#0f172a;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;'>{$postUrl}</a>"
-                . "<button type='button' class='js-copy-post-url' data-copy-url='{$postUrlEscaped}' title='" . htmlspecialchars(__('Copy link'), ENT_QUOTES, 'UTF-8') . "' style='flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:none;border-radius:3px;background:#fff;color:#64748b;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.06);' onmouseover='this.style.background=\"#e2e8f0\";this.style.color=\"#334155\"' onmouseout='this.style.background=\"#fff\";this.style.color=\"#64748b\"'>{$copyIcon}</button>"
-                . "</span>"
-                . "</span>"
-                . ($previewNotice ? "<span style='font-size:11px;color:#64748b;line-height:1.5;'>" . $previewNotice . "</span>" : '')
-                . "</span>"
-            : "<span style='flex:1'></span>";
-        $infoHtml = "<div id='nova-info-bar' style='display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:0px;'>"
-            . $urlBlock
-            . "<button type='button' onclick=\"{$toggleJs}\" style='{$toggleBtnStyle}'>{$toggleLabel}</button>"
-            . "<button type='button' onclick=\"{$saveJs}\" style='{$saveBtnStyle}'>" . ($this->exists ? __('Save') : __('Create')) . "</button>"
-            . "</div>";
+        $infoHtml = FormActionBar::render([
+            'saveAction' => [
+                'label' => $this->exists ? __('Save') : __('Create'),
+                'js' => $saveJs,
+            ],
+            'secondaryAction' => [
+                'label' => $toggleLabel,
+                'js' => $toggleJs,
+                'variant' => $isPublished ? 'danger-link' : 'success-link',
+            ],
+            'linkBlock' => $postUrl ? [
+                'url' => $postUrl,
+                'notice' => $previewNotice ?: null,
+            ] : null,
+        ]);
 
         $info = [
             Heading::make($infoHtml)

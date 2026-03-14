@@ -19,6 +19,13 @@ class PostCollection extends Post {
     public function subtitle()
     {
         $formattedDate = $this->published_at ? $this->published_at->format('d.m.Y H:i:s') : '';
-        return "[" . PostTypes::get($this->type) . "] " . (CategoryTypes::isDefault($this->type) ? "{$this->category->title} / {$formattedDate}" : "{$formattedDate}");
+        $categoryTitle = $this->category?->title;
+        $subtitle = $formattedDate;
+
+        if (CategoryTypes::isDefault($this->type) && $categoryTitle) {
+            $subtitle = $formattedDate !== '' ? "{$categoryTitle} / {$formattedDate}" : $categoryTitle;
+        }
+
+        return "[" . PostTypes::get($this->type) . "] " . $subtitle;
     }
 }

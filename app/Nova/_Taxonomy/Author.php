@@ -2,6 +2,7 @@
 
 namespace App\Nova\_Taxonomy;
 
+use App\Support\Nova\FormActionBar;
 use Laravel\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ use Laravel\Nova\Nova;
 use Laravel\Nova\Panel;
 
 use Laravel\Nova\Fields\Hidden;
+use Laravel\Nova\Fields\Heading;
 
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Slug;
@@ -35,21 +37,24 @@ class Author extends Resource
     public static $clickAction = 'edit';
 
     public function fields(Request $request) {
-        return array_merge([
-            Hidden::make(__('Language code'), 'language_code')
-                ->default(app()->getLocale()),
-
-            Avatar::make(__('Photo'), 'avatar')
-                ->disk('public')
-                ->onlyOnIndex()
-                ->preview(function ($value, $disk) {
-                    $model = $this->resource ?? null;
-                    if (!$model || !$value) return null;
-                    $url = $model->avatar_url;
-                    if (!$url) return null;
-                    return str_starts_with($url, 'http') ? $url : rtrim(config('app.url'), '/') . $url;
-                }),
-
+        $actionBarHtml = FormActionBar::render([
+            'metaBlock' => $this->resource?->exists ? [
+                'items' => [
+                    [
+                        'label' => __('form_action_bar.created_at'),
+                        'date' => $this->resource->created_at,
+                    ],
+                    [
+                        'label' => __('form_action_bar.updated_at'),
+                        'date' => $this->resource->updated_at,
+                    ],
+                ],
+            ] : null,
+            'saveAction' => [
+                'label' => $this->exists ? __('Save') : __('Create'),
+            ],
+        ]);
+        $generalFields = [
             Slug::make('Slug', 'slug')
                 ->from('last_name', 'last_name')
                 ->sortable()
@@ -75,6 +80,28 @@ class Author extends Resource
                 })
                 ->prunable()
                 ->onlyOnForms(),
+        ];
+
+        return array_merge([
+            Hidden::make(__('Language code'), 'language_code')
+                ->default(app()->getLocale()),
+
+            Heading::make($actionBarHtml)
+                ->onlyOnForms()
+                ->asHtml(),
+
+            Avatar::make(__('Photo'), 'avatar')
+                ->disk('public')
+                ->onlyOnIndex()
+                ->preview(function ($value, $disk) {
+                    $model = $this->resource ?? null;
+                    if (!$model || !$value) return null;
+                    $url = $model->avatar_url;
+                    if (!$url) return null;
+                    return str_starts_with($url, 'http') ? $url : rtrim(config('app.url'), '/') . $url;
+                }),
+
+            Panel::make(__('General'), $generalFields),
 
             Panel::make(__('Display Settings'), [
 
