@@ -67,7 +67,7 @@ class Termin extends Resource
             ? $this->resource->posts()
                 ->select('posts.id', 'posts.title', 'posts.type', 'posts.published_at')
                 ->orderByDesc('published_at')
-                ->paginate(5, ['*'], 'related_posts_page', $relatedPostsPage)
+                ->paginate(10, ['*'], 'related_posts_page', $relatedPostsPage)
             : null;
         $postsCount = $relatedPostsPaginator?->total() ?? 0;
         $warningHtml = sprintf(

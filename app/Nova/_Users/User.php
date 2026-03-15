@@ -97,7 +97,7 @@ class User extends Resource
             ? $this->resource->posts()
                 ->select('posts.id', 'posts.title', 'posts.type', 'posts.published_at')
                 ->orderByDesc('published_at')
-                ->paginate(5, ['*'], 'related_posts_page', $relatedPostsPage)
+                ->paginate(10, ['*'], 'related_posts_page', $relatedPostsPage)
             : null;
         $postsCount = $relatedPostsPaginator?->total() ?? 0;
         $actionBarHtml = FormActionBar::render([
@@ -184,6 +184,10 @@ class User extends Resource
 
             Panel::make(__('General'), $generalFields),
 
+            Text::make(__('Posts count'), 'posts_count')
+                ->onlyOnIndex()
+                ->sortable(),
+
             ...(
                 !empty($request->resourceId) && $postsCount > 0
                     ? [
@@ -219,6 +223,8 @@ class User extends Resource
         if (static::getUserRole()) {
             $query->where('role_code', static::getUserRole());
         }
+
+        $query->withCount('posts');
 
         return $query;
     }

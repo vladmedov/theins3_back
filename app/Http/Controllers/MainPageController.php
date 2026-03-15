@@ -14,8 +14,6 @@ use App\Models\Category;
 use App\Models\CollectionPost;
 use App\Models\InvestigationTheme;
 use App\Models\ExchangeRate;
-use App\Http\Controllers\WidgetController;
-
 class MainPageController extends Controller
 {
     private $excludedIds = [];
@@ -37,12 +35,10 @@ class MainPageController extends Controller
             return $this->getArticles($language_code);
         }
 
-        $widgetController = new WidgetController();
-
         return [
             'collection_opinions' => $this->getCollectionPosts($language_code, CollectionPost::COLLECTION_CODE_MAIN_OPINIONS, 7, PostTypes::OPINION),
             'collection_feature' => $feature,
-            'collection_popular' => $widgetController->getPopular($language_code)->toArray(request()),
+            'collection_popular' => $this->getPopular($language_code),
             'main_investigation' => $this->getMainInvestigation($language_code),
             'confessions' => $this->getConfession($language_code),
             'news' => $this->getNews($language_code),
@@ -184,5 +180,47 @@ class MainPageController extends Controller
                 ->orderBy('published_at', 'DESC')
                 ->simplePaginate(36)
         )->toArray(request());
+    }
+
+    private function getPopular($language_code)
+    {
+        $limit = 5;
+
+        $forcedPosts = CollectionPost
+            ::where('language_code', $language_code)
+            ->where('collection_code', CollectionPost::COLLECTION_CODE_POPULAR)
+            ->orderBy('position', 'asc')
+            ->limit($limit)
+            ->get()
+            ->pluck('post_id');
+
+        $query = Post
+            ::whereIn('id', $forcedPosts)
+            ->where('status', Post::STATUS_PUBLISHED)
+            ->where('language_code', $language_code)
+            ->with(['category', 'authors', 'columnist']);
+
+        $forcedPostsCollection = $query->get()
+            ->sortBy(function($post) use ($forcedPosts) {
+                return array_search($post->id, $forcedPosts->toArray());
+            });
+        
+        if ($forcedPostsCollection->count() < $limit) {
+            $additionalPosts = Post
+                ::where('language_code', $language_code)
+                ->where('status', Post::STATUS_PUBLISHED)
+                ->where('published_at', '>=', now()->subMonth())
+                ->whereNotIn('id', $forcedPosts)
+                ->with(['category', 'authors', 'columnist'])
+                ->orderBy('views_count', 'desc')
+                ->limit($limit - $forcedPostsCollection->count())
+                ->get();
+            
+            $posts = $forcedPostsCollection->concat($additionalPosts);
+        } else {
+            $posts = $forcedPostsCollection->take($limit);
+        }
+        
+        return PostResource::collection($posts)->toArray(request());
     }
 }
