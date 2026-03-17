@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Models\PostOwner;
 use App\Models\CollectionPost;
 use App\Console\Commands\LegacyImportTermins;
+use DOMDocument;
 
 /**
  * Shared helpers for legacy import commands.
@@ -841,6 +842,20 @@ trait LegacyImportHelpersTrait
     // Post content sync
     // -------------------------------------------------------------------------
 
+    /**
+     * Generate a stable 16-char key for a flexible content block (no hyphen).
+     * Whitecube Layout::getProcessedKey() only keeps keys that match this format,
+     * otherwise it replaces them and insertion tags change on save.
+     *
+     * @param string $type Layout type (e.g. images, video, embed, related)
+     * @param int|string $id Legacy block id
+     * @return string 16 characters, [c][0-9a-f]{15}
+     */
+    protected function flexibleBlockKey(string $type, $id): string
+    {
+        return 'c' . substr(md5($type . '_' . $id), 0, 15);
+    }
+
     protected function syncPostContent(int $postId, string $languageCode): void
     {
         $currentPost = $this->findCachedPost($postId);
@@ -877,7 +892,7 @@ trait LegacyImportHelpersTrait
             $termins[$b->human_id] = $txt;
         }
 
-        // --- Build $templates map (human_id => block data) ---
+        // --- Build $templates map (human_id => block data with key and show_insertion_code) ---
         $templates      = [];
         $templateKinds  = ['image', 'big_image', 'gallery', 'video', 'quote'];
 
@@ -900,7 +915,14 @@ trait LegacyImportHelpersTrait
                     continue;
                 }
 
-                $templates[$dbTemplate->human_id]['type'] = 'images';
+                $templates[$dbTemplate->human_id] = [
+                    'type'       => 'images',
+                    'key'        => $this->flexibleBlockKey('images', $dbTemplate->id),
+                    'attributes' => [
+                        'show_insertion_code' => true,
+                        'images'              => [],
+                    ],
+                ];
                 foreach ($images as $image) {
                     $imagePath = $this->downloadLegacyImage(
                         $image->id, $image->image ?? null,
@@ -920,11 +942,15 @@ trait LegacyImportHelpersTrait
                 if (isset($dbTemplateContent->video_embed) && $dbTemplateContent->video_embed === '') {
                     continue;
                 }
-                $templates[$dbTemplate->human_id]['type'] = 'video';
-                $templates[$dbTemplate->human_id]['attributes'] = [
-                    'video_url'         => $dbTemplateContent->video_embed ?? '',
-                    'video_description' => $dbTemplate->caption ?? '',
-                    'video_author'      => $dbTemplate->credit ?? '',
+                $templates[$dbTemplate->human_id] = [
+                    'type'       => 'video',
+                    'key'        => $this->flexibleBlockKey('video', $dbTemplate->id),
+                    'attributes' => [
+                        'show_insertion_code' => true,
+                        'video_url'           => $dbTemplateContent->video_embed ?? '',
+                        'video_description'  => $dbTemplate->caption ?? '',
+                        'video_author'       => $dbTemplate->credit ?? '',
+                    ],
                 ];
             }
 
@@ -933,17 +959,22 @@ trait LegacyImportHelpersTrait
                 if (isset($dbTemplateContent->quote) && $dbTemplateContent->quote === '') {
                     continue;
                 }
-                $templates[$dbTemplate->human_id]['type'] = 'quote';
-                $templates[$dbTemplate->human_id]['attributes'] = [
-                    'quote'        => $dbTemplateContent->quote ?? '',
-                    'quote_author' => '',
+                $templates[$dbTemplate->human_id] = [
+                    'type'       => 'quote',
+                    'key'        => $this->flexibleBlockKey('quote', $dbTemplate->id),
+                    'attributes' => [
+                        'show_insertion_code' => true,
+                        'quote'              => $dbTemplateContent->quote ?? '',
+                        'quote_author'       => '',
+                    ],
                 ];
             }
         }
 
-        // --- Process main content blocks ---
-        $content     = [];
-        $mainKinds   = ['number', 'text', 'social', 'related_posts', 'audio', 'iframe'];
+        // --- Process main content blocks: one text buffer + keyed insertion blocks ---
+        $content   = [];
+        $textHtml  = '';
+        $mainKinds = ['number', 'text', 'social', 'related_posts', 'audio', 'iframe'];
         $socialTypes = ['iframe', 'telegram', 'twitter', 'facebook', 'instagram', 'vk', 'ok', 'audio'];
 
         foreach ($allBlocks as $block) {
@@ -955,10 +986,8 @@ trait LegacyImportHelpersTrait
                 if (!isset($block->title) || $block->title === '') {
                     continue;
                 }
-                $content[] = [
-                    'type'       => 'outline',
-                    'attributes' => ['outline' => $this->cleanOutline($block->title)],
-                ];
+                $outline = $this->cleanOutline($block->title);
+                $textHtml .= '<h3 class="outline-heading">' . e($outline) . '</h3>';
             }
 
             if ($block->kind === 'text') {
@@ -985,12 +1014,7 @@ trait LegacyImportHelpersTrait
                     return '<span class="termin" data-id="' . $termin->id . '">' . e($displayWord) . '</span>';
                 }, $text);
 
-                // Step 1: scan for REAL <h3> (existing in original markup),
-                // legacy inline wp-content images, and template placeholders.
-                // transformStrongParagraphsToH3 runs later, per text-chunk, so
-                // <p><strong>…</strong></p> headings are NOT added to the outline.
                 $matches = [];
-
                 preg_match_all('/<h3>(.*?)<\/h3>/i', $text, $h3Matches, PREG_OFFSET_CAPTURE);
                 foreach ($h3Matches[0] as $index => $match) {
                     $matches[] = [
@@ -1001,7 +1025,6 @@ trait LegacyImportHelpersTrait
                         'length'    => strlen($match[0]),
                     ];
                 }
-
                 preg_match_all('/\{\{([^}]+)\}\}/i', $text, $tmplMatches, PREG_OFFSET_CAPTURE);
                 foreach ($tmplMatches[0] as $match) {
                     $matches[] = [
@@ -1011,7 +1034,24 @@ trait LegacyImportHelpersTrait
                         'length'    => strlen($match[0]),
                     ];
                 }
-
+                preg_match_all(
+                    '/\[caption[^]]*\](.*?)\[\/caption\]/is',
+                    $text,
+                    $captionMatches,
+                    PREG_OFFSET_CAPTURE
+                );
+                foreach ($captionMatches[0] as $match) {
+                    $matches[] = [
+                        'type'      => 'legacy_caption',
+                        'fullMatch' => $match[0],
+                        'offset'    => $match[1],
+                        'length'    => strlen($match[0]),
+                    ];
+                }
+                $captionRanges = array_map(
+                    fn ($m) => [$m['offset'], $m['offset'] + $m['length']],
+                    array_filter($matches, fn ($m) => ($m['type'] ?? '') === 'legacy_caption')
+                );
                 preg_match_all(
                     '/(?:<a\b[^>]*>\s*)?<img\b(?=[^>]*\bsrc=["\'](?:https?:\/\/theins\.ru)?\/wp-content\/[^"\']+["\'])[^>]*\/?>(?:\s*<\/a>)?/is',
                     $text,
@@ -1019,14 +1059,24 @@ trait LegacyImportHelpersTrait
                     PREG_OFFSET_CAPTURE
                 );
                 foreach ($imageMatches[0] as $match) {
-                    $matches[] = [
-                        'type'      => 'legacy_wp_image',
-                        'fullMatch' => $match[0],
-                        'offset'    => $match[1],
-                        'length'    => strlen($match[0]),
-                    ];
+                    $imgStart = $match[1];
+                    $imgEnd = $match[1] + strlen($match[0]);
+                    $insideCaption = false;
+                    foreach ($captionRanges as [$capStart, $capEnd]) {
+                        if ($imgStart >= $capStart && $imgEnd <= $capEnd) {
+                            $insideCaption = true;
+                            break;
+                        }
+                    }
+                    if (!$insideCaption) {
+                        $matches[] = [
+                            'type'      => 'legacy_wp_image',
+                            'fullMatch' => $match[0],
+                            'offset'    => $match[1],
+                            'length'    => strlen($match[0]),
+                        ];
+                    }
                 }
-
                 preg_match_all(
                     '/\[embed\](.*?)\[\/embed\]/is',
                     $text,
@@ -1044,37 +1094,80 @@ trait LegacyImportHelpersTrait
 
                 usort($matches, fn ($a, $b) => $a['offset'] - $b['offset']);
 
-                // Step 2: split into blocks; apply transformStrongParagraphsToH3
-                // only on text chunks (not on outline or template markers).
                 if (empty($matches)) {
-                    $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformLegacyTextMarkup($text))]];
+                    $textHtml .= $this->normalizeHtml($this->transformLegacyTextMarkup($text));
                 } else {
                     $currentPosition = 0;
                     foreach ($matches as $match) {
                         $textBefore = substr($text, $currentPosition, $match['offset'] - $currentPosition);
                         if (!empty(trim($textBefore))) {
-                            $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformLegacyTextMarkup($textBefore))]];
+                            $textHtml .= $this->normalizeHtml($this->transformLegacyTextMarkup($textBefore));
                         }
                         if ($match['type'] === 'h3') {
-                            $content[] = ['type' => 'outline', 'attributes' => ['outline' => $this->cleanOutline($match['content'])]];
+                            $outline = $this->cleanOutline($match['content']);
+                            $textHtml .= '<h3 class="outline-heading">' . e($outline) . '</h3>';
+                        } elseif ($match['type'] === 'legacy_caption') {
+                            $imageBlock = $this->buildLegacyWpCaptionBlock($match['fullMatch'], $postId);
+                            if ($imageBlock !== null) {
+                                $key = $this->flexibleBlockKey('images', $postId . '_cap_' . $match['offset']);
+                                $content[$key] = [
+                                    'type'       => 'images',
+                                    'attributes' => array_merge(
+                                        $imageBlock['attributes'],
+                                        ['show_insertion_code' => true]
+                                    ),
+                                ];
+                                $textHtml .= '<p>{{ images_id' . $key . ' }}</p>';
+                            }
                         } elseif ($match['type'] === 'legacy_wp_image') {
                             $imageBlock = $this->buildLegacyWpContentImageBlock($match['fullMatch'], $postId);
                             if ($imageBlock !== null) {
-                                $content[] = $imageBlock;
+                                $key = $this->flexibleBlockKey('images', $postId . '_wp_' . $match['offset']);
+                                $content[$key] = [
+                                    'type'       => 'images',
+                                    'attributes' => array_merge(
+                                        $imageBlock['attributes'],
+                                        ['show_insertion_code' => true]
+                                    ),
+                                ];
+                                $textHtml .= '<p>{{ images_id' . $key . ' }}</p>';
                             }
                         } elseif ($match['type'] === 'legacy_embed') {
                             $embedBlock = $this->buildLegacyEmbedBlock($match['fullMatch']);
                             if ($embedBlock !== null) {
-                                $content[] = $embedBlock;
+                                $type = $embedBlock['type'] ?? null;
+                                $attrs = $embedBlock['attributes'] ?? [];
+
+                                if ($type === 'video' && !empty($attrs['video_url'])) {
+                                    $key = $this->flexibleBlockKey('video', $postId . '_wp_' . $match['offset']);
+                                    $content[$key] = [
+                                        'type'       => 'video',
+                                        'attributes' => array_merge($attrs, ['show_insertion_code' => true]),
+                                    ];
+                                    $textHtml .= '<p>{{ video_id' . $key . ' }}</p>';
+                                } elseif ($type === 'embed' && !empty($attrs['embed_code'])) {
+                                    $key = $this->flexibleBlockKey('embed', $postId . '_wp_' . $match['offset']);
+                                    $content[$key] = [
+                                        'type'       => 'embed',
+                                        'attributes' => array_merge($attrs, ['show_insertion_code' => true]),
+                                    ];
+                                    $textHtml .= '<p>{{ embed_id' . $key . ' }}</p>';
+                                }
                             }
                         } elseif (isset($templates[$match['fullMatch']])) {
-                            $content[] = $templates[$match['fullMatch']];
+                            $tpl = $templates[$match['fullMatch']];
+                            $tag = '{{ ' . $tpl['type'] . '_id' . $tpl['key'] . ' }}';
+                            $textHtml .= '<p>' . $tag . '</p>';
+                            $content[$tpl['key']] = [
+                                'type'       => $tpl['type'],
+                                'attributes' => $tpl['attributes'],
+                            ];
                         }
                         $currentPosition = $match['offset'] + $match['length'];
                     }
                     $textAfter = substr($text, $currentPosition);
                     if (!empty(trim($textAfter))) {
-                        $content[] = ['type' => 'text', 'attributes' => ['text' => $this->normalizeHtml($this->transformLegacyTextMarkup($textAfter))]];
+                        $textHtml .= $this->normalizeHtml($this->transformLegacyTextMarkup($textAfter));
                     }
                 }
             }
@@ -1087,10 +1180,15 @@ trait LegacyImportHelpersTrait
                 $fallbackType = isset($blockContent->social_type) && in_array($blockContent->social_type, $socialTypes)
                     ? $blockContent->social_type
                     : 'iframe';
-                $content[] = [
-                    'type' => 'embed',
-                    'attributes' => $this->buildEmbedAttributes((string) $blockContent->social_embed, $fallbackType),
+                $key = $this->flexibleBlockKey('embed', $block->id);
+                $content[$key] = [
+                    'type'       => 'embed',
+                    'attributes' => array_merge(
+                        $this->buildEmbedAttributes((string) $blockContent->social_embed, $fallbackType),
+                        ['show_insertion_code' => true]
+                    ),
                 ];
+                $textHtml .= '<p>{{ embed_id' . $key . ' }}</p>';
             }
 
             if ($block->kind === 'audio') {
@@ -1098,7 +1196,16 @@ trait LegacyImportHelpersTrait
                 if (!isset($blockContent->audio_embed) || $blockContent->audio_embed === '') {
                     continue;
                 }
-                $content[] = ['type' => 'embed', 'attributes' => ['embed_code' => $blockContent->audio_embed, 'embed_type' => 'audio']];
+                $key = $this->flexibleBlockKey('embed', $block->id);
+                $content[$key] = [
+                    'type'       => 'embed',
+                    'attributes' => [
+                        'embed_code'          => $blockContent->audio_embed,
+                        'embed_type'          => 'audio',
+                        'show_insertion_code' => true,
+                    ],
+                ];
+                $textHtml .= '<p>{{ embed_id' . $key . ' }}</p>';
             }
 
             if ($block->kind === 'iframe') {
@@ -1106,7 +1213,16 @@ trait LegacyImportHelpersTrait
                 if (!isset($blockContent->iframe) || $blockContent->iframe === '') {
                     continue;
                 }
-                $content[] = ['type' => 'embed', 'attributes' => ['embed_code' => $blockContent->iframe, 'embed_type' => 'iframe']];
+                $key = $this->flexibleBlockKey('embed', $block->id);
+                $content[$key] = [
+                    'type'       => 'embed',
+                    'attributes' => [
+                        'embed_code'          => $blockContent->iframe,
+                        'embed_type'          => 'iframe',
+                        'show_insertion_code' => true,
+                    ],
+                ];
+                $textHtml .= '<p>{{ embed_id' . $key . ' }}</p>';
             }
 
             if ($block->kind === 'related_posts') {
@@ -1126,9 +1242,28 @@ trait LegacyImportHelpersTrait
                 if (empty($relatedPostIds)) {
                     continue;
                 }
-                $content[] = ['type' => 'related', 'attributes' => ['related_title' => $title, 'related_posts' => $relatedPostIds]];
+                $key = $this->flexibleBlockKey('related', $block->id);
+                $content[$key] = [
+                    'type'       => 'related',
+                    'attributes' => [
+                        'related_title'        => $title,
+                        'related_posts'        => $relatedPostIds,
+                        'show_insertion_code' => true,
+                    ],
+                ];
+                $textHtml .= '<p>{{ related_id' . $key . ' }}</p>';
             }
         }
+
+        $content = array_merge(
+            [
+                'txt' => [
+                    'type'       => 'text',
+                    'attributes' => ['text' => $this->normalizeHtml($textHtml)],
+                ],
+            ],
+            $content
+        );
 
         Post::where('id', $postId)->update(['content' => json_encode($content)]);
 
@@ -1520,18 +1655,196 @@ trait LegacyImportHelpersTrait
         $maxIterations = 10;
         $iteration     = 0;
 
+        libxml_use_internal_errors(true);
+
         do {
             $previousHtml = $html;
 
-            // Replace &nbsp; and its numeric equivalents with a plain space so
-            // the whitespace-only patterns below can catch them.
-            $html = str_replace(['&nbsp;', '&#160;', '&#xA0;', '&#xa0;'], ' ', $html);
 
-            $html = preg_replace('/<p[^>]*>\s*<br\s*\/?>\s*<\/p>/is', '', $html);
-            $html = preg_replace('/<p[^>]*>\s+<\/p>/is', '', $html);
-            $html = preg_replace('/<p[^>]*><\/p>/i', '', $html);
-            $html = preg_replace('/<p[^>]*>(?:\s*<br\s*\/?>\s*)+<\/p>/is', '', $html);
-            $html = preg_replace('/<p[^>]*>[\s\r\n\t]*(?:<br\s*\/?>[\s\r\n\t]*)+<\/p>/is', '', $html);
+            $dom = new DOMDocument('1.0', 'UTF-8');
+            $dom->loadHTML(
+                mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'),
+                LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+            );
+
+            /**
+            * 1. Удаляем div, но оставляем их содержимое
+            */
+            $divs = iterator_to_array($dom->getElementsByTagName('div'));
+
+            foreach ($divs as $div) {
+                while ($div->firstChild) {
+                    $div->parentNode->insertBefore($div->firstChild, $div);
+                }
+                $div->parentNode->removeChild($div);
+            }
+
+            /**
+             * 1.5 Удаляем "обёртки" <p>, если внутри есть другие <p>
+             * Вложенность <p> в <p> невалидна — внешний параграф нужно разворачивать.
+             */
+            $ps = iterator_to_array($dom->getElementsByTagName('p'));
+            foreach ($ps as $p) {
+                if (!($p instanceof \DOMElement) || $p->tagName !== 'p') {
+                    continue;
+                }
+
+                // Есть вложенные <p> — разворачиваем внешний.
+                if ($p->getElementsByTagName('p')->length > 0) {
+                    while ($p->firstChild) {
+                        $p->parentNode->insertBefore($p->firstChild, $p);
+                    }
+                    $p->parentNode->removeChild($p);
+                }
+            }
+
+            /**
+             * 1.6 Нормализация верхнего уровня:
+             * На первом уровне допускаем только p, h1-h6, blockquote, ol, ul.
+             * Любые "общие" обёртки (em/span/strong/etc) разворачиваем.
+             * Любой текст/инлайн на первом уровне заворачиваем в <p>,
+             * при этом СКЛЕИВАЕМ подряд идущие инлайн-ноды в один общий <p>,
+             * чтобы не разрывать абзац на три части вокруг <a>.
+             */
+            $allowedTop = ['p', 'blockquote', 'ol', 'ul', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+            $topNodes = iterator_to_array($dom->childNodes);
+
+            // Rebuild top-level so that consecutive inline/text nodes are grouped into a single <p>.
+            $inlineBuffer = [];
+
+            $flushInline = function () use (&$inlineBuffer, $dom) {
+                if (empty($inlineBuffer)) {
+                    return;
+                }
+                $p = $dom->createElement('p');
+                foreach ($inlineBuffer as $n) {
+                    $p->appendChild($n);
+                }
+                $dom->appendChild($p);
+                $inlineBuffer = [];
+            };
+
+            $processNode = function ($node) use (&$processNode, &$inlineBuffer, $flushInline, $dom, $allowedTop) {
+                // Drop empty text nodes; buffer non-empty ones (keep original spacing).
+                if ($node->nodeType === XML_TEXT_NODE) {
+                    $t = str_replace("\xC2\xA0", ' ', $node->nodeValue ?? '');
+                    if (trim($t) === '') {
+                        return;
+                    }
+                    $inlineBuffer[] = $dom->createTextNode($node->nodeValue ?? '');
+                    return;
+                }
+
+                if (!($node instanceof \DOMElement)) {
+                    return;
+                }
+
+                $tag = strtolower($node->tagName);
+                if (in_array($tag, $allowedTop, true)) {
+                    $flushInline();
+                    $dom->appendChild($node);
+                    return;
+                }
+
+                // Wrapper that contains allowed blocks: unwrap its children (and re-process).
+                $hasAllowedDescendant = false;
+                foreach ($allowedTop as $allowedTag) {
+                    if ($node->getElementsByTagName($allowedTag)->length > 0) {
+                        $hasAllowedDescendant = true;
+                        break;
+                    }
+                }
+                if ($hasAllowedDescendant) {
+                    $children = iterator_to_array($node->childNodes);
+                    foreach ($children as $child) {
+                        $processNode($child);
+                    }
+                    return;
+                }
+
+                // Plain inline/container: buffer as-is.
+                $inlineBuffer[] = $node;
+            };
+
+            // Clear current top-level and rebuild by moving nodes.
+            foreach ($topNodes as $n) {
+                $dom->removeChild($n);
+            }
+            foreach ($topNodes as $n) {
+                $processNode($n);
+            }
+            $flushInline();
+
+            /**
+            * 2. Удаляем пустые p
+            */
+            $ps = iterator_to_array($dom->getElementsByTagName('p'));
+
+            foreach ($ps as $p) {
+                $text = trim(str_replace("\xC2\xA0", '', $p->textContent));
+                if ($text === '') {
+                    $p->parentNode->removeChild($p);
+                }
+            }
+
+            foreach (['h1', 'h2'] as $tag) {
+                $nodes = iterator_to_array($dom->getElementsByTagName($tag));
+            
+                foreach ($nodes as $node) {
+                    $h3 = $dom->createElement('h3');
+            
+                    // копируем содержимое
+                    while ($node->firstChild) {
+                        $h3->appendChild($node->firstChild);
+                    }
+            
+                    // копируем атрибуты (если есть)
+                    if ($node->hasAttributes()) {
+                        foreach ($node->attributes as $attr) {
+                            $h3->setAttribute($attr->nodeName, $attr->nodeValue);
+                        }
+                    }
+            
+                    $node->parentNode->replaceChild($h3, $node);
+                }
+            }
+
+            /**
+             * 4. Удаляем &nbsp; и <br> в самом конце <p>
+             */
+            $ps = iterator_to_array($dom->getElementsByTagName('p'));
+
+            foreach ($ps as $p) {
+                while ($p->lastChild) {
+
+                    $node = $p->lastChild;
+
+                    // удалить <br> в конце
+                    if ($node->nodeName === 'br') {
+                        $p->removeChild($node);
+                        continue;
+                    }
+
+                    // удалить &nbsp; и пробелы в конце
+                    if ($node->nodeType === XML_TEXT_NODE) {
+                        $clean = preg_replace('/[\x{00A0}\s]+$/u', '', $node->nodeValue);
+
+                        if ($clean === '') {
+                            $p->removeChild($node);
+                            continue;
+                        }
+
+                        if ($clean !== $node->nodeValue) {
+                            $node->nodeValue = $clean;
+                        }
+                    }
+
+                    break;
+                }
+            }
+            
+            $html = $dom->saveHTML();
+            $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
             $iteration++;
         } while ($html !== $previousHtml && $iteration < $maxIterations);
@@ -1581,10 +1894,77 @@ trait LegacyImportHelpersTrait
             return null;
         }
 
+        $youtubeUrl = $this->extractYoutubeUrl($embedSource);
+        if ($youtubeUrl !== null) {
+            return [
+                'type' => 'video',
+                'attributes' => [
+                    'video_url'          => $youtubeUrl,
+                    'video_description'  => '',
+                    'video_author'       => '',
+                ],
+            ];
+        }
+
         return [
             'type' => 'embed',
             'attributes' => $this->buildEmbedAttributes($embedSource),
         ];
+    }
+
+    protected function extractYoutubeUrl(string $input): ?string
+    {
+        $input = trim($input);
+        if ($input === '') {
+            return null;
+        }
+
+        // If iframe/html provided, try extract src
+        if (stripos($input, '<iframe') !== false) {
+            if (preg_match('/\bsrc=["\']([^"\']+)["\']/i', $input, $m)) {
+                $candidate = html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return $this->isYoutubeUrl($candidate) ? $candidate : null;
+            }
+            return null;
+        }
+
+        // Plain URL
+        if ($this->isPlainUrl($input) && $this->isYoutubeUrl($input)) {
+            return $input;
+        }
+
+        // Sometimes embed content is just a bare youtube embed url without scheme
+        if ($this->isYoutubeUrl($input)) {
+            return $input;
+        }
+
+        return null;
+    }
+
+    protected function isYoutubeUrl(string $url): bool
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return false;
+        }
+
+        // Fast path for common substrings
+        $lower = mb_strtolower($url);
+        if (str_contains($lower, 'youtube.com') || str_contains($lower, 'youtu.be')) {
+            return true;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return false;
+        }
+        $host = mb_strtolower($host);
+
+        return $host === 'youtu.be'
+            || $host === 'www.youtu.be'
+            || $host === 'youtube.com'
+            || $host === 'www.youtube.com'
+            || $host === 'm.youtube.com';
     }
 
     protected function buildEmbedAttributes(string $embedCode, ?string $fallbackType = null): array
@@ -1651,6 +2031,31 @@ trait LegacyImportHelpersTrait
     {
         $safeUrl = htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         return '<a href="' . $safeUrl . '">' . $safeUrl . '</a>';
+    }
+
+    /**
+     * Parse [caption id="..." align="..." width="..."]<img ... /> или <a><img></a> Текст подписи[/caption].
+     * Возвращает блок images с одной картинкой, description = подпись из текста внутри caption.
+     */
+    protected function buildLegacyWpCaptionBlock(string $html, int $postId): ?array
+    {
+        if (!preg_match('/\[caption[^]]*\](.*)\[\/caption\]/is', $html, $capMatch)) {
+            return null;
+        }
+        $inner = $capMatch[1];
+        $imgPattern = '/(?:<a\b[^>]*>\s*)?<img\b(?=[^>]*\bsrc=["\'](?:https?:\/\/theins\.ru)?\/wp-content\/[^"\']+["\'])[^>]*\/?>(?:\s*<\/a>)?/is';
+        if (!preg_match($imgPattern, $inner, $imgMatch)) {
+            return null;
+        }
+        $captionText = trim(strip_tags(preg_replace($imgPattern, '', $inner, 1)));
+        $imageBlock = $this->buildLegacyWpContentImageBlock($imgMatch[0], $postId);
+        if ($imageBlock === null) {
+            return null;
+        }
+        if ($captionText !== '') {
+            $imageBlock['attributes']['images'][0]['description'] = $captionText;
+        }
+        return $imageBlock;
     }
 
     protected function buildLegacyWpContentImageBlock(string $html, int $postId): ?array
