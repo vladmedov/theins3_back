@@ -57,6 +57,9 @@ class CompactFlexibleCast implements CastsAttributes
             $layout = $block['type'];
             $attributes = $block['attributes'];
 
+            // Computed insertion code for Nova (not stored)
+            $attributes['_insertion_code'] = '{{ ' . $layout . '_id' . $key . ' }}';
+
             $expanded[] = [
                 'layout' => $layout,
                 'key' => $key,
@@ -91,6 +94,13 @@ class CompactFlexibleCast implements CastsAttributes
             $key = $block['key'];
             $layout = $block['layout'];
             $attributes = $block['attributes'];
+
+            // Do not persist computed/UI-only attributes (e.g. _insertion_code)
+            $attributes = array_filter(
+                $attributes,
+                fn ($attrKey) => !is_string($attrKey) || strpos($attrKey, '_') !== 0,
+                ARRAY_FILTER_USE_KEY
+            );
 
             $formattedBlock[$key] = [
                 'type' => $layout,

@@ -114,6 +114,7 @@ export default class TerminPicker {
     createButton(locale) {
         const { t } = locale
         const view = new ButtonView(locale)
+        const editor = this.editor
 
         view.set({
             label: t('Термин'),
@@ -122,7 +123,21 @@ export default class TerminPicker {
             class: 'ck-termin-btn',
         })
 
-        view.on('execute', this.openModal.bind(this))
+        const updateState = () => {
+            view.isOn = editor.model.document.selection.hasAttribute('terminId')
+        }
+        editor.model.document.selection.on('change:range', updateState)
+        editor.model.document.selection.on('change:attribute', updateState)
+        editor.model.document.on('change:data', updateState)
+
+        view.on('execute', () => {
+            if (view.isOn) {
+                this.removeTermin()
+            } else {
+                this.openModal()
+            }
+        })
+
         view.set('isEnabled', !this.config.get('isReadOnly'))
 
         return view
@@ -172,6 +187,40 @@ export default class TerminPicker {
             .join('')
 
         Nova.$emit(`ckeditor:termin:${this.attribute}:open`, { selectedText, terminId })
+    }
+
+    removeTermin() {
+        this.model.change(writer => {
+            const selection = this.model.document.selection
+
+            if (selection.isCollapsed && selection.hasAttribute('terminId')) {
+                const terminId = selection.getAttribute('terminId')
+                const pos    = selection.getFirstPosition()
+                const parent = pos.parent
+                let start    = pos.offset
+                let end      = pos.offset
+                let offset   = 0
+
+                for (const child of parent.getChildren()) {
+                    const childEnd = offset + child.offsetSize
+                    if (child.is('$text') && child.getAttribute('terminId') === terminId) {
+                        start = Math.min(start, offset)
+                        end   = Math.max(end, childEnd)
+                    }
+                    offset = childEnd
+                }
+
+                writer.setSelection(
+                    writer.createRange(
+                        writer.createPositionAt(parent, start),
+                        writer.createPositionAt(parent, end),
+                    )
+                )
+            }
+
+            const range = this.model.document.selection.getFirstRange()
+            writer.removeAttribute('terminId', range)
+        })
     }
 
     insertTermin({ id, text }) {

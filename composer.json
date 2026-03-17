@@ -22,6 +22,7 @@
         "medov/custom-flexible-menu": "@dev",
         "medov/date-time-split": "@dev",
         "medov/image-gallery": "@dev",
+        "medov/insertion-code": "@dev",
         "medov/news-calendar": "@dev",
         "medov/post-history": "@dev",
         "medov/top-users-card": "@dev",
@@ -112,6 +113,10 @@
         "3": {
             "type": "path",
             "url": "./nova-components/ImageGallery"
+        },
+        "7": {
+            "type": "path",
+            "url": "./nova-components/InsertionCode"
         },
         "4": {
             "type": "path",

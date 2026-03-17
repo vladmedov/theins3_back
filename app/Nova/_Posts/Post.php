@@ -27,6 +27,7 @@ use Illuminate\Http\Request;
 use Emilianotisato\NovaTinyMCE\NovaTinyMCE;
 use Mostafaznv\NovaCkEditor\CkEditor;
 use Medov\ImageGallery\ImageGallery;
+use Medov\InsertionCode\InsertionCode;
 use Medov\DateTimeSplit\DateTimeSplit;
 
 use Illuminate\Support\Facades\Log;
@@ -339,12 +340,18 @@ abstract class Post extends Resource
                 ])
 
                 ->addLayout(__('Images'), 'images', [
+                    InsertionCode::make(__('insertion_code.label'), 'show_insertion_code')
+                        ->forLayout('images')
+                        ->default(true),
                     ImageGallery::make(__('Image list'), 'images')
                         ->fullWidth()
                         ->stacked()
                         ->rules('nullable'),
                 ])
                 ->addLayout(__('Video'), 'video', [
+                    InsertionCode::make(__('insertion_code.label'), 'show_insertion_code')
+                        ->forLayout('video')
+                        ->default(true),
                     Text::make(__('Video URL'), 'video_url')
                         ->fullWidth()
                         ->stacked()
@@ -359,6 +366,9 @@ abstract class Post extends Resource
                         ->stacked(),
                 ])                            
                 ->addLayout(__('IFrame / Embed'), 'embed', [
+                    InsertionCode::make(__('insertion_code.label'), 'show_insertion_code')
+                        ->forLayout('embed')
+                        ->default(true),
                     Textarea::make(__('Embed code'), 'embed_code')
                         ->fullWidth()
                         ->rules('required')
@@ -381,13 +391,10 @@ abstract class Post extends Resource
                         ->stacked(),
                 ])
                 
-                ->addLayout(__('Outline'), 'outline', [
-                    Text::make(__('Outline title'), 'outline')
-                    ->fullWidth()
-                    ->stacked(),
-                ])
-
                 ->addLayout(__('Quote'), 'quote', [
+                    InsertionCode::make(__('insertion_code.label'), 'show_insertion_code')
+                        ->forLayout('quote')
+                        ->default(true),
                     Textarea::make(__('Quote'), 'quote')
                         ->fullWidth()
                         ->stacked(),
@@ -398,6 +405,9 @@ abstract class Post extends Resource
                 ])
 
                 ->addLayout(__('Related posts'), 'related', [
+                    InsertionCode::make(__('insertion_code.label'), 'show_insertion_code')
+                        ->forLayout('related')
+                        ->default(false),
                     Text::make(__('Related posts title'), 'related_title', function ($value) {
                             return $value ?? __('Publications on this topic');
                         })

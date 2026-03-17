@@ -7,6 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 use App\Enums\PostTypes;
 use App\Models\Post;
+use App\Services\ContentInsertionCodeService;
 use App\Services\ImageService;
 
 use App\Traits\HasWidgets;
@@ -80,7 +81,8 @@ class PostResource extends JsonResource
 
     private function getBlocks()
     {
-        $blocks = $this->content;
+        $blocks = app(ContentInsertionCodeService::class)->expand($this->content);
+
         foreach ($blocks as $key => $block) {
             if ($block['type'] === 'related') {
                 $ids = $block['attributes']['related_posts'];

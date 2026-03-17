@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "059244424e3ea00454d0c1094d5da104",
+    "content-hash": "c9130b3994e82c06bc04d6eac5ec85ac",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3693,6 +3693,47 @@
                 "MIT"
             ],
             "description": "A Laravel Nova field.",
+            "keywords": [
+                "laravel",
+                "nova"
+            ],
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "medov/insertion-code",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "./nova-components/InsertionCode",
+                "reference": "4dcb441068855d86a2e4cb73cc1906fbbf6493b7"
+            },
+            "require": {
+                "illuminate/support": "^12.0",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "laravel/nova": "^5.0",
+                "laravel/nova-devtool": "^1.5"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Medov\\InsertionCode\\FieldServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Medov\\InsertionCode\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A Laravel Nova field for block insertion codes.",
             "keywords": [
                 "laravel",
                 "nova"
@@ -12425,6 +12466,7 @@
         "medov/custom-flexible-menu": 20,
         "medov/date-time-split": 20,
         "medov/image-gallery": 20,
+        "medov/insertion-code": 20,
         "medov/news-calendar": 20,
         "medov/post-history": 20,
         "medov/top-users-card": 20
