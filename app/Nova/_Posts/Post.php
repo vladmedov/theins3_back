@@ -408,9 +408,7 @@ abstract class Post extends Resource
                     InsertionCode::make(__('insertion_code.label'), 'show_insertion_code')
                         ->forLayout('related')
                         ->default(false),
-                    Text::make(__('Related posts title'), 'related_title', function ($value) {
-                            return $value ?? __('Publications on this topic');
-                        })
+                    Text::make(__('Related posts title'), 'related_title')
                         ->fullWidth()
                         ->stacked(),
 
