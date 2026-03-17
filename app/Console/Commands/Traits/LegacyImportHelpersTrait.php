@@ -1699,6 +1699,34 @@ trait LegacyImportHelpersTrait
             }
 
             /**
+             * 1.55 Выносим блочные дети из заголовков h1–h6.
+             * Валидный HTML не допускает <p> внутри <h3>; если в legacy так пришло или
+             * парсер так собрал — делаем <h3>Title</h3><p>...</p>.
+             */
+            $blockTags = ['p', 'div', 'blockquote', 'ul', 'ol', 'table', 'figure', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+            foreach (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as $headTag) {
+                $heads = iterator_to_array($dom->getElementsByTagName($headTag));
+                foreach ($heads as $head) {
+                    if (!($head instanceof \DOMElement)) {
+                        continue;
+                    }
+                    $toMove = [];
+                    foreach ($head->childNodes as $child) {
+                        if ($child instanceof \DOMElement && in_array(strtolower($child->tagName), $blockTags, true)) {
+                            $toMove[] = $child;
+                        }
+                    }
+                    // Вставляем после заголовка, в обратном порядке, чтобы порядок абзацев сохранился.
+                    $insertAfter = $head;
+                    foreach ($toMove as $node) {
+                        $next = $insertAfter->nextSibling;
+                        $head->parentNode->insertBefore($node, $next);
+                        $insertAfter = $node;
+                    }
+                }
+            }
+
+            /**
              * 1.6 Нормализация верхнего уровня:
              * На первом уровне допускаем только p, h1-h6, blockquote, ol, ul.
              * Любые "общие" обёртки (em/span/strong/etc) разворачиваем.
