@@ -56,8 +56,19 @@ export default {
         addGroup(layout) {
             if (!layout) return;
 
+            const before = new Set(document.querySelectorAll('[id*="related_title"]'));
             this.$emit("addGroup", layout);
             Nova.$emit("nova-flexible-content-add-group", layout);
+
+            if (layout.name === 'related') {
+                this.$nextTick(() => {
+                    const input = [...document.querySelectorAll('[id*="related_title"]')].find(el => !before.has(el));
+                    if (input && !input.value) {
+                        input.value = document.documentElement.lang === 'ru' ? 'Статьи по теме' : 'Articles on the topic';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+            }
         },
     },
 };
