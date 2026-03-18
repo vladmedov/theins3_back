@@ -7,7 +7,16 @@
   >
     <template #field>
       <!-- Упрощённая форма загрузки -->
-      <div class="upload-box" @click="triggerFileInput">
+      <div
+        class="upload-box"
+        :class="{ 'upload-box--disabled': isUploading }"
+        role="button"
+        :tabindex="isUploading ? -1 : 0"
+        :aria-disabled="isUploading ? 'true' : 'false'"
+        @click="onUploadButtonClick"
+        @keydown.enter.prevent="onUploadButtonClick"
+        @keydown.space.prevent="onUploadButtonClick"
+      >
         <span>Выбрать файлы</span>
       </div>
       <input
@@ -15,9 +24,38 @@
         type="file"
         multiple
         accept="image/*"
+        :disabled="isUploading"
         @change="handleFileUpload"
         class="hidden-file-input"
       />
+
+      <!-- Большая зона drag&drop -->
+      <div
+        class="upload-dropzone"
+        :class="{
+          'upload-dropzone--dragover': isDraggingOverDropzone,
+          'upload-dropzone--uploading': isUploading
+        }"
+        @dragenter.prevent="onDropzoneDragEnter"
+        @dragover.prevent="onDropzoneDragOver"
+        @dragleave.prevent="onDropzoneDragLeave"
+        @drop.prevent="onDropzoneDrop"
+      >
+        <template v-if="isUploading">
+          <span class="upload-dropzone__loader upload-dropzone__loader--yellow" aria-hidden="true" />
+          <div class="upload-dropzone__loading-title">Загрузка</div>
+        </template>
+        <template v-else>
+          <div class="upload-dropzone__title">
+            {{
+              isDraggingOverDropzone
+                ? 'Отпустите файлы — начнём загрузку'
+                : 'Для загрузки перетащите файлы сюда или выберите их через кнопку выше'
+            }}
+          </div>
+          <div class="upload-dropzone__subtitle">Поддерживается мультизагрузка</div>
+        </template>
+      </div>
 
       <!-- Список изображений -->
       <div class="image-gallery-list">
@@ -78,7 +116,15 @@ export default {
     return {
       value: [], // [{ link, description, author }]
       draggedIndex: null, // Индекс перетаскиваемого элемента
+      isDraggingOverDropzone: false,
+      uploadingCount: 0,
     };
+  },
+
+  computed: {
+    isUploading() {
+      return this.uploadingCount > 0;
+    },
   },
 
   mounted() {
@@ -118,26 +164,85 @@ export default {
       this.$refs.fileInput.click();
     },
 
-    async handleFileUpload(event) {
-      const files = event.target.files;
-      for (let file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("_token", document.querySelector('meta[name="csrf-token"]').getAttribute("content"));
+    onUploadButtonClick() {
+      if (this.isUploading) return;
+      this.triggerFileInput();
+    },
 
-        try {
-          const response = await axios.post("/nova-vendor/medov/image-gallery/upload-image", formData);
-          this.value.push({
-            id: response.data.id,
-            link: response.data.link,
-            author: "",
-            description: "",
-          });
-        } catch (error) {
-          console.error("Ошибка загрузки файла:", error);
-        }
+    async handleFileUpload(event) {
+      if (this.isUploading) {
+        if (this.$refs.fileInput) this.$refs.fileInput.value = "";
+        return;
       }
-      this.$refs.fileInput.value = "";
+      const files = event?.target?.files;
+      await this.uploadFiles(files);
+      if (this.$refs.fileInput) this.$refs.fileInput.value = "";
+    },
+
+    onDropzoneDragEnter() {
+      if (this.isUploading) return;
+      this.isDraggingOverDropzone = true;
+    },
+
+    onDropzoneDragOver() {
+      if (this.isUploading) return;
+      this.isDraggingOverDropzone = true;
+    },
+
+    onDropzoneDragLeave(event) {
+      if (this.isUploading) return;
+      // Снимаем подсветку только когда курсор реально ушёл из зоны
+      if (!event?.currentTarget?.contains(event?.relatedTarget)) {
+        this.isDraggingOverDropzone = false;
+      }
+    },
+
+    async onDropzoneDrop(event) {
+      if (this.isUploading) return;
+      this.isDraggingOverDropzone = false;
+      const files = event?.dataTransfer?.files;
+      await this.uploadFiles(files);
+    },
+
+    async uploadFiles(files) {
+      if (!files || !files.length) return;
+
+      const csrf = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content");
+
+      const candidates = Array.from(files).filter((f) => {
+        if (!f) return false;
+        if (f.type && f.type.startsWith("image/")) return true;
+        return /\.(png|jpe?g|webp|gif)$/i.test(f.name || "");
+      });
+
+      this.uploadingCount += candidates.length;
+
+      await Promise.allSettled(
+        candidates.map(async (file) => {
+          const formData = new FormData();
+          formData.append("file", file);
+          if (csrf) formData.append("_token", csrf);
+
+          try {
+            const response = await axios.post(
+              "/nova-vendor/medov/image-gallery/upload-image",
+              formData
+            );
+            this.value.push({
+              id: response.data.id,
+              link: response.data.link,
+              author: "",
+              description: "",
+            });
+          } catch (error) {
+            console.error("Ошибка загрузки файла:", error);
+          } finally {
+            this.uploadingCount = Math.max(0, this.uploadingCount - 1);
+          }
+        })
+      );
     },
 
     imageSrc(link) {
@@ -204,8 +309,84 @@ export default {
   border-color: #1565c0;
 }
 
+.upload-box--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .hidden-file-input {
   display: none;
+}
+
+.upload-dropzone {
+  margin-top: 10px;
+  width: 100%;
+  min-height: 140px;
+  border-radius: 10px;
+  border: 2px dashed #c7c7c7;
+  background: #f3f4f6;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.upload-dropzone--dragover {
+  border-color: #1976d2;
+  background: rgba(25, 118, 210, 0.08);
+  color: #1976d2;
+}
+
+.upload-dropzone__title {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.upload-dropzone__subtitle {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.upload-dropzone__loader {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 3px solid currentColor;
+  border-top-color: transparent;
+  display: inline-block;
+  animation: upload-dropzone-spin 0.8s linear infinite;
+}
+
+.upload-dropzone__loader--yellow {
+  color: #f5c542;
+}
+
+@keyframes upload-dropzone-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.upload-dropzone__loading-title {
+  margin-top: 10px;
+  font-weight: 700;
+  color: #6b5a45;
+}
+
+.upload-dropzone--uploading {
+  cursor: progress;
+  border-style: solid;
+  border-color: #ddc8a4;
+  background: linear-gradient(180deg, #faf6ee 0%, #f5eddc 100%);
+  color: #7a654b;
+  pointer-events: none;
 }
 
 .image-gallery-list {
