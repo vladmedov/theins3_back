@@ -18,7 +18,6 @@ use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Textarea;
-use Laravel\Nova\Fields\Heading;
 
 use Mostafaznv\NovaCkEditor\CkEditor;
 use Medov\ImageGallery\ImageGallery;
@@ -38,23 +37,6 @@ class OnlineMessage extends Resource
 
     public function fields(NovaRequest $request): array
     {
-        $actionBarHtml = FormActionBar::render([
-            'metaBlock' => $this->resource?->exists ? [
-                'items' => [
-                    [
-                        'label' => __('form_action_bar.created_at'),
-                        'date' => $this->resource->created_at,
-                    ],
-                    [
-                        'label' => __('form_action_bar.updated_at'),
-                        'date' => $this->resource->updated_at,
-                    ],
-                ],
-            ] : null,
-            'saveAction' => [
-                'label' => $this->exists ? __('Save') : __('Create'),
-            ],
-        ]);
         $generalFields = [
             BelongsTo::make(__('Online'), 'online', PostOnline::class)
                 ->onlyOnForms(),
@@ -67,9 +49,23 @@ class OnlineMessage extends Resource
         return [
             Hidden::make(__('Language'), 'language_code')->default(app()->getLocale()),
 
-            Heading::make($actionBarHtml)
-                ->onlyOnForms()
-                ->asHtml(),
+            FormActionBar::make([
+                'metaBlock' => $this->resource?->exists ? [
+                    'items' => [
+                        [
+                            'label' => __('form_action_bar.created_at'),
+                            'date' => $this->resource->created_at,
+                        ],
+                        [
+                            'label' => __('form_action_bar.updated_at'),
+                            'date' => $this->resource->updated_at,
+                        ],
+                    ],
+                ] : null,
+                'saveAction' => [
+                    'label' => $this->exists ? __('Save') : __('Create'),
+                ],
+            ]),
 
             Panel::make(__('General'), $generalFields),
 

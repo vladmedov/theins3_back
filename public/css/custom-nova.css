@@ -146,23 +146,23 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 /* ТАБЫ */
 
 [role="tablist"] {
-    background-color: #fff !important;
-    border-bottom: 1px solid #e0e0e0 !important;
+    background-color: #f8f8f8 !important;
+    border-bottom: 1px solid #e5e7eb !important;
     padding: 0 !important;
     gap: 0 !important;
 }
 
 [role="tab"] {
     background: transparent !important;
-    color: #999 !important;
+    color: #6b7280 !important;
     border-radius: 0 !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     padding: 10px 20px !important;
     border: none !important;
-    border-right: 1px solid #e0e0e0 !important;
+    border-right: 1px solid #e5e7eb !important;
     box-shadow: none !important;
     outline: none !important;
-    transition: color 0.15s !important;
+    transition: color 0.15s ease, background-color 0.15s ease !important;
 }
 
 [role="tab"]:last-child {
@@ -170,13 +170,68 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 }
 
 [role="tab"]:hover {
-    color: #333 !important;
-    background: #fafafa !important;
+    color: #111827 !important;
+    background: #f3f4f6 !important;
 }
 
 [role="tab"][aria-selected="true"] {
     background: #fff !important;
-    color: #e54839 !important;
+    color: #111827 !important;
     font-weight: 700 !important;
     box-shadow: inset 0 -3px 0 #e54839 !important;
+}
+
+/* Panel without header — hide empty panel titles (PanelWithoutHeader) */
+[dusk="content"] h1:empty,
+[dusk="content"] h2:empty,
+[dusk="content"] h3:empty {
+    display: none !important;
+}
+
+/* FLEXIBLE */
+
+.menu-container {
+    padding: 25px 25px 15px 25px !important;
+}
+
+[dusk^="content-"] .rounded-t-lg,
+[dusk^="content-"] .rounded-b-lg {
+    border-radius: 0 !important;
+}
+
+[dusk^="content-"] > .w-full > .border-l {
+    border-left-width: 0 !important;
+}
+
+[dusk^="content-"] > .w-full > .border-r {
+    border-right-width: 0 !important;
+}
+
+[dusk^="content-"] > .w-full > .border-t > .border-b {
+    background: #f8f8f8 !important;
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+    box-shadow: none !important;
+}
+
+[dusk^="content-"] > .w-full > .border-t {
+    border-top-width: 2px !important;
+    border-top-color: #ccc !important;
+    border-bottom-width: 2px !important;
+    border-bottom-color: #ccc !important;
+}
+
+[dusk^="content-"] > .w-full > .grow {
+    background: #fcfcfc !important;
+}
+
+[dusk^="content-"] > .w-full > .grow > div > .px-6,
+[dusk^="content-"] > .w-full > .grow > div > .md\:px-8,
+[dusk^="content-"] > .w-full > .grow > div > .\@md\/modal\:px-8 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+[dusk^="content-"] > .w-full > .grow > div.py-5 {
+    padding: 20px 40px !important;
 }

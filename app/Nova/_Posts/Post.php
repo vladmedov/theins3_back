@@ -21,6 +21,7 @@ use Laravel\Nova\Fields\MultiSelect;
 use Laravel\Nova\Fields\Tag as TagField;
 use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Tabs\Tab;
+use App\Support\Nova\PanelWithoutHeader;
 use Laravel\Nova\Panel;
 use Illuminate\Http\Request;
 
@@ -122,7 +123,6 @@ abstract class Post extends Resource
         return $filters;
     }
 
-
     public function cards(NovaRequest $request): array
     {
         return [
@@ -144,24 +144,6 @@ abstract class Post extends Resource
             $postUrl .= (str_contains($postUrl, '?') ? '&' : '?') . 'preview=' . $token;
         }
 
-        $saveJs = "document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click()";
-        $publishJs = "(function(){" .
-            "var s=Array.from(document.querySelectorAll('select')).find(function(el){return Array.from(el.options).some(function(o){return o.value==='published'});});" .
-            "if(s){s.value='published';s.dispatchEvent(new Event('change',{bubbles:true}));s.dispatchEvent(new Event('input',{bubbles:true}));}" .
-            "setTimeout(function(){document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click();},100);" .
-        "})()";
-
-        $unpublishJs = "(function(){" .
-            "var s=Array.from(document.querySelectorAll('select')).find(function(el){return Array.from(el.options).some(function(o){return o.value==='published'});});" .
-            "if(s){s.value='draft';s.dispatchEvent(new Event('change',{bubbles:true}));s.dispatchEvent(new Event('input',{bubbles:true}));}" .
-            "setTimeout(function(){document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click();},100);" .
-        "})()";
-
-        $isPublished = $this->exists && $this->status === 'published';
-
-        $toggleLabel  = $isPublished ? __('Unpublish') : __('Publish');
-        $toggleJs     = $isPublished ? $unpublishJs : $publishJs;
-
         $previewNotice = '';
         if ($isDraft && $postUrl) {
             $expiresAt = Carbon::now()->addMinutes(PostPreviewTokenService::TTL_MINUTES);
@@ -170,30 +152,32 @@ abstract class Post extends Resource
                 $expiresAt = $expiresAt->copy()->setTimezone($userTz);
             }
             $previewNotice = __('Preview valid until') . ' ' . $expiresAt->format('d.m.Y H:i');
-            $previewNotice .= ' · ' . __('To refresh the token, reload the page or save the publication.');
+            $previewNotice .= ' · ' . __('To refresh the token, reload the page.');
         }
-        $infoHtml = FormActionBar::render([
-            'saveAction' => [
-                'label' => $this->exists ? __('Save') : __('Create'),
-                'js' => $saveJs,
+
+        // Form Action Bars
+        $infoBarOptions = [
+            'stay' => [
+                'exists' => $this->exists,
+                'status' => $this->status,
             ],
-            'secondaryAction' => [
-                'label' => $toggleLabel,
-                'js' => $toggleJs,
-                'variant' => $isPublished ? 'danger-link' : 'success-link',
+            'toggle_publish' => [
+                'status' => $this->status,
             ],
-            'linkBlock' => $postUrl ? [
+            'url' => $postUrl ? [
                 'url' => $postUrl,
                 'notice' => $previewNotice ?: null,
             ] : null,
-        ]);
-
-        $info = [
-            Heading::make($infoHtml)
-                ->onlyOnForms()
-                ->asHtml()
         ];
+        $FormActionBarTop = PanelWithoutHeader::make([
+            FormActionBar::make($infoBarOptions, '_form_action_bar_top'),
+        ], 'FormActionBarTop');
 
+        $FormActionBarBottom = PanelWithoutHeader::make([
+            FormActionBar::make($infoBarOptions, '_form_action_bar_bottom'),
+        ], 'FormActionBarBottom');
+
+        // Tab 1
         $general = [
             Text::make(__('Type'), 'type')
                 ->onlyOnDetail()
@@ -326,8 +310,8 @@ abstract class Post extends Resource
                 ->help(__('The news headline will be displayed in bold.'));
         }
 
+        // Tab 2
         $content = [
-
             Flexible::make('', 'content')
                 ->hideFromDetail()
                 ->menu('custom-flexible-menu')
@@ -422,8 +406,8 @@ abstract class Post extends Resource
                 ])
         ];
 
+        // Tab 3
         $settings = [
-
             Heading::make('<h3 style="margin-top: 0px;" class="uppercase tracking-wide font-bold text-s">' . __('General') . '</h3>')
                 ->hideFromDetail()
                 ->asHtml(),
@@ -513,7 +497,22 @@ abstract class Post extends Resource
                 ->rules('max:255'),
         ];
 
-        $access = [
+        // Tabs
+        if (static::getPostType() !== PostTypes::ONLINE) {
+            $publicationGroup = Tab::group(fields: [
+                Tab::make(__('General'), $general),
+                Tab::make(__('Content'), $content),
+                Tab::make(__('Settings'), $settings),
+            ]);
+        } else {
+            $publicationGroup = Tab::group(fields: [
+                Tab::make(__('General'), $general),
+                Tab::make(__('Settings'), $settings),
+            ]);
+        }
+
+        // Access
+        $access = Panel::make(__('Access settings'), [
             TagField::make(__('Management access'), 'owners', User::class)
                 ->hideFromIndex()
                 ->hideFromDetail()
@@ -528,41 +527,17 @@ abstract class Post extends Resource
                     return $value;
                 })
                 ->immutable(fn ($request) => $this->exists && ! $this->authorizedToDelete($request)),
-        ];
+        ]);
 
-        if (static::getPostType() !== PostTypes::ONLINE) {
-            $publicationGroup = Tab::group(__('Publication'), [
-                Tab::make(__('General'), $general),
-                Tab::make(__('Content'), $content),
-                Tab::make(__('Settings'), $settings),
-            ]);
-        } else {
-            $publicationGroup = Tab::group(__('Publication'), [
-                Tab::make(__('General'), $general),
-                Tab::make(__('Settings'), $settings),
-            ]);
-        }
-
-        return [
-
-            // Text::make(__('Debug'), 'debug')
-            //     ->displayUsing(function($value, $resource) {
-            //         return "Post type (static): " . static::getPostType() . "<br>" .
-            //                "Post type (model): " . $resource->type . "<br>" .
-            //                "Resource URI Key: " . static::uriKey() . "<br>";
-            //     })
-            //     ->asHtml(),
-                
+        // Render
+        return [  
             Hidden::make(__('Language'), 'language_code')->default(app()->getLocale()),
             Hidden::make(__('Type'), 'type')->default(static::getPostType()),
-
-            ...$info,
-            
+            $FormActionBarTop,
             PostHistory::make(),
-
             $publicationGroup,
-
-            Panel::make(__('Access settings'), $access),
+            $FormActionBarBottom,
+            $access,
         ];
     }
 

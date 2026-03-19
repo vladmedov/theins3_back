@@ -15,7 +15,6 @@ use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Slug;
 use Laravel\Nova\Fields\Hidden;
-use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Panel;
 
 class Tag extends Resource
@@ -28,23 +27,6 @@ class Tag extends Resource
     public static $clickAction = 'edit';
 
     public function fields(Request $request) {
-        $actionBarHtml = FormActionBar::render([
-            'metaBlock' => $this->resource?->exists ? [
-                'items' => [
-                    [
-                        'label' => __('form_action_bar.created_at'),
-                        'date' => $this->resource->created_at,
-                    ],
-                    [
-                        'label' => __('form_action_bar.updated_at'),
-                        'date' => $this->resource->updated_at,
-                    ],
-                ],
-            ] : null,
-            'saveAction' => [
-                'label' => $this->exists ? __('Save') : __('Create'),
-            ],
-        ]);
         $generalFields = [
             Text::make(__('Title'), 'title')
                 ->sortable()
@@ -64,9 +46,23 @@ class Tag extends Resource
             Hidden::make(__('Language code'), 'language_code')
                 ->default(app()->getLocale()),
 
-            Heading::make($actionBarHtml)
-                ->onlyOnForms()
-                ->asHtml(),
+            FormActionBar::make([
+                'metaBlock' => $this->resource?->exists ? [
+                    'items' => [
+                        [
+                            'label' => __('form_action_bar.created_at'),
+                            'date' => $this->resource->created_at,
+                        ],
+                        [
+                            'label' => __('form_action_bar.updated_at'),
+                            'date' => $this->resource->updated_at,
+                        ],
+                    ],
+                ] : null,
+                'saveAction' => [
+                    'label' => $this->exists ? __('Save') : __('Create'),
+                ],
+            ]),
 
             Panel::make(__('General'), $generalFields),
         ];

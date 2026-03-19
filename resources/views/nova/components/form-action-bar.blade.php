@@ -9,7 +9,9 @@
 @endphp
 
 <div id="nova-info-bar" data-form-action-bar="1" style="display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:0;">
-    @if (!empty($linkBlock['url']))
+    @if (!empty($heading))
+        <span style="flex:1;font-size:14px;font-weight:600;color:#0f172a;">{{ $heading }}</span>
+    @elseif (!empty($linkBlock['url']))
         <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
             <span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;">{{ $linkBlock['eyebrow'] }}</span>
@@ -54,9 +56,23 @@
         >{{ $secondaryAction['label'] }}</button>
     @endif
 
-    <button
-        type="button"
-        onclick="{{ $saveAction['js'] }}"
-        style="{{ $saveButtonStyle }}"
-    >{{ $saveAction['label'] }}</button>
+    @if ($stayAction)
+        <button
+            type="button"
+            onclick="{{ $stayAction['js'] }}"
+            data-saving-label="{{ $stayAction['savingLabel'] }}"
+            @if (!is_null($stayAction['originalStatus']))
+                data-original-status="{{ $stayAction['originalStatus'] }}"
+            @endif
+            style="{{ ($stayAction['variant'] ?? null) === 'primary' ? $saveButtonStyle : ($secondaryActionStyles[$stayAction['variant']] ?? $secondaryActionStyles['neutral-link']) }}"
+        >{{ $stayAction['label'] }}</button>
+    @endif
+
+    @if ($saveAction)
+        <button
+            type="button"
+            onclick="{{ $saveAction['js'] }}"
+            style="{{ $saveButtonStyle }}"
+        >{{ $saveAction['label'] }}</button>
+    @endif
 </div>

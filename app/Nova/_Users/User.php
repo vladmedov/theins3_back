@@ -100,23 +100,6 @@ class User extends Resource
                 ->paginate(10, ['*'], 'related_posts_page', $relatedPostsPage)
             : null;
         $postsCount = $relatedPostsPaginator?->total() ?? 0;
-        $actionBarHtml = FormActionBar::render([
-            'metaBlock' => $this->resource?->exists ? [
-                'items' => [
-                    [
-                        'label' => __('form_action_bar.created_at'),
-                        'date' => $this->resource->created_at,
-                    ],
-                    [
-                        'label' => __('form_action_bar.updated_at'),
-                        'date' => $this->resource->updated_at,
-                    ],
-                ],
-            ] : null,
-            'saveAction' => [
-                'label' => $this->exists ? __('Save') : __('Create'),
-            ],
-        ]);
         $relatedPostsHtml = RelatedPostsPanel::render($relatedPostsPaginator, $buildUserEditPageUrl, [
             'showHeader' => false,
             'withOuterCard' => false,
@@ -178,9 +161,23 @@ class User extends Resource
         ];
 
         return array_merge([
-            Heading::make($actionBarHtml)
-                ->onlyOnForms()
-                ->asHtml(),
+            FormActionBar::make([
+                'metaBlock' => $this->resource?->exists ? [
+                    'items' => [
+                        [
+                            'label' => __('form_action_bar.created_at'),
+                            'date' => $this->resource->created_at,
+                        ],
+                        [
+                            'label' => __('form_action_bar.updated_at'),
+                            'date' => $this->resource->updated_at,
+                        ],
+                    ],
+                ] : null,
+                'saveAction' => [
+                    'label' => $this->exists ? __('Save') : __('Create'),
+                ],
+            ]),
 
             Panel::make(__('General'), $generalFields),
 

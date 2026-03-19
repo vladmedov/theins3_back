@@ -15,7 +15,6 @@ use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\Hidden;
 use Laravel\Nova\Fields\Badge;
-use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Panel;
 
 use Outl1ne\NovaSortable\Traits\HasSortableRows;
@@ -67,23 +66,6 @@ class Collection extends Resource
     public function fields(NovaRequest $request): array
     {
         $currentPostId = $this->resolveCurrentPostId($request);
-        $actionBarHtml = FormActionBar::render([
-            'metaBlock' => $this->resource?->exists ? [
-                'items' => [
-                    [
-                        'label' => __('form_action_bar.created_at'),
-                        'date' => $this->resource->created_at,
-                    ],
-                    [
-                        'label' => __('form_action_bar.updated_at'),
-                        'date' => $this->resource->updated_at,
-                    ],
-                ],
-            ] : null,
-            'saveAction' => [
-                'label' => $this->exists ? __('Save') : __('Create'),
-            ],
-        ]);
         $generalFields = [
             Badge::make(__('Status'), function () {
                 return $this->post->status;
@@ -142,9 +124,23 @@ class Collection extends Resource
             Hidden::make(__('Language code'), 'language_code')->default(app()->getLocale()),
             Hidden::make('collection_code')->default(static::getCollectionType()),
 
-            Heading::make($actionBarHtml)
-                ->onlyOnForms()
-                ->asHtml(),
+            FormActionBar::make([
+                'metaBlock' => $this->resource?->exists ? [
+                    'items' => [
+                        [
+                            'label' => __('form_action_bar.created_at'),
+                            'date' => $this->resource->created_at,
+                        ],
+                        [
+                            'label' => __('form_action_bar.updated_at'),
+                            'date' => $this->resource->updated_at,
+                        ],
+                    ],
+                ] : null,
+                'saveAction' => [
+                    'label' => $this->exists ? __('Save') : __('Create'),
+                ],
+            ]),
 
             Panel::make(__('General'), $generalFields),
         ];

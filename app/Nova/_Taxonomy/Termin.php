@@ -74,23 +74,6 @@ class Termin extends Resource
             '<div style="padding:12px 16px;border:1px solid #f59e0b;border-radius:8px;background:#fffbeb;color:#92400e;line-height:1.5;">%s</div>',
             e(__('termin.warning'))
         );
-        $actionBarHtml = FormActionBar::render([
-            'metaBlock' => $this->resource?->exists ? [
-                'items' => [
-                    [
-                        'label' => __('form_action_bar.created_at'),
-                        'date' => $this->resource->created_at,
-                    ],
-                    [
-                        'label' => __('form_action_bar.updated_at'),
-                        'date' => $this->resource->updated_at,
-                    ],
-                ],
-            ] : null,
-            'saveAction' => [
-                'label' => $this->exists ? __('Save') : __('Create'),
-            ],
-        ]);
         $relatedPostsHtml = RelatedPostsPanel::render($relatedPostsPaginator, $buildTerminEditPageUrl, [
             'showHeader' => false,
             'withOuterCard' => false,
@@ -118,9 +101,23 @@ class Termin extends Resource
             Hidden::make(__('Language code'), 'language_code')
                 ->default(app()->getLocale()),
 
-            Heading::make($actionBarHtml)
-                ->onlyOnForms()
-                ->asHtml(),
+            FormActionBar::make([
+                'metaBlock' => $this->resource?->exists ? [
+                    'items' => [
+                        [
+                            'label' => __('form_action_bar.created_at'),
+                            'date' => $this->resource->created_at,
+                        ],
+                        [
+                            'label' => __('form_action_bar.updated_at'),
+                            'date' => $this->resource->updated_at,
+                        ],
+                    ],
+                ] : null,
+                'saveAction' => [
+                    'label' => $this->exists ? __('Save') : __('Create'),
+                ],
+            ]),
 
             Panel::make(__('General'), $formFields),
 
