@@ -134,6 +134,14 @@
         tagMutationObserverInstalled: false,
         statusChangeLockUntil: 0,
         retryDelayMs: 1000,
+        togglePublishUiInstalled: false,
+    };
+
+    /** Синхронно с `form-action-bar.blade.php` ($secondaryActionStyles) */
+    const TOGGLE_PUBLISH_VARIANT_STYLES = {
+        'success-link': 'display:inline-flex;align-items:center;height:36px;padding:0 4px;font-size:14px;font-weight:500;background:none;border:none;cursor:pointer;white-space:nowrap;color:#16a34a;text-decoration:underline;',
+        'danger-link': 'display:inline-flex;align-items:center;height:36px;padding:0 4px;font-size:14px;font-weight:500;background:none;border:none;cursor:pointer;white-space:nowrap;color:#dc2626;text-decoration:underline;',
+        'neutral-link': 'display:inline-flex;align-items:center;height:36px;padding:0 4px;font-size:14px;font-weight:500;background:none;border:none;cursor:pointer;white-space:nowrap;color:#475569;text-decoration:underline;',
     };
 
     function currentPath() {
@@ -157,8 +165,8 @@
         return resourceIndex >= 0 ? (parts[resourceIndex + 2] || null) : null;
     }
 
-    function getAutosaveBars() {
-        return Array.from(document.querySelectorAll('[data-form-action-bar="1"][data-autosave-enabled="1"]'));
+    function getFormActionBars() {
+        return Array.from(document.querySelectorAll('[data-form-action-bar="1"]'));
     }
 
     function getAutosaveStatusRoots() {
@@ -386,15 +394,17 @@
     }
 
     function isAutosaveEnabled() {
-        return getAutosaveBars().length > 0 && isExistingResource() && isDraftSelected();
+        return isExistingResource()
+            && isDraftSelected()
+            && getAutosaveStatusRoots().length > 0;
     }
 
     function hasAutosaveUi() {
-        return getAutosaveBars().length > 0;
+        return getAutosaveStatusRoots().length > 0;
     }
 
     function findAutosaveButton() {
-        const bars = getAutosaveBars();
+        const bars = getFormActionBars();
 
         for (let i = 0; i < bars.length; i++) {
             const button = bars[i].querySelector('button[data-saving-label]');
@@ -419,6 +429,11 @@
     function getAutosaveLastSavedLabel() {
         const root = getAutosaveStatusRoots()[0];
         return root && root.dataset ? (root.dataset.lastSavedLabel || '') : '';
+    }
+
+    function getAutosaveLastSavedDatePrefix() {
+        const root = getAutosaveStatusRoots()[0];
+        return root && root.dataset ? (root.dataset.lastSavedDatePrefix || '').trim() : '';
     }
 
     function getAutosaveLastSavedAt() {
@@ -530,11 +545,30 @@
         }
     }
 
-    function updateAutosaveSavedAt(date) {
-        const formatted = formatAutosaveTime(date);
-        const prefix = getAutosaveLastSavedLabel();
+    function isSameLocalCalendarDay(a, b) {
+        if (!(a instanceof Date) || !(b instanceof Date)) return false;
+        if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return false;
 
-        if (!formatted || !prefix) {
+        return a.getFullYear() === b.getFullYear()
+            && a.getMonth() === b.getMonth()
+            && a.getDate() === b.getDate();
+    }
+
+    /** ДД.ММ.ГГГГ в локальной таймзоне браузера */
+    function formatAutosaveDateOnly(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear());
+
+        return day + '.' + month + '.' + year;
+    }
+
+    function updateAutosaveSavedAt(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
             setAutosaveStatusText(getAutosaveIdleLabel());
             return;
         }
@@ -545,7 +579,29 @@
             }
         });
 
-        setAutosaveStatusText(prefix + ' ' + formatted);
+        const now = new Date();
+        const prefix = getAutosaveLastSavedLabel();
+
+        if (isSameLocalCalendarDay(date, now)) {
+            const formatted = formatAutosaveTime(date);
+
+            if (!formatted || !prefix) {
+                setAutosaveStatusText(getAutosaveIdleLabel());
+                return;
+            }
+
+            setAutosaveStatusText(prefix + ' ' + formatted);
+        } else {
+            const dateOnly = formatAutosaveDateOnly(date);
+
+            if (!dateOnly) {
+                setAutosaveStatusText(getAutosaveIdleLabel());
+                return;
+            }
+
+            const datePrefix = getAutosaveLastSavedDatePrefix();
+            setAutosaveStatusText(datePrefix ? datePrefix + ' ' + dateOnly : dateOnly);
+        }
     }
 
     function showAutosaveFailure() {
@@ -762,8 +818,8 @@
 
         if (!button) return;
 
-        if (success && statusSelect && button.dataset && button.dataset.originalStatus !== undefined) {
-            button.dataset.originalStatus = statusSelect.value;
+        if (success && statusSelect) {
+            syncStayButtonsOriginalStatusFromSelect();
         }
 
         button.textContent = originalLabel;
@@ -1048,6 +1104,20 @@
 
         // Success (2xx)
         if (!(status >= 200 && status < 300)) return;
+
+        const statusStripPresent = getAutosaveStatusRoots().length > 0;
+        const resourceUpdate = isExistingResource() && saveEndpointMatchesCurrent(url);
+
+        // Обычное сохранение Nova (не через saveWithoutReload): обновить «Сохранено …» у опубликованных и др.
+        if (!state.active && statusStripPresent && resourceUpdate && !state.currentAttemptHad422) {
+            updateAutosaveSavedAt(new Date());
+            setTimeout(function () {
+                syncStayButtonsOriginalStatusFromSelect();
+                refreshTogglePublishButtons();
+            }, 10);
+            return;
+        }
+
         if (!state.active) return;
 
         // If this attempt already had a 422, ignore later 2xx responses.
@@ -1064,6 +1134,10 @@
         if (isExistingResource()) {
             updateAutosaveSavedAt(new Date());
         }
+        setTimeout(function () {
+            syncStayButtonsOriginalStatusFromSelect();
+            refreshTogglePublishButtons();
+        }, 0);
         scheduleSuccessFallback();
     }
 
@@ -1374,6 +1448,7 @@
         installNovaFieldChangePatch();
         installTagFieldObserver();
         installAutosaveListeners();
+        installTogglePublishUi();
         initializeAutosaveStatus();
         initializePreviewNotices();
     }
@@ -1394,6 +1469,69 @@
 
             return values.includes('draft') && values.includes('published');
         }) || null;
+    }
+
+    /** Последний статус, сохранённый на сервере (как у «Сохранить»), не черновик в селекте до save */
+    function getLastSavedPublicationStatus() {
+        const stay = findAutosaveButton();
+        if (stay && stay.dataset && stay.dataset.originalStatus !== undefined && stay.dataset.originalStatus !== '') {
+            return stay.dataset.originalStatus;
+        }
+
+        const s = findStatusSelect();
+        return s ? s.value : 'draft';
+    }
+
+    function syncStayButtonsOriginalStatusFromSelect() {
+        const sel = findStatusSelect();
+        if (!sel) return;
+
+        getFormActionBars().forEach(function (bar) {
+            const btn = bar.querySelector('button[data-saving-label]');
+            if (btn && btn.dataset && btn.dataset.originalStatus !== undefined) {
+                btn.dataset.originalStatus = sel.value;
+            }
+        });
+    }
+
+    function refreshTogglePublishButtons() {
+        const isPublished = getLastSavedPublicationStatus() === 'published';
+
+        document.querySelectorAll('[data-toggle-publish-action="1"]').forEach(function (btn) {
+            if (!btn || !btn.dataset) return;
+
+            const whenPublished = btn.dataset.labelWhenPublished || '';
+            const whenDraft = btn.dataset.labelWhenDraft || '';
+            const variantPublished = btn.dataset.variantWhenPublished || 'danger-link';
+            const variantDraft = btn.dataset.variantWhenDraft || 'success-link';
+
+            btn.textContent = isPublished ? whenPublished : whenDraft;
+            const variant = isPublished ? variantPublished : variantDraft;
+            const style = TOGGLE_PUBLISH_VARIANT_STYLES[variant] || TOGGLE_PUBLISH_VARIANT_STYLES['neutral-link'];
+            btn.setAttribute('style', style);
+        });
+    }
+
+    function runTogglePublishAction() {
+        const s = findStatusSelect();
+        if (!s) return;
+
+        const saved = getLastSavedPublicationStatus();
+        s.value = saved === 'published' ? 'draft' : 'published';
+        s.dispatchEvent(new Event('change', { bubbles: true }));
+        s.dispatchEvent(new Event('input', { bubbles: true }));
+
+        setTimeout(function () {
+            const submit = document.querySelector('button[dusk=create-button],button[dusk=update-button]');
+            if (submit) submit.click();
+        }, 100);
+    }
+
+    function installTogglePublishUi() {
+        if (autosaveState.togglePublishUiInstalled) return;
+        autosaveState.togglePublishUiInstalled = true;
+
+        refreshTogglePublishButtons();
     }
 
     function shouldUseRegularSave(button) {
@@ -1562,6 +1700,10 @@
     window.NovaCustomSave = {
         saveWithoutReload: saveWithoutReload,
         notifyChange: notifyAutosaveChange,
+    };
+
+    window.NovaFormActionBar = {
+        togglePublish: runTogglePublishAction,
     };
 
     if (document.readyState === 'loading') {

@@ -10,6 +10,7 @@ return [
     'autosave_seconds_short' => 'с',
     'saving' => 'Сохраняем...',
     'last_saved_at' => 'Сохранено в',
+    'last_saved_date_prefix' => 'Сохранено',
     'created_at' => 'Создано',
     'updated_at' => 'Изменено',
 ];

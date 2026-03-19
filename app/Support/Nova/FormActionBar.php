@@ -92,6 +92,7 @@ class FormActionBar
                 'statusLabel' => __('form_action_bar.autosave'),
                 'idleLabel' => __('form_action_bar.autosave_idle'),
                 'lastSavedLabel' => __('form_action_bar.last_saved_at'),
+                'lastSavedDatePrefix' => __('form_action_bar.last_saved_date_prefix'),
                 'updatedAtIso' => null,
             ], $autosave);
 

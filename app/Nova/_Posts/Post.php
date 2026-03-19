@@ -169,8 +169,8 @@ abstract class Post extends Resource
                 'noticePrefix' => __('Preview valid until'),
                 'noticeSuffix' => __('To refresh the token, reload the page.'),
             ] : null,
-            'autosave' => $isDraft ? [
-                'enabled' => true,
+            'autosave' => $this->exists ? [
+                'enabled' => $isDraft,
                 'updated_at' => $this->updated_at,
             ] : null,
         ];

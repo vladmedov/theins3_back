@@ -6,6 +6,7 @@
     ];
     $saveButtonStyle = 'display:inline-flex;align-items:center;height:36px;padding:0 12px;font-size:14px;font-weight:700;border-radius:4px;border:1px solid #1f2937;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;white-space:nowrap;line-height:1;background:#111827;color:#fff;';
     $copyIcon = "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>";
+    $hasSaveStatusRow = isset($autosave) && is_array($autosave);
 @endphp
 
 <div
@@ -63,13 +64,18 @@
         <span style="flex:1;"></span>
     @endif
 
-    @if ($secondaryAction || $stayAction || $saveAction || !empty($autosave['enabled']))
+    @if ($secondaryAction || $stayAction || $saveAction || $hasSaveStatusRow)
         <span style="display:inline-flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;">
             <span style="display:inline-flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
                 @if ($secondaryAction)
                     <button
                         type="button"
-                        onclick="{{ $secondaryAction['js'] }}"
+                        data-toggle-publish-action="1"
+                        data-label-when-published="{{ __('Unpublish') }}"
+                        data-label-when-draft="{{ __('Publish') }}"
+                        data-variant-when-published="danger-link"
+                        data-variant-when-draft="success-link"
+                        onclick="window.NovaFormActionBar && window.NovaFormActionBar.togglePublish && window.NovaFormActionBar.togglePublish()"
                         style="{{ $secondaryActionStyles[$secondaryAction['variant']] ?? $secondaryActionStyles['neutral-link'] }}"
                     >{{ $secondaryAction['label'] }}</button>
                 @endif
@@ -95,13 +101,14 @@
                 @endif
             </span>
 
-            @if (!empty($autosave['enabled']))
+            @if ($hasSaveStatusRow)
                 <span
                     style="display:inline-flex;align-items:center;justify-content:flex-end;width:100%;min-height:20px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;line-height:1.2;text-align:right;box-sizing:border-box;"
                     data-autosave-status-root="1"
                     data-autosave-label="{{ $autosave['statusLabel'] }}"
                     data-autosave-idle-label="{{ $autosave['idleLabel'] }}"
                     data-last-saved-label="{{ $autosave['lastSavedLabel'] }}"
+                    data-last-saved-date-prefix="{{ $autosave['lastSavedDatePrefix'] ?? '' }}"
                     data-autosave-failure-label="{{ __('form_action_bar.autosave_failed') }}"
                     data-autosave-countdown-prefix="{{ __('form_action_bar.autosave_in') }}"
                     data-autosave-countdown-suffix="{{ __('form_action_bar.autosave_seconds_short') }}"

@@ -10,6 +10,7 @@ return [
     'autosave_seconds_short' => 's',
     'saving' => 'Saving...',
     'last_saved_at' => 'Saved at',
+    'last_saved_date_prefix' => 'Saved',
     'created_at' => 'Created',
     'updated_at' => 'Last updated',
 ];
