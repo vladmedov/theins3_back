@@ -295,8 +295,8 @@ export default {
 }
 
 .ic__copy:hover {
-  background: #e2e8f0;
-  color: var(--ic-text);
+  background: #333;
+  color: #fff;
 }
 
 .ic__copy--done {

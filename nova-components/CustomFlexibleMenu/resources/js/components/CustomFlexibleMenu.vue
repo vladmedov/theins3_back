@@ -77,10 +77,9 @@ export default {
 <style scoped>
 /* Контейнер с пунктирным верхним бордером */
 .menu-container {
-    padding: 16px 20px 12px 20px !important;
+    padding: 20px !important;
     background: #f8f8f8 !important;
-    border-top: 2px solid #ddd !important;
-    border-bottom: 2px solid #ddd !important;
+    border: 2px solid #ddd !important;
 }
 
 /* Кнопки (Layout'ы) */
