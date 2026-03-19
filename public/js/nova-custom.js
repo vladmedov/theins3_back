@@ -135,6 +135,14 @@
         statusChangeLockUntil: 0,
         retryDelayMs: 1000,
         togglePublishUiInstalled: false,
+        /** Медленная загрузка (VPN): Vue шлёт *-change после 1 с — ждём load + паузу и мин. окно */
+        bootstrapPath: null,
+        bootstrapPhaseStarted: false,
+        bootstrapMinReady: false,
+        bootstrapAfterLoadReady: false,
+        bootstrapMinTimerId: null,
+        bootstrapLoadTimerId: null,
+        bootstrapLoadListener: null,
     };
 
     /** Синхронно с `form-action-bar.blade.php` ($secondaryActionStyles) */
@@ -146,6 +154,13 @@
 
     function currentPath() {
         return window.location.pathname + window.location.search;
+    }
+
+    /** /nova/resources/{type}/{id}/edit — бар статуса может появиться позже Vue */
+    function isNovaResourceEditPath() {
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        const idx = parts.indexOf('resources');
+        return idx >= 0 && parts.length >= idx + 4 && parts[idx + 3] === 'edit';
     }
 
     function getScrollY() {
@@ -231,7 +246,41 @@
         });
     }
 
+    function clearAutosaveBootstrapTimers() {
+        if (autosaveState.bootstrapMinTimerId) {
+            clearTimeout(autosaveState.bootstrapMinTimerId);
+            autosaveState.bootstrapMinTimerId = null;
+        }
+        if (autosaveState.bootstrapLoadTimerId) {
+            clearTimeout(autosaveState.bootstrapLoadTimerId);
+            autosaveState.bootstrapLoadTimerId = null;
+        }
+        if (autosaveState.bootstrapLoadListener) {
+            window.removeEventListener('load', autosaveState.bootstrapLoadListener);
+            autosaveState.bootstrapLoadListener = null;
+        }
+    }
+
+    function tryFinishAutosaveBootstrap() {
+        if (!autosaveState.bootstrapMinReady || !autosaveState.bootstrapAfterLoadReady) {
+            return;
+        }
+        autosaveState.isBootstrapping = false;
+    }
+
     function initializeAutosaveStatus() {
+        const path = currentPath();
+
+        if (autosaveState.bootstrapPath !== path) {
+            clearAutosaveBootstrapTimers();
+            autosaveState.bootstrapPath = path;
+            autosaveState.fieldValues = {};
+            autosaveState.isBootstrapping = true;
+            autosaveState.bootstrapPhaseStarted = false;
+            autosaveState.bootstrapMinReady = false;
+            autosaveState.bootstrapAfterLoadReady = false;
+        }
+
         getAutosaveStatusRoots().forEach(function (root) {
             if (!root || !root.dataset) return;
 
@@ -248,9 +297,47 @@
             updateAutosaveSavedAt(parsed);
         });
 
-        setTimeout(function () {
-            autosaveState.isBootstrapping = false;
-        }, 1000);
+        if (getAutosaveStatusRoots().length === 0) {
+            if (!isNovaResourceEditPath()) {
+                autosaveState.isBootstrapping = false;
+                autosaveState.bootstrapPhaseStarted = true;
+                autosaveState.bootstrapMinReady = true;
+                autosaveState.bootstrapAfterLoadReady = true;
+                return;
+            }
+            return;
+        }
+
+        if (autosaveState.bootstrapPhaseStarted) {
+            return;
+        }
+        autosaveState.bootstrapPhaseStarted = true;
+
+        autosaveState.bootstrapMinTimerId = setTimeout(function () {
+            autosaveState.bootstrapMinTimerId = null;
+            autosaveState.bootstrapMinReady = true;
+            tryFinishAutosaveBootstrap();
+        }, 2800);
+
+        function scheduleAfterLoadPause() {
+            autosaveState.bootstrapLoadTimerId = setTimeout(function () {
+                autosaveState.bootstrapLoadTimerId = null;
+                autosaveState.bootstrapAfterLoadReady = true;
+                tryFinishAutosaveBootstrap();
+            }, 900);
+        }
+
+        if (document.readyState === 'complete') {
+            scheduleAfterLoadPause();
+        } else {
+            const onLoad = function () {
+                window.removeEventListener('load', onLoad);
+                autosaveState.bootstrapLoadListener = null;
+                scheduleAfterLoadPause();
+            };
+            autosaveState.bootstrapLoadListener = onLoad;
+            window.addEventListener('load', onLoad);
+        }
     }
 
     function serializeAutosaveValue(value) {
@@ -1671,6 +1758,10 @@
                 return;
             }
 
+            if (autosaveState.isBootstrapping) {
+                return;
+            }
+
             if (!isAutosaveEnabled()) {
                 clearAutosaveTimer();
                 if (hasAutosaveUi()) {
@@ -1686,6 +1777,9 @@
         document.addEventListener('input', handleDomChange, true);
         document.addEventListener('change', handleDomChange, true);
         document.addEventListener('nova-autosave:change', function () {
+            if (autosaveState.isBootstrapping) {
+                return;
+            }
             if (!isAutosaveEnabled()) {
                 clearAutosaveTimer();
                 if (hasAutosaveUi()) {
@@ -1699,6 +1793,7 @@
 
         if (window.Nova && typeof window.Nova.$on === 'function') {
             window.Nova.$on('nova-flexible-content-add-group', function () {
+                if (autosaveState.isBootstrapping) return;
                 if (!isAutosaveEnabled()) return;
                 unlockAutosaveStatusChangeLock();
                 notifyAutosaveChange();
