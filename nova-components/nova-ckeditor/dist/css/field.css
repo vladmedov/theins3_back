@@ -380,6 +380,19 @@
   width: 100% !important;
 }
 
+[dusk^=content-] label[for=text-default-ckeditor] {
+  display: none !important;
+}
+[dusk^=content-] > .w-full > .grow > div.py-5 > div:nth-child(2) {
+  margin-top: 0 !important;
+}
+[dusk^=content-] > .w-full > .grow > div.py-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0 !important;
+}
+[dusk^=content-] .space-y-2 > textarea.hidden + .ck.ck-editor {
+  margin-top: 0 !important;
+}
+
 .ck-widget.raw-html-embed .raw-html-embed__buttons-wrapper {
   z-index: 1;
 }

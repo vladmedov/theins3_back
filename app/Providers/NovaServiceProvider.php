@@ -40,6 +40,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
         Nova::initialPath('/dashboards/content-dashboard');
 
         Nova::style('custom-nova', asset('css/custom-nova.css'));
+        Nova::style('nova-app-widgets', asset('css/nova-app-widgets.css'));
         Nova::script('custom-nova-scripts', asset('js/nova-custom.js'));
         
         Nova::mainMenu(function ($request) {

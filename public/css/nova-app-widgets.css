@@ -1,0 +1,25 @@
+/* App-specific Nova widgets */
+
+.nova-title-counter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 52px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #f9fafb;
+}
+
+.nova_view_post_title {
+    max-width: 650px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+}

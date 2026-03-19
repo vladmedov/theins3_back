@@ -1,14 +1,16 @@
 <template>
   <div class="ic">
     <div class="ic__head">
-      <span class="ic__label">{{ field.name }}</span>
-      <label class="ic__switch" :class="{ 'ic__switch--on': enabled }">
-        <input type="checkbox" v-model="enabled" />
-        <span class="ic__switch-track">
-          <span class="ic__switch-thumb" />
-        </span>
-        <span class="ic__switch-label">{{ enabled ? 'Вкл' : 'Выкл' }}</span>
-      </label>
+      <div class="ic__head-main">
+        <label class="ic__switch" :class="{ 'ic__switch--on': enabled }">
+          <input type="checkbox" v-model="enabled" />
+          <span class="ic__switch-track">
+            <span class="ic__switch-thumb" />
+          </span>
+          <span class="ic__switch-label">{{ enabled ? 'Вкл' : 'Выкл' }}</span>
+        </label>
+        <span class="ic__label">{{ field.name }}</span>
+      </div>
     </div>
 
     <div class="ic__body">
@@ -145,31 +147,40 @@ export default {
 <style scoped>
 .ic {
   --ic-accent: #e54839;
-  --ic-bg: #f8fafc;
-  --ic-border: #e2e8f0;
+  --ic-bg: rgb(243, 242, 240);
+  --ic-panel-border: #d6c396;
+  --ic-border: #d8c49a;
+  --ic-heading: #6b5530;
   --ic-text: #334155;
   --ic-muted: #64748b;
-  --ic-code-bg: #f1f5f9;
+  --ic-code-bg: #fcfcfc;
 }
 
 .ic {
   padding: 1rem 1.25rem;
   background: var(--ic-bg);
-  border-bottom: 1px solid var(--ic-border);
+  border-bottom: 1px solid var(--ic-panel-border);
 }
 
 .ic__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 1rem;
   margin-bottom: 0.75rem;
+  color: var(--ic-heading);
+}
+
+.ic__head-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .ic__label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--ic-text);
+  color: var(--ic-heading);
 }
 
 .ic__switch {
@@ -274,8 +285,8 @@ export default {
   padding: 0 0.875rem;
   border: none;
   border-left: 1px solid var(--ic-border);
-  background: transparent;
-  color: var(--ic-muted);
+  background: #000;
+  color: #fff;
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;

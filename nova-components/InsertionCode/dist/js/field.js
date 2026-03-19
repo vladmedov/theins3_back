@@ -297,29 +297,32 @@ var _hoisted_2 = {
   "class": "ic__head"
 };
 var _hoisted_3 = {
-  "class": "ic__label"
+  "class": "ic__head-main"
 };
 var _hoisted_4 = {
   "class": "ic__switch-label"
 };
 var _hoisted_5 = {
-  "class": "ic__body"
+  "class": "ic__label"
 };
 var _hoisted_6 = {
+  "class": "ic__body"
+};
+var _hoisted_7 = {
   key: "code",
   "class": "ic__code-wrap"
 };
-var _hoisted_7 = {
+var _hoisted_8 = {
   "class": "ic__code"
 };
-var _hoisted_8 = ["value"];
-var _hoisted_9 = ["title"];
-var _hoisted_10 = {
+var _hoisted_9 = ["value"];
+var _hoisted_10 = ["title"];
+var _hoisted_11 = {
   key: "hint",
   "class": "ic__hint"
 };
 function render(_ctx, _cache, $props, $setup, $data, $options) {
-  return (0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_1, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_2, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_3, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($props.field.name), 1 /* TEXT */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", {
+  return (0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_1, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_2, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_3, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", {
     "class": (0,vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)(["ic__switch", {
       'ic__switch--on': $data.enabled
     }])
@@ -332,12 +335,12 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
     "class": "ic__switch-track"
   }, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
     "class": "ic__switch-thumb"
-  })], -1 /* HOISTED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_4, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.enabled ? 'Вкл' : 'Выкл'), 1 /* TEXT */)], 2 /* CLASS */)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_5, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(vue__WEBPACK_IMPORTED_MODULE_0__.Transition, {
+  })], -1 /* HOISTED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_4, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.enabled ? 'Вкл' : 'Выкл'), 1 /* TEXT */)], 2 /* CLASS */), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", _hoisted_5, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($props.field.name), 1 /* TEXT */)])]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_6, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(vue__WEBPACK_IMPORTED_MODULE_0__.Transition, {
     name: "ic-slide",
     mode: "out-in"
   }, {
     "default": (0,vue__WEBPACK_IMPORTED_MODULE_0__.withCtx)(function () {
-      return [$data.enabled && $options.insertionCode ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_6, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_7, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
+      return [$data.enabled && $options.insertionCode ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_7, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_8, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("input", {
         type: "text",
         value: $options.insertionCode,
         readonly: "",
@@ -346,7 +349,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
         onClick: _cache[1] || (_cache[1] = function () {
           return $options.selectAll && $options.selectAll.apply($options, arguments);
         })
-      }, null, 8 /* PROPS */, _hoisted_8), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
+      }, null, 8 /* PROPS */, _hoisted_9), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("button", {
         type: "button",
         "class": (0,vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)(["ic__copy", {
           'ic__copy--done': $data.copied
@@ -396,7 +399,7 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
         points: "20 6 9 17 4 12"
       })], -1 /* HOISTED */)), _cache[7] || (_cache[7] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("span", {
         "class": "ic__copy-text"
-      }, "Скопировано", -1 /* HOISTED */))], 64 /* STABLE_FRAGMENT */))], 10 /* CLASS, PROPS */, _hoisted_9)])])) : ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_10, [_cache[8] || (_cache[8] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("svg", {
+      }, "Скопировано", -1 /* HOISTED */))], 64 /* STABLE_FRAGMENT */))], 10 /* CLASS, PROPS */, _hoisted_10)])])) : ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", _hoisted_11, [_cache[8] || (_cache[8] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("svg", {
         "class": "ic__hint-icon",
         xmlns: "http://www.w3.org/2000/svg",
         width: "16",
@@ -487,7 +490,7 @@ __webpack_require__.r(__webpack_exports__);
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_0___default()(function(i){return i[1]});
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, "\n.ic[data-v-c023248a] {\n  --ic-accent: #e54839;\n  --ic-bg: #f8fafc;\n  --ic-border: #e2e8f0;\n  --ic-text: #334155;\n  --ic-muted: #64748b;\n  --ic-code-bg: #f1f5f9;\n}\n.ic[data-v-c023248a] {\n  padding: 1rem 1.25rem;\n  background: var(--ic-bg);\n  border-bottom: 1px solid var(--ic-border);\n}\n.ic__head[data-v-c023248a] {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 1rem;\n  margin-bottom: 0.75rem;\n}\n.ic__label[data-v-c023248a] {\n  font-size: 0.8125rem;\n  font-weight: 600;\n  color: var(--ic-text);\n}\n.ic__switch[data-v-c023248a] {\n  display: inline-flex;\n  align-items: center;\n  gap: 0.5rem;\n  cursor: pointer;\n  -webkit-user-select: none;\n     -moz-user-select: none;\n          user-select: none;\n}\n.ic__switch input[data-v-c023248a] {\n  position: absolute;\n  opacity: 0;\n  width: 0;\n  height: 0;\n}\n.ic__switch-track[data-v-c023248a] {\n  width: 36px;\n  height: 20px;\n  background: var(--ic-border);\n  border-radius: 10px;\n  display: flex;\n  align-items: center;\n  padding: 0 2px;\n  transition: background 0.2s ease, box-shadow 0.2s ease;\n}\n.ic__switch--on .ic__switch-track[data-v-c023248a] {\n  background: var(--ic-accent);\n  box-shadow: 0 0 0 1px var(--ic-accent);\n}\n.ic__switch-thumb[data-v-c023248a] {\n  width: 16px;\n  height: 16px;\n  background: #fff;\n  border-radius: 50%;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);\n  transition: transform 0.2s ease;\n}\n.ic__switch--on .ic__switch-thumb[data-v-c023248a] {\n  transform: translateX(16px);\n}\n.ic__switch-label[data-v-c023248a] {\n  font-size: 0.75rem;\n  font-weight: 500;\n  color: var(--ic-muted);\n}\n.ic__switch--on .ic__switch-label[data-v-c023248a] {\n  color: var(--ic-text);\n}\n.ic__body[data-v-c023248a] {\n  min-height: 2.5rem;\n  display: flex;\n  align-items: center;\n}\n\n/* Code block */\n.ic__code-wrap[data-v-c023248a] {\n  width: 100%;\n}\n.ic__code[data-v-c023248a] {\n  display: flex;\n  align-items: stretch;\n  width: 100%;\n  min-height: 40px;\n  background: var(--ic-code-bg);\n  border: 1px solid var(--ic-border);\n  border-left: 3px solid var(--ic-accent);\n  overflow: hidden;\n}\n.ic__code-input[data-v-c023248a] {\n  flex: 1;\n  border: none;\n  background: transparent;\n  padding: 0.5rem 0.75rem;\n  font-size: 0.8125rem;\n  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Consolas', monospace;\n  color: var(--ic-text);\n  letter-spacing: 0.02em;\n  outline: none;\n  min-width: 0;\n  cursor: text;\n}\n.ic__code-input[data-v-c023248a]::-moz-placeholder {\n  color: var(--ic-muted);\n}\n.ic__code-input[data-v-c023248a]::placeholder {\n  color: var(--ic-muted);\n}\n.ic__copy[data-v-c023248a] {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 0.375rem;\n  padding: 0 0.875rem;\n  border: none;\n  border-left: 1px solid var(--ic-border);\n  background: transparent;\n  color: var(--ic-muted);\n  font-size: 0.75rem;\n  font-weight: 500;\n  cursor: pointer;\n  flex-shrink: 0;\n  transition: color 0.15s ease, background 0.15s ease;\n}\n.ic__copy[data-v-c023248a]:hover {\n  background: #e2e8f0;\n  color: var(--ic-text);\n}\n.ic__copy--done[data-v-c023248a] {\n  color: #059669;\n}\n.ic__copy--done[data-v-c023248a]:hover {\n  color: #047857;\n}\n.ic__copy-text[data-v-c023248a] {\n  white-space: nowrap;\n}\n@media (max-width: 480px) {\n.ic__copy-text[data-v-c023248a] {\n    display: none;\n}\n}\n\n/* Hint when off */\n.ic__hint[data-v-c023248a] {\n  display: inline-flex;\n  align-items: center;\n  gap: 0.5rem;\n  padding: 0.5rem 0.75rem;\n  background: #fff;\n  border: 1px dashed var(--ic-border);\n  font-size: 0.8125rem;\n  color: var(--ic-muted);\n}\n.ic__hint-icon[data-v-c023248a] {\n  flex-shrink: 0;\n  opacity: 0.8;\n}\n\n/* Transitions */\n.ic-slide-enter-active[data-v-c023248a],\n.ic-slide-leave-active[data-v-c023248a] {\n  transition: opacity 0.2s ease, transform 0.2s ease;\n}\n.ic-slide-enter-from[data-v-c023248a],\n.ic-slide-leave-to[data-v-c023248a] {\n  opacity: 0;\n  transform: translateY(-4px);\n}\n", ""]);
+___CSS_LOADER_EXPORT___.push([module.id, "\n.ic[data-v-c023248a] {\n  --ic-accent: #e54839;\n  --ic-bg: rgb(243, 242, 240);\n  --ic-panel-border: #d6c396;\n  --ic-border: #d8c49a;\n  --ic-heading: #6b5530;\n  --ic-text: #334155;\n  --ic-muted: #64748b;\n  --ic-code-bg: #fcfcfc;\n}\n.ic[data-v-c023248a] {\n  padding: 1rem 1.25rem;\n  background: var(--ic-bg);\n  border-bottom: 1px solid var(--ic-panel-border);\n}\n.ic__head[data-v-c023248a] {\n  display: flex;\n  align-items: center;\n  justify-content: flex-start;\n  gap: 1rem;\n  margin-bottom: 0.75rem;\n  color: var(--ic-heading);\n}\n.ic__head-main[data-v-c023248a] {\n  display: inline-flex;\n  align-items: center;\n  gap: 0.75rem;\n}\n.ic__label[data-v-c023248a] {\n  font-size: 0.8125rem;\n  font-weight: 600;\n  color: var(--ic-heading);\n}\n.ic__switch[data-v-c023248a] {\n  display: inline-flex;\n  align-items: center;\n  gap: 0.5rem;\n  cursor: pointer;\n  -webkit-user-select: none;\n     -moz-user-select: none;\n          user-select: none;\n}\n.ic__switch input[data-v-c023248a] {\n  position: absolute;\n  opacity: 0;\n  width: 0;\n  height: 0;\n}\n.ic__switch-track[data-v-c023248a] {\n  width: 36px;\n  height: 20px;\n  background: var(--ic-border);\n  border-radius: 10px;\n  display: flex;\n  align-items: center;\n  padding: 0 2px;\n  transition: background 0.2s ease, box-shadow 0.2s ease;\n}\n.ic__switch--on .ic__switch-track[data-v-c023248a] {\n  background: var(--ic-accent);\n  box-shadow: 0 0 0 1px var(--ic-accent);\n}\n.ic__switch-thumb[data-v-c023248a] {\n  width: 16px;\n  height: 16px;\n  background: #fff;\n  border-radius: 50%;\n  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);\n  transition: transform 0.2s ease;\n}\n.ic__switch--on .ic__switch-thumb[data-v-c023248a] {\n  transform: translateX(16px);\n}\n.ic__switch-label[data-v-c023248a] {\n  font-size: 0.75rem;\n  font-weight: 500;\n  color: var(--ic-muted);\n}\n.ic__switch--on .ic__switch-label[data-v-c023248a] {\n  color: var(--ic-text);\n}\n.ic__body[data-v-c023248a] {\n  min-height: 2.5rem;\n  display: flex;\n  align-items: center;\n}\n\n/* Code block */\n.ic__code-wrap[data-v-c023248a] {\n  width: 100%;\n}\n.ic__code[data-v-c023248a] {\n  display: flex;\n  align-items: stretch;\n  width: 100%;\n  min-height: 40px;\n  background: var(--ic-code-bg);\n  border: 1px solid var(--ic-border);\n  border-left: 3px solid var(--ic-accent);\n  overflow: hidden;\n}\n.ic__code-input[data-v-c023248a] {\n  flex: 1;\n  border: none;\n  background: transparent;\n  padding: 0.5rem 0.75rem;\n  font-size: 0.8125rem;\n  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Consolas', monospace;\n  color: var(--ic-text);\n  letter-spacing: 0.02em;\n  outline: none;\n  min-width: 0;\n  cursor: text;\n}\n.ic__code-input[data-v-c023248a]::-moz-placeholder {\n  color: var(--ic-muted);\n}\n.ic__code-input[data-v-c023248a]::placeholder {\n  color: var(--ic-muted);\n}\n.ic__copy[data-v-c023248a] {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: 0.375rem;\n  padding: 0 0.875rem;\n  border: none;\n  border-left: 1px solid var(--ic-border);\n  background: #000;\n  color: #fff;\n  font-size: 0.75rem;\n  font-weight: 500;\n  cursor: pointer;\n  flex-shrink: 0;\n  transition: color 0.15s ease, background 0.15s ease;\n}\n.ic__copy[data-v-c023248a]:hover {\n  background: #e2e8f0;\n  color: var(--ic-text);\n}\n.ic__copy--done[data-v-c023248a] {\n  color: #059669;\n}\n.ic__copy--done[data-v-c023248a]:hover {\n  color: #047857;\n}\n.ic__copy-text[data-v-c023248a] {\n  white-space: nowrap;\n}\n@media (max-width: 480px) {\n.ic__copy-text[data-v-c023248a] {\n    display: none;\n}\n}\n\n/* Hint when off */\n.ic__hint[data-v-c023248a] {\n  display: inline-flex;\n  align-items: center;\n  gap: 0.5rem;\n  padding: 0.5rem 0.75rem;\n  background: #fff;\n  border: 1px dashed var(--ic-border);\n  font-size: 0.8125rem;\n  color: var(--ic-muted);\n}\n.ic__hint-icon[data-v-c023248a] {\n  flex-shrink: 0;\n  opacity: 0.8;\n}\n\n/* Transitions */\n.ic-slide-enter-active[data-v-c023248a],\n.ic-slide-leave-active[data-v-c023248a] {\n  transition: opacity 0.2s ease, transform 0.2s ease;\n}\n.ic-slide-enter-from[data-v-c023248a],\n.ic-slide-leave-to[data-v-c023248a] {\n  opacity: 0;\n  transform: translateY(-4px);\n}\n", ""]);
 // Exports
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (___CSS_LOADER_EXPORT___);
 
