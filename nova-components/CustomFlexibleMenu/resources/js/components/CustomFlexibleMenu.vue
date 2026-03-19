@@ -1,6 +1,6 @@
 <template>
     <div class="menu-container pt-4 shadow-sm">
-        <div class="flex justify-between w-full gap-4">
+        <div class="layout-grid">
             <div 
                 v-for="layout in layouts" 
                 :key="'add-' + layout.name"
@@ -82,10 +82,16 @@ export default {
     border: 2px solid #ddd !important;
 }
 
+.layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    width: 100%;
+}
+
 /* Кнопки (Layout'ы) */
 .layout-button {
-    flex-grow: 1;
-    flex-basis: 0;
+    width: 100%;
     height: 120px;
     display: flex;
     flex-direction: column;
@@ -117,5 +123,11 @@ export default {
     font-weight: 500;
     color: #222;
     text-align: center;
+}
+
+@media (max-width: 640px) {
+    .layout-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
 }
 </style>
