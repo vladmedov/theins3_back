@@ -143,6 +143,8 @@
         bootstrapMinTimerId: null,
         bootstrapLoadTimerId: null,
         bootstrapLoadListener: null,
+        /** Не перечитывать data-last-saved-at с DOM на каждом ensureInstalled (ломает время на бою) */
+        domSavedAtSyncedForPath: null,
     };
 
     /** Синхронно с `form-action-bar.blade.php` ($secondaryActionStyles) */
@@ -279,23 +281,32 @@
             autosaveState.bootstrapPhaseStarted = false;
             autosaveState.bootstrapMinReady = false;
             autosaveState.bootstrapAfterLoadReady = false;
+            autosaveState.domSavedAtSyncedForPath = null;
         }
 
-        getAutosaveStatusRoots().forEach(function (root) {
-            if (!root || !root.dataset) return;
+        const statusRoots = getAutosaveStatusRoots();
+        if (autosaveState.domSavedAtSyncedForPath !== path && statusRoots.length > 0) {
+            let appliedSavedAtFromDom = false;
+            statusRoots.forEach(function (root) {
+                if (!root || !root.dataset) return;
 
-            const savedAt = root.dataset.lastSavedAt;
-            if (!savedAt) {
-                return;
+                const savedAt = root.dataset.lastSavedAt;
+                if (!savedAt) {
+                    return;
+                }
+
+                const parsed = new Date(savedAt);
+                if (Number.isNaN(parsed.getTime())) {
+                    return;
+                }
+
+                updateAutosaveSavedAt(parsed);
+                appliedSavedAtFromDom = true;
+            });
+            if (appliedSavedAtFromDom) {
+                autosaveState.domSavedAtSyncedForPath = path;
             }
-
-            const parsed = new Date(savedAt);
-            if (Number.isNaN(parsed.getTime())) {
-                return;
-            }
-
-            updateAutosaveSavedAt(parsed);
-        });
+        }
 
         if (getAutosaveStatusRoots().length === 0) {
             if (!isNovaResourceEditPath()) {

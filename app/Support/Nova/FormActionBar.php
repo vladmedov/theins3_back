@@ -97,7 +97,8 @@ class FormActionBar
             ], $autosave);
 
             if (!empty($autosave['updated_at']) && empty($autosave['updatedAtIso'])) {
-                $autosave['updatedAtIso'] = $autosave['updated_at']->copy()->toIso8601String();
+                // UTC + ISO8601, чтобы в браузере однозначный момент времени (без «сдвига» при разном app.timezone)
+                $autosave['updatedAtIso'] = $autosave['updated_at']->copy()->utc()->toIso8601String();
             }
         }
 
