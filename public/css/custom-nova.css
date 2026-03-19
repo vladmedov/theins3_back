@@ -237,38 +237,34 @@ form .tab-group .tab.fields-tab > div {
     padding-right: 0 !important;
 }
 
-/* Файл изображения / Image (Nova file-field): длинный путь не вылезает за экран на мобильных */
+/*
+ * Nova Image / File: путь под превью — в разметке dusk на input (dusk="image"), не image-field.
+ * Сетка grid-cols-4 на мобилке даёт ~25% ширины — имя файла вылезает.
+ */
 @media (max-width: 768px) {
-    [dusk="content"] [dusk="image-field"],
-    [dusk="content"] [dusk="cover_image-field"] {
-        min-width: 0 !important;
-        max-width: 100% !important;
-        box-sizing: border-box;
-    }
-
-    [dusk="content"] [dusk="image-field"] p,
-    [dusk="content"] [dusk="image-field"] a,
-    [dusk="content"] [dusk="image-field"] span,
-    [dusk="content"] [dusk="cover_image-field"] p,
-    [dusk="content"] [dusk="cover_image-field"] a,
-    [dusk="content"] [dusk="cover_image-field"] span {
-        max-width: 100% !important;
-        white-space: normal !important;
-        word-break: break-all !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    /* Любое поле с загрузкой файла (file-field), если dusk другой */
-    [dusk="content"] .field-wrapper:has(input[type="file"]) {
-        min-width: 0;
+    [dusk="content"] div.space-y-4:has(input[dusk="image"]) .grid.grid-cols-4,
+    [dusk="content"] div.space-y-4:has(input[dusk="cover_image"]) .grid.grid-cols-4 {
+        grid-template-columns: minmax(0, 1fr) !important;
         max-width: 100%;
     }
 
-    [dusk="content"] .field-wrapper:has(input[type="file"]) p,
-    [dusk="content"] .field-wrapper:has(input[type="file"]) a {
+    [dusk="content"] div.space-y-4:has(input[dusk="image"]) .grid.grid-cols-4 > *,
+    [dusk="content"] div.space-y-4:has(input[dusk="cover_image"]) .grid.grid-cols-4 > * {
+        min-width: 0;
+    }
+
+    [dusk="content"] div.space-y-4:has(input[dusk="image"]) .relative.w-full > p.font-semibold.text-xs,
+    [dusk="content"] div.space-y-4:has(input[dusk="cover_image"]) .relative.w-full > p.font-semibold.text-xs {
         max-width: 100% !important;
         white-space: normal !important;
         word-break: break-all !important;
         overflow-wrap: anywhere !important;
+    }
+
+    /* Колонка с полем (md:w-3/5): не даём flex-ребёнку вылезать за экран */
+    [dusk="content"] div.space-y-4:has(input[dusk="image"]),
+    [dusk="content"] div.space-y-4:has(input[dusk="cover_image"]) {
+        max-width: 100%;
+        min-width: 0;
     }
 }
