@@ -85,6 +85,21 @@ class FormActionBar
                 ->all();
         }
 
+        $autosave = $options['autosave'] ?? null;
+        if ($autosave) {
+            $autosave = array_merge([
+                'enabled' => false,
+                'statusLabel' => __('form_action_bar.autosave'),
+                'idleLabel' => __('form_action_bar.autosave_idle'),
+                'lastSavedLabel' => __('form_action_bar.last_saved_at'),
+                'updatedAtIso' => null,
+            ], $autosave);
+
+            if (!empty($autosave['updated_at']) && empty($autosave['updatedAtIso'])) {
+                $autosave['updatedAtIso'] = $autosave['updated_at']->copy()->toIso8601String();
+            }
+        }
+
         $heading = $options['heading'] ?? null;
 
         return view('nova.components.form-action-bar', [
@@ -94,6 +109,7 @@ class FormActionBar
             'saveAction' => $saveAction,
             'linkBlock' => $linkBlock,
             'metaBlock' => $metaBlock,
+            'autosave' => $autosave,
         ])->render();
     }
 
@@ -142,6 +158,10 @@ class FormActionBar
                     self::makeMetaItem('updated_at', $options['updated_at'] ?? null),
                 ])),
             ];
+        }
+
+        if (array_key_exists('autosave', $options) && !array_key_exists('autosave', $expanded)) {
+            $expanded['autosave'] = $options['autosave'];
         }
 
         return $expanded;

@@ -59,6 +59,12 @@ export default {
             const before = new Set(document.querySelectorAll('[id*="related_title"]'));
             this.$emit("addGroup", layout);
             Nova.$emit("nova-flexible-content-add-group", layout);
+            document.dispatchEvent(new CustomEvent("nova-autosave:change", {
+                detail: {
+                    source: "flexible-add-group",
+                    layout: layout.name,
+                },
+            }));
 
             if (layout.name === 'related') {
                 this.$nextTick(() => {

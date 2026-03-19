@@ -302,7 +302,18 @@ export default {
         },
 
         handleChange(value) {
-            this.value = value
+            const nextValue = value || ''
+            const previousValue = this.value || ''
+
+            this.value = nextValue
+            if (typeof document !== 'undefined' && nextValue !== previousValue) {
+                document.dispatchEvent(new CustomEvent('nova-autosave:change', {
+                    detail: {
+                        attribute: this.currentField.attribute,
+                        source: 'ckeditor',
+                    },
+                }))
+            }
 
             if (this.currentField.alertBeforeUnsavedChanges) {
                 this.emitFieldValueChange(this.currentField.attribute, this.value)

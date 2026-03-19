@@ -116946,7 +116946,17 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
       }
     },
     handleChange: function handleChange(value) {
-      this.value = value;
+      var nextValue = value || '';
+      var previousValue = this.value || '';
+      this.value = nextValue;
+      if (typeof document !== 'undefined' && nextValue !== previousValue) {
+        document.dispatchEvent(new CustomEvent('nova-autosave:change', {
+          detail: {
+            attribute: this.currentField.attribute,
+            source: 'ckeditor'
+          }
+        }));
+      }
       if (this.currentField.alertBeforeUnsavedChanges) {
         this.emitFieldValueChange(this.currentField.attribute, this.value);
         this.$emit('field-changed');

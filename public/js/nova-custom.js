@@ -122,6 +122,19 @@
         navBlockUntil: 0,
         validationScrollLockUntil: 0,
     };
+    const autosaveState = {
+        debounceMs: 3000,
+        timerId: null,
+        countdownIntervalId: null,
+        deadlineAt: 0,
+        novaEmitPatched: false,
+        fieldValues: {},
+        isBootstrapping: true,
+        listenersInstalled: false,
+        tagMutationObserverInstalled: false,
+        statusChangeLockUntil: 0,
+        retryDelayMs: 1000,
+    };
 
     function currentPath() {
         return window.location.pathname + window.location.search;
@@ -142,6 +155,487 @@
         const parts = window.location.pathname.split('/').filter(Boolean);
         const resourceIndex = parts.indexOf('resources');
         return resourceIndex >= 0 ? (parts[resourceIndex + 2] || null) : null;
+    }
+
+    function getAutosaveBars() {
+        return Array.from(document.querySelectorAll('[data-form-action-bar="1"][data-autosave-enabled="1"]'));
+    }
+
+    function getAutosaveStatusRoots() {
+        return Array.from(document.querySelectorAll('[data-autosave-status-root="1"]'));
+    }
+
+    function getAutosaveStatusNodes() {
+        return getAutosaveStatusRoots().map(function (root) {
+            return root.querySelector('[data-autosave-status-text="1"]');
+        }).filter(Boolean);
+    }
+
+    function getAutosaveCountdownNodes() {
+        return getAutosaveStatusRoots().map(function (root) {
+            return {
+                root: root,
+                node: root.querySelector('[data-autosave-countdown-text="1"]'),
+            };
+        }).filter(function (entry) {
+            return !!entry.node;
+        });
+    }
+
+    function formatBrowserDateTime(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        try {
+            return new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(date);
+        } catch (e) {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear());
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return day + '.' + month + '.' + year + ' ' + hours + ':' + minutes;
+        }
+    }
+
+    function initializePreviewNotices() {
+        document.querySelectorAll('[data-preview-notice="1"]').forEach(function (node) {
+            const expiresAt = node.dataset.previewExpiresAt;
+            if (!expiresAt) return;
+
+            const parsed = new Date(expiresAt);
+            if (Number.isNaN(parsed.getTime())) return;
+
+            const prefix = node.dataset.previewPrefix || '';
+            const suffix = node.dataset.previewSuffix || '';
+            const formatted = formatBrowserDateTime(parsed);
+
+            if (!formatted) return;
+
+            node.textContent = prefix + ' ' + formatted + (suffix ? ' · ' + suffix : '');
+        });
+    }
+
+    function initializeAutosaveStatus() {
+        getAutosaveStatusRoots().forEach(function (root) {
+            if (!root || !root.dataset) return;
+
+            const savedAt = root.dataset.lastSavedAt;
+            if (!savedAt) {
+                return;
+            }
+
+            const parsed = new Date(savedAt);
+            if (Number.isNaN(parsed.getTime())) {
+                return;
+            }
+
+            updateAutosaveSavedAt(parsed);
+        });
+
+        setTimeout(function () {
+            autosaveState.isBootstrapping = false;
+        }, 1000);
+    }
+
+    function serializeAutosaveValue(value) {
+        if (value === undefined) return 'undefined';
+        if (value === null) return 'null';
+
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            return String(value);
+        }
+
+        try {
+            return JSON.stringify(value);
+        } catch (e) {
+            return String(value);
+        }
+    }
+
+    function isStatusChangeEvent(eventName) {
+        return eventName === 'status-change';
+    }
+
+    function lockAutosaveForStatusChange() {
+        autosaveState.statusChangeLockUntil = Date.now() + 1500;
+        clearAutosaveTimer();
+        if (hasAutosaveUi()) {
+            showAutosaveIdleState();
+        }
+    }
+
+    function isStatusChangeLocked() {
+        return Date.now() < autosaveState.statusChangeLockUntil;
+    }
+
+    function unlockAutosaveStatusChangeLock() {
+        autosaveState.statusChangeLockUntil = 0;
+    }
+
+    function installNovaFieldChangePatch() {
+        if (autosaveState.novaEmitPatched || !window.Nova || typeof window.Nova.$emit !== 'function') {
+            return;
+        }
+
+        const originalEmit = window.Nova.$emit.bind(window.Nova);
+
+        window.Nova.$emit = function () {
+            const eventName = arguments[0];
+            const eventValue = arguments.length > 1 ? arguments[1] : undefined;
+            const result = originalEmit.apply(this, arguments);
+
+            try {
+                if (typeof eventName === 'string' && eventName.endsWith('-change')) {
+                    if (isStatusChangeEvent(eventName)) {
+                        lockAutosaveForStatusChange();
+                        return result;
+                    }
+
+                    const serializedValue = serializeAutosaveValue(eventValue);
+                    const previousValue = autosaveState.fieldValues[eventName];
+                    autosaveState.fieldValues[eventName] = serializedValue;
+
+                    if (autosaveState.isBootstrapping || previousValue === serializedValue) {
+                        return result;
+                    }
+
+                    if (!isAutosaveEnabled()) {
+                        clearAutosaveTimer();
+                        if (hasAutosaveUi()) {
+                            showAutosaveIdleState();
+                        }
+                    } else {
+                        setTimeout(function () {
+                            notifyAutosaveChange();
+                        }, 0);
+                    }
+                }
+            } catch (e) {}
+
+            return result;
+        };
+
+        autosaveState.novaEmitPatched = true;
+    }
+
+    function installTagFieldObserver() {
+        if (autosaveState.tagMutationObserverInstalled) {
+            return;
+        }
+
+        const form = document.querySelector('form[data-form-unique-id]') || document.querySelector('form');
+        if (!form || typeof MutationObserver === 'undefined') {
+            return;
+        }
+
+        new MutationObserver(function (mutations) {
+            if (autosaveState.isBootstrapping || !isAutosaveEnabled()) {
+                return;
+            }
+
+            for (let i = 0; i < mutations.length; i++) {
+                const mutation = mutations[i];
+                const target = mutation.target;
+                const touchesSelectedTags = !!(
+                    (target && target.closest && target.closest('[dusk$="-selected-tags"]'))
+                    || Array.from(mutation.addedNodes || []).some(function (node) {
+                        return node.nodeType === 1
+                            && ((node.matches && node.matches('[dusk$="-selected-tags"]'))
+                                || (node.closest && node.closest('[dusk$="-selected-tags"]'))
+                                || (node.querySelector && node.querySelector('[dusk$="-selected-tags"]')));
+                    })
+                    || Array.from(mutation.removedNodes || []).some(function (node) {
+                        return node.nodeType === 1
+                            && ((node.matches && node.matches('[dusk$="-selected-tags"]'))
+                                || (node.querySelector && node.querySelector('[dusk$="-selected-tags"]')));
+                    })
+                );
+
+                if (touchesSelectedTags) {
+                    if (isStatusChangeLocked()) {
+                        return;
+                    }
+                    notifyAutosaveChange();
+                    return;
+                }
+            }
+        }).observe(form, {
+            childList: true,
+            subtree: true,
+        });
+
+        autosaveState.tagMutationObserverInstalled = true;
+    }
+
+    function isExistingResource() {
+        const resourceId = currentResourceId();
+        return !!resourceId && resourceId !== 'new';
+    }
+
+    function isDraftSelected() {
+        const statusSelect = findStatusSelect();
+        return !!statusSelect && statusSelect.value === 'draft';
+    }
+
+    function isAutosaveEnabled() {
+        return getAutosaveBars().length > 0 && isExistingResource() && isDraftSelected();
+    }
+
+    function hasAutosaveUi() {
+        return getAutosaveBars().length > 0;
+    }
+
+    function findAutosaveButton() {
+        const bars = getAutosaveBars();
+
+        for (let i = 0; i < bars.length; i++) {
+            const button = bars[i].querySelector('button[data-saving-label]');
+            if (button) {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
+    function getAutosaveSavingLabel() {
+        const button = findAutosaveButton();
+        return button && button.dataset ? (button.dataset.savingLabel || 'Saving...') : 'Saving...';
+    }
+
+    function getAutosaveIdleLabel() {
+        const root = getAutosaveStatusRoots()[0];
+        return root && root.dataset ? (root.dataset.autosaveIdleLabel || root.dataset.autosaveLabel || '') : '';
+    }
+
+    function getAutosaveLastSavedLabel() {
+        const root = getAutosaveStatusRoots()[0];
+        return root && root.dataset ? (root.dataset.lastSavedLabel || '') : '';
+    }
+
+    function getAutosaveLastSavedAt() {
+        const root = getAutosaveStatusRoots()[0];
+        return root && root.dataset ? (root.dataset.lastSavedAt || '') : '';
+    }
+
+    function getAutosaveFailureLabel() {
+        const root = getAutosaveStatusRoots()[0];
+        return root && root.dataset ? (root.dataset.autosaveFailureLabel || '') : '';
+    }
+
+    function setAutosaveStatusText(text) {
+        getAutosaveStatusNodes().forEach(function (node) {
+            node.textContent = text;
+        });
+    }
+
+    function hideAutosaveCountdown() {
+        getAutosaveCountdownNodes().forEach(function (entry) {
+            entry.node.textContent = '';
+            entry.node.style.display = 'none';
+        });
+    }
+
+    function getAutosaveCountdownText(seconds) {
+        const root = getAutosaveStatusRoots()[0];
+        const prefix = root && root.dataset ? (root.dataset.autosaveCountdownPrefix || '') : '';
+        const suffix = root && root.dataset ? (root.dataset.autosaveCountdownSuffix || '') : '';
+
+        if (!seconds || seconds < 1) {
+            return '';
+        }
+
+        return prefix + ' ' + seconds + suffix;
+    }
+
+    function renderAutosaveCountdown() {
+        if (!autosaveState.deadlineAt) {
+            hideAutosaveCountdown();
+            return;
+        }
+
+        const remainingMs = autosaveState.deadlineAt - Date.now();
+        if (remainingMs <= 0) {
+            hideAutosaveCountdown();
+            return;
+        }
+
+        const remainingSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+        const text = getAutosaveCountdownText(remainingSeconds);
+
+        if (!text) {
+            hideAutosaveCountdown();
+            return;
+        }
+
+        getAutosaveCountdownNodes().forEach(function (entry) {
+            entry.node.textContent = text;
+            entry.node.style.display = 'inline-flex';
+        });
+    }
+
+    function stopAutosaveCountdown() {
+        autosaveState.deadlineAt = 0;
+
+        if (autosaveState.countdownIntervalId) {
+            clearInterval(autosaveState.countdownIntervalId);
+            autosaveState.countdownIntervalId = null;
+        }
+
+        hideAutosaveCountdown();
+    }
+
+    function startAutosaveCountdown() {
+        autosaveState.deadlineAt = Date.now() + autosaveState.debounceMs;
+        renderAutosaveCountdown();
+
+        if (autosaveState.countdownIntervalId) {
+            clearInterval(autosaveState.countdownIntervalId);
+        }
+
+        autosaveState.countdownIntervalId = setInterval(function () {
+            if (!autosaveState.deadlineAt || Date.now() >= autosaveState.deadlineAt) {
+                stopAutosaveCountdown();
+                return;
+            }
+
+            renderAutosaveCountdown();
+        }, 250);
+    }
+
+    function formatAutosaveTime(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        try {
+            return new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            }).format(date);
+        } catch (e) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return hours + ':' + minutes + ':' + seconds;
+        }
+    }
+
+    function updateAutosaveSavedAt(date) {
+        const formatted = formatAutosaveTime(date);
+        const prefix = getAutosaveLastSavedLabel();
+
+        if (!formatted || !prefix) {
+            setAutosaveStatusText(getAutosaveIdleLabel());
+            return;
+        }
+
+        getAutosaveStatusRoots().forEach(function (root) {
+            if (root && root.dataset) {
+                root.dataset.lastSavedAt = date.toISOString();
+            }
+        });
+
+        setAutosaveStatusText(prefix + ' ' + formatted);
+    }
+
+    function showAutosaveFailure() {
+        const label = getAutosaveFailureLabel();
+        setAutosaveStatusText(label || getAutosaveIdleLabel());
+    }
+
+    function showAutosaveIdleState() {
+        const savedAt = getAutosaveLastSavedAt();
+        if (savedAt) {
+            const parsed = new Date(savedAt);
+            if (!Number.isNaN(parsed.getTime())) {
+                updateAutosaveSavedAt(parsed);
+                return;
+            }
+        }
+
+        setAutosaveStatusText(getAutosaveIdleLabel());
+    }
+
+    function clearAutosaveTimer() {
+        if (autosaveState.timerId) {
+            clearTimeout(autosaveState.timerId);
+            autosaveState.timerId = null;
+        }
+
+        stopAutosaveCountdown();
+    }
+
+    function scheduleAutosave() {
+        clearAutosaveTimer();
+
+        if (!isAutosaveEnabled()) {
+            if (hasAutosaveUi()) {
+                showAutosaveIdleState();
+            }
+            return;
+        }
+
+        if (state.hadValidationError) {
+            state.hadValidationError = false;
+        }
+
+        showAutosaveIdleState();
+        startAutosaveCountdown();
+        autosaveState.timerId = setTimeout(function () {
+            autosaveState.timerId = null;
+            runAutosave();
+        }, autosaveState.debounceMs);
+    }
+
+    function notifyAutosaveChange() {
+        if (isStatusChangeLocked()) {
+            clearAutosaveTimer();
+            return;
+        }
+        scheduleAutosave();
+    }
+
+    function runAutosave() {
+        if (!isAutosaveEnabled()) {
+            if (hasAutosaveUi()) {
+                showAutosaveIdleState();
+            }
+            return;
+        }
+
+        if (state.active) {
+            stopAutosaveCountdown();
+            autosaveState.timerId = setTimeout(function () {
+                autosaveState.timerId = null;
+                runAutosave();
+            }, autosaveState.retryDelayMs);
+            return;
+        }
+
+        if (state.hadValidationError) {
+            stopAutosaveCountdown();
+            return;
+        }
+
+        const button = findAutosaveButton();
+        if (!button) {
+            stopAutosaveCountdown();
+            return;
+        }
+
+        stopAutosaveCountdown();
+        setAutosaveStatusText(getAutosaveSavingLabel());
+        saveWithoutReload(button);
     }
 
     function normalizeTarget(target) {
@@ -234,7 +728,7 @@
         state.button.style.pointerEvents = disabled ? 'none' : '';
     }
 
-    function resetState(success) {
+    function resetState(success, showFailure) {
         const button = state.button;
         const originalLabel = state.originalLabel;
         const statusSelect = findStatusSelect();
@@ -276,6 +770,12 @@
         button.disabled = false;
         button.style.opacity = '';
         button.style.pointerEvents = '';
+
+        if (!success && showFailure && hasAutosaveUi()) {
+            showAutosaveFailure();
+        } else if (!success && !isAutosaveEnabled()) {
+            showAutosaveIdleState();
+        }
     }
 
     function scheduleSuccessFallback() {
@@ -537,12 +1037,12 @@
             // Let Nova finish rendering validation UI for this 422.
             // Resetting state synchronously can interfere with Nova's
             // follow-up DOM updates/timing.
-            setTimeout(function () { resetState(false); }, 0);
+            setTimeout(function () { resetState(false, true); }, 0);
             return;
         }
 
         if (status >= 400) {
-            resetState(false);
+            resetState(false, true);
             return;
         }
 
@@ -561,6 +1061,9 @@
         resetNovaValidationErrorsForCurrentForm();
         state.hadValidationError = false;
         state.requestSucceeded = true;
+        if (isExistingResource()) {
+            updateAutosaveSavedAt(new Date());
+        }
         scheduleSuccessFallback();
     }
 
@@ -607,7 +1110,7 @@
                 return response;
             }).catch(function (error) {
                 if (isNovaSaveRequest(method, url)) {
-                    resetState(false);
+                    resetState(false, true);
                 }
 
                 throw error;
@@ -868,6 +1371,11 @@
         installNavigationPatches();
         installLocationPatches();
         patchLocationHrefSetter();
+        installNovaFieldChangePatch();
+        installTagFieldObserver();
+        installAutosaveListeners();
+        initializeAutosaveStatus();
+        initializePreviewNotices();
     }
 
     function findUpdateButton() {
@@ -930,6 +1438,9 @@
         state.validationScrollLockUntil = Date.now() + 8000;
 
         setButtonState(button.dataset.savingLabel || state.originalLabel, true);
+        if (hasAutosaveUi()) {
+            setAutosaveStatusText(getAutosaveSavingLabel());
+        }
 
         if (state.timeoutId) {
             clearTimeout(state.timeoutId);
@@ -937,15 +1448,120 @@
 
         state.timeoutId = setTimeout(function () {
             if (state.active) {
-                resetState(false);
+                resetState(false, true);
             }
         }, 30000);
 
         submitButton.click();
     }
 
+    function installAutosaveListeners() {
+        if (autosaveState.listenersInstalled) return;
+
+        const isSearchOnlyInput = function (target) {
+            if (!target || !target.closest) return false;
+
+            return !!(
+                (target.matches && target.matches('input[type="search"]'))
+                || target.closest('[dusk$="-search-input"], [role="combobox"], [dusk$="-dropdown"], [dusk$="-results"]')
+            );
+        };
+
+        const isCkEditorDialogInput = function (target) {
+            if (!target || !target.closest) return false;
+
+            return !!target.closest(
+                '.ck, .ck-body-wrapper, .ck-balloon-panel, .ck-dialog, .ck-termin-overlay, .ck-termin-modal'
+            );
+        };
+
+        const isStatusFieldTarget = function (target) {
+            const statusSelect = findStatusSelect();
+            return !!(target && statusSelect && target === statusSelect);
+        };
+
+        const isTextLikeInputChange = function (event, target) {
+            if (!event || event.type !== 'change' || !target || !target.tagName) {
+                return false;
+            }
+
+            if (target.tagName.toLowerCase() === 'textarea') {
+                return true;
+            }
+
+            if (target.tagName.toLowerCase() !== 'input') {
+                return false;
+            }
+
+            const type = (target.type || 'text').toLowerCase();
+            return !['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'date', 'datetime-local', 'month', 'time', 'week'].includes(type);
+        };
+
+        const handleDomChange = function (event) {
+            const target = event && event.target;
+            if (!target) return;
+
+            if (target.closest && target.closest('[data-form-action-bar="1"]')) {
+                return;
+            }
+
+            if (isSearchOnlyInput(target)) {
+                return;
+            }
+
+            if (isCkEditorDialogInput(target)) {
+                return;
+            }
+
+            if (isStatusFieldTarget(target)) {
+                lockAutosaveForStatusChange();
+                return;
+            }
+
+            if (isTextLikeInputChange(event, target)) {
+                return;
+            }
+
+            if (!isAutosaveEnabled()) {
+                clearAutosaveTimer();
+                if (hasAutosaveUi()) {
+                    showAutosaveIdleState();
+                }
+                return;
+            }
+
+            unlockAutosaveStatusChangeLock();
+            notifyAutosaveChange();
+        };
+
+        document.addEventListener('input', handleDomChange, true);
+        document.addEventListener('change', handleDomChange, true);
+        document.addEventListener('nova-autosave:change', function () {
+            if (!isAutosaveEnabled()) {
+                clearAutosaveTimer();
+                if (hasAutosaveUi()) {
+                    showAutosaveIdleState();
+                }
+                return;
+            }
+            unlockAutosaveStatusChangeLock();
+            notifyAutosaveChange();
+        });
+
+        if (window.Nova && typeof window.Nova.$on === 'function') {
+            window.Nova.$on('nova-flexible-content-add-group', function () {
+                if (!isAutosaveEnabled()) return;
+                unlockAutosaveStatusChangeLock();
+                notifyAutosaveChange();
+            });
+        }
+
+        autosaveState.listenersInstalled = true;
+    }
+
     window.NovaCustomSave = {
         saveWithoutReload: saveWithoutReload,
+        notifyChange: notifyAutosaveChange,
     };
 
     if (document.readyState === 'loading') {

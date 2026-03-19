@@ -145,6 +145,17 @@ export default {
   },
 
   methods: {
+    notifyAutosaveChange(source) {
+      if (typeof document === "undefined") return;
+
+      document.dispatchEvent(new CustomEvent("nova-autosave:change", {
+        detail: {
+          attribute: this.field.attribute,
+          source: source || "image-gallery",
+        },
+      }));
+    },
+
     setInitialValue() {
       if (this.field.value) {
         if (typeof this.field.value === 'object') {
@@ -236,6 +247,7 @@ export default {
               author: "",
               description: "",
             });
+            this.notifyAutosaveChange("image-gallery-upload");
           } catch (error) {
             console.error("Ошибка загрузки файла:", error);
           } finally {
@@ -254,6 +266,7 @@ export default {
 
     removeImage(index) {
       this.value.splice(index, 1);
+      this.notifyAutosaveChange("image-gallery-remove");
     },
 
     dragStart(index, event) {
@@ -268,6 +281,7 @@ export default {
       this.value.splice(index, 0, movedItem);
 
       this.draggedIndex = null;
+      this.notifyAutosaveChange("image-gallery-reorder");
     },
 
     fill(formData) {

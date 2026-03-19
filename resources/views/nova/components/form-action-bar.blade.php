@@ -8,7 +8,14 @@
     $copyIcon = "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>";
 @endphp
 
-<div id="nova-info-bar" data-form-action-bar="1" style="display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:0;">
+<div
+    id="nova-info-bar"
+    data-form-action-bar="1"
+    @if (!empty($autosave['enabled']))
+        data-autosave-enabled="1"
+    @endif
+    style="display:flex;align-items:center;gap:8px;justify-content:flex-end;padding:0;"
+>
     @if (!empty($heading))
         <span style="flex:1;font-size:14px;font-weight:600;color:#0f172a;">{{ $heading }}</span>
     @elseif (!empty($linkBlock['url']))
@@ -32,7 +39,15 @@
             </span>
 
             @if (!empty($linkBlock['notice']))
-                <span style="font-size:11px;color:#64748b;line-height:1.5;">{{ $linkBlock['notice'] }}</span>
+                <span
+                    style="font-size:11px;color:#64748b;line-height:1.5;"
+                    @if (!empty($linkBlock['noticeExpiresAt']))
+                        data-preview-notice="1"
+                        data-preview-expires-at="{{ $linkBlock['noticeExpiresAt'] }}"
+                        data-preview-prefix="{{ $linkBlock['noticePrefix'] ?? '' }}"
+                        data-preview-suffix="{{ $linkBlock['noticeSuffix'] ?? '' }}"
+                    @endif
+                >{{ $linkBlock['notice'] }}</span>
             @endif
         </span>
     @elseif (!empty($metaBlock['items']))
@@ -48,31 +63,62 @@
         <span style="flex:1;"></span>
     @endif
 
-    @if ($secondaryAction)
-        <button
-            type="button"
-            onclick="{{ $secondaryAction['js'] }}"
-            style="{{ $secondaryActionStyles[$secondaryAction['variant']] ?? $secondaryActionStyles['neutral-link'] }}"
-        >{{ $secondaryAction['label'] }}</button>
-    @endif
+    @if ($secondaryAction || $stayAction || $saveAction || !empty($autosave['enabled']))
+        <span style="display:inline-flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0;">
+            <span style="display:inline-flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+                @if ($secondaryAction)
+                    <button
+                        type="button"
+                        onclick="{{ $secondaryAction['js'] }}"
+                        style="{{ $secondaryActionStyles[$secondaryAction['variant']] ?? $secondaryActionStyles['neutral-link'] }}"
+                    >{{ $secondaryAction['label'] }}</button>
+                @endif
 
-    @if ($stayAction)
-        <button
-            type="button"
-            onclick="{{ $stayAction['js'] }}"
-            data-saving-label="{{ $stayAction['savingLabel'] }}"
-            @if (!is_null($stayAction['originalStatus']))
-                data-original-status="{{ $stayAction['originalStatus'] }}"
+                @if ($stayAction)
+                    <button
+                        type="button"
+                        onclick="{{ $stayAction['js'] }}"
+                        data-saving-label="{{ $stayAction['savingLabel'] }}"
+                        @if (!is_null($stayAction['originalStatus']))
+                            data-original-status="{{ $stayAction['originalStatus'] }}"
+                        @endif
+                        style="{{ ($stayAction['variant'] ?? null) === 'primary' ? $saveButtonStyle : ($secondaryActionStyles[$stayAction['variant']] ?? $secondaryActionStyles['neutral-link']) }}"
+                    >{{ $stayAction['label'] }}</button>
+                @endif
+
+                @if ($saveAction)
+                    <button
+                        type="button"
+                        onclick="{{ $saveAction['js'] }}"
+                        style="{{ $saveButtonStyle }}"
+                    >{{ $saveAction['label'] }}</button>
+                @endif
+            </span>
+
+            @if (!empty($autosave['enabled']))
+                <span
+                    style="display:inline-flex;align-items:center;justify-content:flex-end;width:100%;min-height:20px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;line-height:1.2;text-align:right;box-sizing:border-box;"
+                    data-autosave-status-root="1"
+                    data-autosave-label="{{ $autosave['statusLabel'] }}"
+                    data-autosave-idle-label="{{ $autosave['idleLabel'] }}"
+                    data-last-saved-label="{{ $autosave['lastSavedLabel'] }}"
+                    data-autosave-failure-label="{{ __('form_action_bar.autosave_failed') }}"
+                    data-autosave-countdown-prefix="{{ __('form_action_bar.autosave_in') }}"
+                    data-autosave-countdown-suffix="{{ __('form_action_bar.autosave_seconds_short') }}"
+                    @if (!empty($autosave['updatedAtIso']))
+                        data-last-saved-at="{{ $autosave['updatedAtIso'] }}"
+                    @endif
+                >
+                    <span
+                        style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:20px;"
+                        data-autosave-status-text="1"
+                    >{{ $autosave['idleLabel'] }}</span>
+                    <span
+                        style="display:none;align-items:center;height:20px;margin-left:8px;padding:0 6px;border-radius:9999px;background:#f1f5f9;color:#475569;white-space:nowrap;box-sizing:border-box;flex-shrink:0;"
+                        data-autosave-countdown-text="1"
+                    ></span>
+                </span>
             @endif
-            style="{{ ($stayAction['variant'] ?? null) === 'primary' ? $saveButtonStyle : ($secondaryActionStyles[$stayAction['variant']] ?? $secondaryActionStyles['neutral-link']) }}"
-        >{{ $stayAction['label'] }}</button>
-    @endif
-
-    @if ($saveAction)
-        <button
-            type="button"
-            onclick="{{ $saveAction['js'] }}"
-            style="{{ $saveButtonStyle }}"
-        >{{ $saveAction['label'] }}</button>
+        </span>
     @endif
 </div>

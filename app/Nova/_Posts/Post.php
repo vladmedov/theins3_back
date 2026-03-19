@@ -145,13 +145,11 @@ abstract class Post extends Resource
         }
 
         $previewNotice = '';
+        $previewNoticeExpiresAt = null;
         if ($isDraft && $postUrl) {
             $expiresAt = Carbon::now()->addMinutes(PostPreviewTokenService::TTL_MINUTES);
-            $userTz = auth()->user()->timezone ?? config('app.timezone');
-            if ($userTz && in_array($userTz, timezone_identifiers_list(), true)) {
-                $expiresAt = $expiresAt->copy()->setTimezone($userTz);
-            }
-            $previewNotice = __('Preview valid until') . ' ' . $expiresAt->format('d.m.Y H:i');
+            $previewNoticeExpiresAt = $expiresAt->copy()->toIso8601String();
+            $previewNotice = __('Preview valid until') . ' ...';
             $previewNotice .= ' · ' . __('To refresh the token, reload the page.');
         }
 
@@ -167,6 +165,13 @@ abstract class Post extends Resource
             'url' => $postUrl ? [
                 'url' => $postUrl,
                 'notice' => $previewNotice ?: null,
+                'noticeExpiresAt' => $previewNoticeExpiresAt,
+                'noticePrefix' => __('Preview valid until'),
+                'noticeSuffix' => __('To refresh the token, reload the page.'),
+            ] : null,
+            'autosave' => $isDraft ? [
+                'enabled' => true,
+                'updated_at' => $this->updated_at,
             ] : null,
         ];
         $FormActionBarTop = PanelWithoutHeader::make([
@@ -195,6 +200,7 @@ abstract class Post extends Resource
             DateTimeSplit::make(__('Publication date'), 'published_at')
                 ->onlyOnForms()
                 ->default(now())
+                ->help(__('Time is shown in your device timezone.'))
                 ->rules('required'),
 
             Text::make(__('Publication date'), 'published_at')
@@ -203,9 +209,10 @@ abstract class Post extends Resource
                 ->rules('required', 'max:255')
                 ->displayUsing(function ($date, $resource) use ($request) {
                     $url =  config('nova.path') . static::redirectAfterUpdate($request, $this);
+                    $formattedDate = static::formatPublishedAtForUser($date);
                     return $resource->status == 'published' 
-                        ? "<a href='{$url}'><span class='font-bold text-green-600'>{$date->format('d.m.Y H:i:s')}</span>" 
-                        : "<a href='{$url}'><span class='font-bold text-red-600'>{$date->format('d.m.Y H:i:s')}</span></a>";
+                        ? "<a href='{$url}'><span class='font-bold text-green-600'>{$formattedDate}</span>" 
+                        : "<a href='{$url}'><span class='font-bold text-red-600'>{$formattedDate}</span></a>";
                 })
                 ->asHtml(),
 
@@ -559,6 +566,21 @@ abstract class Post extends Resource
     public static function updateButtonLabel(): string
     {
         return __('Save');
+    }
+
+    protected static function formatPublishedAtForUser($publishedAt): ?string
+    {
+        if (!$publishedAt) {
+            return null;
+        }
+
+        $userTz = auth()->user()->timezone ?? config('app.timezone');
+
+        if ($userTz && in_array($userTz, timezone_identifiers_list(), true)) {
+            $publishedAt = $publishedAt->copy()->setTimezone($userTz);
+        }
+
+        return $publishedAt->format('d.m.Y H:i:s');
     }
 
     public static function defaultOrderings(\Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
