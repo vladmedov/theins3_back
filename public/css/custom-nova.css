@@ -236,3 +236,39 @@ form .tab-group .tab.fields-tab > div {
     padding-left: 0 !important;
     padding-right: 0 !important;
 }
+
+/* Файл изображения / Image (Nova file-field): длинный путь не вылезает за экран на мобильных */
+@media (max-width: 768px) {
+    [dusk="content"] [dusk="image-field"],
+    [dusk="content"] [dusk="cover_image-field"] {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    [dusk="content"] [dusk="image-field"] p,
+    [dusk="content"] [dusk="image-field"] a,
+    [dusk="content"] [dusk="image-field"] span,
+    [dusk="content"] [dusk="cover_image-field"] p,
+    [dusk="content"] [dusk="cover_image-field"] a,
+    [dusk="content"] [dusk="cover_image-field"] span {
+        max-width: 100% !important;
+        white-space: normal !important;
+        word-break: break-all !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* Любое поле с загрузкой файла (file-field), если dusk другой */
+    [dusk="content"] .field-wrapper:has(input[type="file"]) {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    [dusk="content"] .field-wrapper:has(input[type="file"]) p,
+    [dusk="content"] .field-wrapper:has(input[type="file"]) a {
+        max-width: 100% !important;
+        white-space: normal !important;
+        word-break: break-all !important;
+        overflow-wrap: anywhere !important;
+    }
+}
