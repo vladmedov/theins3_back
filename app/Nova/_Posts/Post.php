@@ -195,12 +195,13 @@ abstract class Post extends Resource
                 ])
                 ->default('draft')
                 ->displayUsingLabels()
-                ->onlyOnForms(),
+                ->onlyOnForms()
+                ->help(__('Autosave is disabled for this field.')),
 
             DateTimeSplit::make(__('Publication date'), 'published_at')
                 ->onlyOnForms()
                 ->default(now())
-                ->help(__('Time is shown in your device timezone.'))
+                ->help(__('Time is shown in your device timezone.') . ' ' . __('Autosave is disabled for this field.'))
                 ->rules('required'),
 
             Text::make(__('Publication date'), 'published_at')

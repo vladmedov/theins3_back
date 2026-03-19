@@ -1618,6 +1618,13 @@
             return !!(target && statusSelect && target === statusSelect);
         };
 
+        /** Выбор файлов даёт change до окончания upload (ImageGallery и др.) — автосохранение только после nova-autosave:change из поля */
+        const isFilePickerInput = function (target) {
+            if (!target || !target.tagName) return false;
+            if (target.tagName.toLowerCase() !== 'input') return false;
+            return (target.type || '').toLowerCase() === 'file';
+        };
+
         const isTextLikeInputChange = function (event, target) {
             if (!event || event.type !== 'change' || !target || !target.tagName) {
                 return false;
@@ -1653,6 +1660,10 @@
 
             if (isStatusFieldTarget(target)) {
                 lockAutosaveForStatusChange();
+                return;
+            }
+
+            if (isFilePickerInput(target)) {
                 return;
             }
 

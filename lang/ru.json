@@ -1,4 +1,5 @@
 {
     "To refresh the token, reload the page.": "Для обновления токена — обновите страницу.",
-    "Time is shown in your device timezone.": "Время указано в часовом поясе вашего устройства."
+    "Time is shown in your device timezone.": "Время указано в часовом поясе вашего устройства.",
+    "Autosave is disabled for this field.": "Автосохранение для поля выключено."
 }
