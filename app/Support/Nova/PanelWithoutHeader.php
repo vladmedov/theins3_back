@@ -14,7 +14,8 @@ class PanelWithoutHeader extends Panel
 
     /**
      * Create a new panel with no visible header.
-     * Uses a unique placeholder name so Nova renders the panel, header is hidden via JS.
+     * We keep a non-empty unique name so Nova doesn't omit the panel, and we try
+     * to hide the header via `hideHeader` meta + CSS.
      *
      * @param  array<int, \Laravel\Nova\Fields\Field|\Laravel\Nova\Panel>  $fields
      * @param  string  $name  Unique identifier (e.g. 'general3') — required, must differ for each panel

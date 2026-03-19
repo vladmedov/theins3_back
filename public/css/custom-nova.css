@@ -130,7 +130,7 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 .overflow-hidden:has(#nova-info-bar) {
     background: #f8f8f8 !important;
     box-shadow: none !important;
-    border: 1px solid #e0e0e0 !important;
+    border: 2px solid #ccc !important;
     border-radius: 6px !important;
 }
 
@@ -147,7 +147,7 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 
 [role="tablist"] {
     background-color: #f8f8f8 !important;
-    border-bottom: 1px solid #e5e7eb !important;
+    border-bottom: 0px !important;
     padding: 0 !important;
     gap: 0 !important;
 }
@@ -160,7 +160,7 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
     padding: 10px 20px !important;
     border: none !important;
     border-right: 1px solid #e5e7eb !important;
-    box-shadow: none !important;
+    box-shadow: inset 0 -3px 0 #eee !important;
     outline: none !important;
     transition: color 0.15s ease, background-color 0.15s ease !important;
 }
@@ -188,11 +188,14 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
     display: none !important;
 }
 
-/* FLEXIBLE */
-
-.menu-container {
-    padding: 25px 25px 15px 25px !important;
+/* PanelWithoutHeader in Post/others uses placeholder name, so title isn't empty. */
+[dusk^="pnl-"] h1,
+[dusk^="pnl-"] h2,
+[dusk^="pnl-"] h3 {
+    display: none !important;
 }
+
+/* FLEXIBLE */
 
 [dusk^="content-"] .rounded-t-lg,
 [dusk^="content-"] .rounded-b-lg {
@@ -234,4 +237,13 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 
 [dusk^="content-"] > .w-full > .grow > div.py-5 {
     padding: 20px 40px !important;
+}
+
+/* Replace nova-custom.js: remove padding inside tab panels */
+[dusk$="-tab-panel"] .py-6.px-8.w-full,
+[role="tabpanel"] .py-6.px-8.w-full {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }

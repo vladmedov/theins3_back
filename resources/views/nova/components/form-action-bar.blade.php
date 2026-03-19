@@ -16,7 +16,7 @@
             <span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;">{{ $linkBlock['eyebrow'] }}</span>
                 <span style="display:inline-flex;align-items:center;gap:6px;width:fit-content;max-width:100%;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:3px 4px 3px 6px;">
-                    <a href="{{ $linkBlock['url'] }}" target="_blank" style="margin-top:1px;font-size:11px;color:#0f172a;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ $linkBlock['url'] }}</a>
+                    <a href="{{ $linkBlock['url'] }}" target="_blank" style="margin-top:1px;font-size:12px;font-weight:600;color:#0f172a;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.2;">{{ $linkBlock['url'] }}</a>
                     @if (!empty($linkBlock['copyable']))
                         <button
                             type="button"
