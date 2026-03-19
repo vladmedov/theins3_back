@@ -95,7 +95,7 @@ class Author extends Model {
     }
 
     public function getFullNameAttribute() {
-        return $this->first_name . ' ' . $this->last_name;
+        return trim($this->first_name . ' ' . ($this->last_name ?? ''));
     }
 
     public function getAvatarUrlAttribute()
