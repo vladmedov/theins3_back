@@ -505,18 +505,22 @@ abstract class Post extends Resource
                 ->rules('max:255'),
         ];
 
-        // Tabs
-        if (static::getPostType() !== PostTypes::ONLINE) {
-            $publicationGroup = Tab::group(fields: [
-                Tab::make(__('General'), $general),
-                Tab::make(__('Content'), $content),
-                Tab::make(__('Settings'), $settings),
-            ]);
+        // Create: без табов — одна форма. Edit: вкладки Общее / Контент / Настройки.
+        if ($this->exists) {
+            if (static::getPostType() !== PostTypes::ONLINE) {
+                $publicationGroup = Tab::group(fields: [
+                    Tab::make(__('General'), $general, 'general'),
+                    Tab::make(__('Content'), $content, 'content'),
+                    Tab::make(__('Settings'), $settings, 'settings'),
+                ]);
+            } else {
+                $publicationGroup = Tab::group(fields: [
+                    Tab::make(__('General'), $general, 'general'),
+                    Tab::make(__('Settings'), $settings, 'settings'),
+                ]);
+            }
         } else {
-            $publicationGroup = Tab::group(fields: [
-                Tab::make(__('General'), $general),
-                Tab::make(__('Settings'), $settings),
-            ]);
+            $publicationFields = PanelWithoutHeader::make($general);
         }
 
         // Access
@@ -543,7 +547,7 @@ abstract class Post extends Resource
             Hidden::make(__('Type'), 'type')->default(static::getPostType()),
             $FormActionBarTop,
             PostHistory::make(),
-            $publicationGroup,
+            $this->exists ? $publicationGroup : $publicationFields,
             $FormActionBarBottom,
             $access,
         ];
@@ -551,7 +555,13 @@ abstract class Post extends Resource
 
     public static function redirectAfterCreate(NovaRequest $request, NovaResource $resource)
     {
-        return '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';
+        $path = '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';
+
+        if (static::getPostType() !== PostTypes::ONLINE) {
+            $path .= '?nova_tab=content';
+        }
+
+        return $path;
     }
 
     public static function redirectAfterUpdate(NovaRequest $request, NovaResource $resource)

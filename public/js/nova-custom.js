@@ -1854,6 +1854,60 @@
 (function () {
     const PREFIX = 'nova_tab_';
 
+    function resourcesPathMeta() {
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        const resIdx = parts.indexOf('resources');
+        return {
+            resource: resIdx >= 0 ? (parts[resIdx + 1] || '') : '',
+            id: resIdx >= 0 ? (parts[resIdx + 2] || '') : '',
+        };
+    }
+
+    function createIntentKey(resource) {
+        return resource ? PREFIX + resource + '_after_create' : '';
+    }
+
+    function rememberOpenContentTabAfterCreate() {
+        const { resource, id } = resourcesPathMeta();
+        if (id !== 'new' || !resource) return;
+        try {
+            localStorage.setItem(createIntentKey(resource), 'content');
+        } catch (err) {}
+    }
+
+    document.addEventListener(
+        'click',
+        function (e) {
+            const btn = e.target && e.target.closest && e.target.closest('[dusk="create-button"], [dusk="create-and-add-another-button"]');
+            if (!btn || btn.disabled) return;
+            rememberOpenContentTabAfterCreate();
+        },
+        true
+    );
+
+    document.addEventListener('submit', rememberOpenContentTabAfterCreate, true);
+
+    /** Редирект после create (?nova_tab=…) — читаем из URL каждый раз (после strip параметра пропадает). */
+    function slugFromNovaTabQuery() {
+        try {
+            const raw = new URLSearchParams(window.location.search).get('nova_tab');
+            if (raw && /^[a-z0-9_-]+$/i.test(raw)) {
+                return raw;
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    function stripNovaTabQueryFromUrl() {
+        try {
+            const u = new URL(window.location.href);
+            if (!u.searchParams.has('nova_tab')) return;
+            u.searchParams.delete('nova_tab');
+            const qs = u.searchParams.toString();
+            window.history.replaceState({}, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+        } catch (e) {}
+    }
+
     function storageKey(panel) {
         // Nova URL: /nova/resources/{type}/{id}/edit
         const parts = window.location.pathname.split('/').filter(Boolean);
@@ -1868,49 +1922,97 @@
     }
 
     function initPanel(panel) {
-        if (panel.dataset.tabMemory) return;
-
         const buttons = panel.querySelectorAll('[dusk$="-tab-trigger"]');
         if (!buttons.length) return;
 
-        panel.dataset.tabMemory = '1';
-
-        // Persist active tab on every click
-        buttons.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const attr = btn.getAttribute('dusk').replace(/-tab-trigger$/, '');
-                try { localStorage.setItem(storageKey(panel), attr); } catch (e) {}
+        if (panel.dataset.novaTabListeners !== '1') {
+            panel.dataset.novaTabListeners = '1';
+            buttons.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const attr = btn.getAttribute('dusk').replace(/-tab-trigger$/, '');
+                    try {
+                        localStorage.setItem(storageKey(panel), attr);
+                    } catch (e) {}
+                });
             });
-        });
+        }
 
-        // Restore last saved tab.
-        // Hide tab-card immediately to avoid the visible first-tab flash,
-        // then click the saved tab and reveal the content.
+        if (panel.dataset.novaTabRestored === '1') return;
+
         let saved;
-        try { saved = localStorage.getItem(storageKey(panel)); } catch (e) {}
-        if (saved) {
-            const target = panel.querySelector('[dusk="' + saved + '-tab-trigger"]');
-            if (target && !target.disabled) {
-                const tabCard = panel.querySelector('.tab-card');
-                if (tabCard) tabCard.style.visibility = 'hidden';
-                setTimeout(function () {
-                    target.click();
-                    if (tabCard) tabCard.style.visibility = '';
-                }, 0);
+        try {
+            saved = localStorage.getItem(storageKey(panel));
+        } catch (e) {}
+
+        const tabFromUrl = slugFromNovaTabQuery();
+        if (tabFromUrl) {
+            saved = tabFromUrl;
+        } else {
+            const pathMeta = resourcesPathMeta();
+            if (!saved && pathMeta.resource && /^\d+$/.test(pathMeta.id)) {
+                try {
+                    if (localStorage.getItem(createIntentKey(pathMeta.resource)) === 'content') {
+                        saved = 'content';
+                    }
+                } catch (e) {}
             }
         }
+
+        if (!saved) {
+            panel.dataset.novaTabRestored = '1';
+            return;
+        }
+
+        let target = panel.querySelector('[dusk="' + saved + '-tab-trigger"]');
+        if (!target && saved === 'content') {
+            target = panel.querySelector('[dusk="content-tab-trigger"]');
+        }
+        if (!target || target.disabled) {
+            return;
+        }
+
+        panel.dataset.novaTabRestored = '1';
+
+        const pathMeta = resourcesPathMeta();
+        const intentKey = createIntentKey(pathMeta.resource);
+        const tabCard = panel.querySelector('.tab-card');
+        if (tabCard) tabCard.style.visibility = 'hidden';
+        setTimeout(function () {
+            try {
+                if (saved === 'content' && intentKey && localStorage.getItem(intentKey) === 'content') {
+                    localStorage.removeItem(intentKey);
+                }
+            } catch (e) {}
+            if (tabFromUrl) {
+                stripNovaTabQueryFromUrl();
+                try {
+                    localStorage.setItem(storageKey(panel), saved);
+                } catch (e) {}
+            }
+            target.click();
+            if (tabCard) tabCard.style.visibility = '';
+        }, 0);
     }
 
-    // Watch for panels added by Vue/Nova SPA navigation
-    new MutationObserver(function (mutations) {
-        for (const m of mutations) {
-            for (const node of m.addedNodes) {
-                if (node.nodeType !== 1) continue;
-                if (node.matches && node.matches('[dusk$="-tab-panel"]')) initPanel(node);
-                if (node.querySelectorAll) {
-                    node.querySelectorAll('[dusk$="-tab-panel"]').forEach(initPanel);
-                }
-            }
-        }
+    function scanTabPanels() {
+        document.querySelectorAll('[dusk$="-tab-panel"]').forEach(initPanel);
+    }
+
+    scanTabPanels();
+    document.addEventListener('DOMContentLoaded', scanTabPanels);
+    requestAnimationFrame(function () {
+        requestAnimationFrame(scanTabPanels);
+    });
+    setTimeout(scanTabPanels, 0);
+    setTimeout(scanTabPanels, 120);
+    setTimeout(scanTabPanels, 400);
+
+    let tabScanTimer;
+    new MutationObserver(function () {
+        clearTimeout(tabScanTimer);
+        tabScanTimer = setTimeout(scanTabPanels, 50);
     }).observe(document.documentElement, { childList: true, subtree: true });
+
+    document.addEventListener('inertia:finish', scanTabPanels);
+    window.addEventListener('popstate', scanTabPanels);
 }());
