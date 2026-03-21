@@ -81,42 +81,75 @@ class MailchimpController extends Controller
 
     private function verifyRecaptcha(string $token): bool
     {
-        $secretKey = config('services.recaptcha.secret_key');
+        $siteKey = config('services.recaptcha.site_key');
+        $apiKey = config('services.recaptcha.api_key');
+        $projectId = config('services.recaptcha.project_id');
+        $expectedAction = config('services.recaptcha.expected_action', 'newsletter_subscribe');
+        $minScore = (float) config('services.recaptcha.min_score', 0.5);
 
-        if (!$secretKey) {
-            \Log::error('reCAPTCHA secret key not configured');
+        if (!$siteKey || !$apiKey || !$projectId) {
+            \Log::error('reCAPTCHA Enterprise is not fully configured', [
+                'has_site_key' => (bool) $siteKey,
+                'has_api_key' => (bool) $apiKey,
+                'has_project_id' => (bool) $projectId,
+            ]);
             return false;
         }
 
         try {
-            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret' => $secretKey,
-                'response' => $token,
-                'remoteip' => request()->ip(),
-            ]);
+            $response = Http::acceptJson()
+                ->post(
+                    "https://recaptchaenterprise.googleapis.com/v1/projects/{$projectId}/assessments?key={$apiKey}",
+                    [
+                        'event' => [
+                            'token' => $token,
+                            'siteKey' => $siteKey,
+                            'expectedAction' => $expectedAction,
+                        ],
+                    ]
+                )
+                ->throw();
 
-            $result = $response->json();
+            $result = $response->json() ?? [];
+            $tokenProperties = $result['tokenProperties'] ?? [];
+            $riskAnalysis = $result['riskAnalysis'] ?? [];
+            $score = $riskAnalysis['score'] ?? null;
 
             \Log::debug('reCAPTCHA verification response', [
                 'result' => $result,
                 'ip' => request()->ip(),
             ]);
 
-            if (isset($result['success']) && $result['success']) {
-                if (isset($result['score'])) {
-                    if ($result['score'] >= 0.5) {
-                        return true;
-                    } else {
-                        \Log::warning('reCAPTCHA score too low', ['score' => $result['score']]);
-                        return false;
-                    }
-                }
-                
-                return true;
+            if (!($tokenProperties['valid'] ?? false)) {
+                \Log::warning('reCAPTCHA token is invalid', [
+                    'invalid_reason' => $tokenProperties['invalidReason'] ?? null,
+                    'action' => $tokenProperties['action'] ?? null,
+                ]);
+                return false;
             }
 
-            \Log::warning('reCAPTCHA verification failed', ['result' => $result]);
-            return false;
+            if (($tokenProperties['action'] ?? null) !== $expectedAction) {
+                \Log::warning('reCAPTCHA action mismatch', [
+                    'expected_action' => $expectedAction,
+                    'actual_action' => $tokenProperties['action'] ?? null,
+                ]);
+                return false;
+            }
+
+            if (!is_numeric($score)) {
+                \Log::warning('reCAPTCHA score is missing', ['result' => $result]);
+                return false;
+            }
+
+            if ((float) $score < $minScore) {
+                \Log::warning('reCAPTCHA score too low', [
+                    'score' => $score,
+                    'min_score' => $minScore,
+                ]);
+                return false;
+            }
+
+            return true;
 
         } catch (\Exception $e) {
             \Log::error('reCAPTCHA verification exception', ['error' => $e->getMessage()]);

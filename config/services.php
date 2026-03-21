@@ -46,7 +46,10 @@ return [
 
     'recaptcha' => [
         'site_key' => env('RECAPTCHA_SITE_KEY'),
-        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+        'api_key' => env('RECAPTCHA_API_KEY', env('RECAPTCHA_SECRET_KEY')),
+        'project_id' => env('RECAPTCHA_PROJECT_ID'),
+        'expected_action' => env('RECAPTCHA_EXPECTED_ACTION', 'newsletter_subscribe'),
+        'min_score' => (float) env('RECAPTCHA_MIN_SCORE', 0.5),
     ],
 
     'frontend_revalidation' => [
@@ -56,6 +59,10 @@ return [
         ),
         'secret' => env('FRONTEND_REVALIDATE_SECRET'),
         'timeout' => env('FRONTEND_REVALIDATE_TIMEOUT', 10),
+    ],
+
+    'oilprice' => [
+        'api_token' => env('OILPRICE_API_TOKEN'),
     ],
 
 ];

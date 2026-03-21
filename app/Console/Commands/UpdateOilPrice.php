@@ -12,16 +12,23 @@ class UpdateOilPrice extends Command
     protected $signature = 'update:oil';
     protected $description = 'Обновление цены на нефть Brent с OilPriceAPI';
 
-    private $apiToken = '045d673f0c2818722df391c420baaf1d';
-
     public function handle()
     {
         $this->info('Начало обновления цены на нефть...');
+        $apiToken = config('services.oilprice.api_token');
+
+        if (!$apiToken) {
+            $this->error('OILPRICE_API_TOKEN is not configured');
+            Log::error('UpdateOilPrice failed', [
+                'error' => 'OILPRICE_API_TOKEN is not configured',
+            ]);
+            return 1;
+        }
         
         try {
             $responseToday = Http::timeout(10)
                 ->withHeaders([
-                    'Authorization' => "Token {$this->apiToken}",
+                    'Authorization' => "Token {$apiToken}",
                     'Content-Type' => 'application/json',
                 ])
                 ->get('https://api.oilpriceapi.com/v1/prices/latest');
@@ -32,7 +39,7 @@ class UpdateOilPrice extends Command
             
             $responseYesterday = Http::timeout(10)
                 ->withHeaders([
-                    'Authorization' => "Token {$this->apiToken}",
+                    'Authorization' => "Token {$apiToken}",
                     'Content-Type' => 'application/json',
                 ])
                 ->get('https://api.oilpriceapi.com/v1/prices/past_day?by_code=BRENT_CRUDE_USD');
