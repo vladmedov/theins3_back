@@ -1,0 +1,48 @@
+# Контекст для `docker build`: что не копировать в демон (ускорение, безопасность).
+
+# ——— обязательные ———
+.git
+.gitignore
+.gitattributes
+.dockerignore
+Dockerfile
+docker-compose*.yml
+dev
+
+.DS_Store
+.idea
+
+# ——— Laravel: данные вне образа (тома в runtime) ———
+# storage* — в т.ч. бэкапы вида storage_backup_*
+storage
+storage*
+
+# ставятся и собираются внутри образа
+vendor
+node_modules
+
+# секреты и локальные env (в образ передавайте через ARG/ENV в CI)
+.env
+.env.*
+!.env.example
+auth.json
+
+# ——— testing ———
+coverage
+.phpunit.cache
+.phpunit.result.cache
+tests
+phpunit.xml
+
+# документация
+README.md
+*.md
+
+# локальная папка docs (дампы, заметки — не в образ)
+/docs
+
+# логи
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

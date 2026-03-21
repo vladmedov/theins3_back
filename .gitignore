@@ -1,25 +1,35 @@
-/.phpunit.cache
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# ——— Main project files ———
+/.idea
 /node_modules
-nova-components/nova-ckeditor/node_modules/
+/vendor
+/.env
+/docs
+
+# ——— Laravel / Vite ———
 /public/build
 /public/hot
 /public/storage
 /public/sitemap*
+
+# ——— testing ———
+/.phpunit.cache
+/.phpunit.result.cache
+/coverage
+
+# ——— ключи и приватная конфигурация Composer ———
 /storage/*.key
-/storage/pail
-/vendor
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
 /auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
+/dev/auth.json
+/dev/theins_prod_09112025_tar
+/dev/data/
+
+# ——— служебное ———
+/storage/pail
+
+# ——— логи npm / yarn при сбоях установки ———
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

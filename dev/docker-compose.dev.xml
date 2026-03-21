@@ -1,0 +1,160 @@
+secrets:
+  composer_auth:
+    file: ./auth.json
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf
+      - ..:/var/www/html
+    depends_on:
+      - backend
+    networks:
+      - laravel_network
+
+  backend:
+    image: theins3-php:dev
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: production
+      secrets:
+        - composer_auth
+    container_name: backend
+    restart: always
+    working_dir: /var/www/html
+    volumes:
+      - ..:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - laravel_network
+
+  backend-scheduler:
+    image: theins3-php:dev
+    pull_policy: never
+    container_name: backend-scheduler
+    restart: always
+    working_dir: /var/www/html
+    volumes:
+      - ..:/var/www/html
+    depends_on:
+      - backend
+      - db
+      - redis
+    networks:
+      - laravel_network
+    command: >
+      sh -c "
+      while true; do
+        php artisan schedule:run --verbose --no-interaction
+        sleep 60
+      done
+      "
+
+  db:
+    image: postgres:15
+    container_name: db
+    restart: always
+    environment:
+      POSTGRES_DB: theins
+      POSTGRES_USER: theins
+      POSTGRES_PASSWORD: ith4837wiuesq93r8wgfiub
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    networks:
+      - laravel_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    command: redis-server --appendonly yes
+    networks:
+      - laravel_network
+
+  legacy_db:
+    image: postgres:16
+    container_name: legacy_db
+    restart: always
+    environment:
+      POSTGRES_DB: theins_legacy
+      POSTGRES_USER: theins
+      POSTGRES_PASSWORD: ith4837wiuesq93r8wgfiub
+    ports:
+      - "5433:5432"  # Используем другой порт для внешнего доступа
+    volumes:
+      - ./data/legacy_db:/var/lib/postgresql/data
+      - ./theins_prod_09112025_tar:/backup/legacy.dump.tar:ro
+    networks:
+      - laravel_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
+      # Dev: when host disk is nearly full, ES flood watermark marks indices read-only
+      # and bulk/Scout writes fail. Disable disk thresholds locally only (not for prod).
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - laravel_network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: kibana
+    restart: always
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - laravel_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - ./data/pgadmin:/var/lib/pgadmin
+    depends_on:
+      - db
+      - legacy_db
+    networks:
+      - laravel_network
+
+networks:
+  laravel_network:
+    driver: bridge

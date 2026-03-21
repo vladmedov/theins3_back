@@ -61,24 +61,26 @@ class MainPageController extends Controller
                 ->get()
         )->toArray(request());
 
+        if (count($categories) < 2) {
+            return $categories;
+        }
+
         $firstCategories = [$categories[0], $categories[1]];
-        unset($categories[0]);
-        unset($categories[1]);
-        
+        unset($categories[0], $categories[1]);
+
         if ($language_code === 'ru') {
             $militaryTag = [
                 [
                     'type' => 'custom',
                     'path' => '/tags/vs',
                     'title' => 'Военная сводка',
-                ]
+                ],
             ];
-            $categories = array_merge($firstCategories, $militaryTag, $categories);
-        } else {
-            $categories = array_merge($firstCategories, $categories);
+
+            return array_merge($firstCategories, $militaryTag, $categories);
         }
 
-        return $categories;
+        return array_merge($firstCategories, $categories);
     }
 
     private function getNews($language_code)

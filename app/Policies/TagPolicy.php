@@ -2,10 +2,9 @@
 
 namespace App\Policies;
 
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
-
-use App\Enums\UserRoles;
 
 class TagPolicy
 {
@@ -36,9 +35,9 @@ class TagPolicy
         return true;
     }
 
-    public function view()
+    public function view(User $user, Tag $tag)
     {
-        return false;
+        return $this->viewAny($user);
     }
 
     public function replicate()

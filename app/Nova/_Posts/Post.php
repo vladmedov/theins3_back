@@ -481,21 +481,23 @@ abstract class Post extends Resource
                 ->onlyOnForms()
                 ->sortable()
                 ->fullWidth()
-                ->rules('max:255'),
+                ->rules('max:140'),
             
             Text::make(__('Page title'), 'seo_title')
                 ->hideFromIndex()
                 ->hideFromDetail()
                 ->sortable()
                 ->fullWidth()
-                ->rules('max:255'),
+                ->rules('max:140')
+                ->withMeta(['extraAttributes' => ['data-post-seo-title' => '1']]),
 
             Text::make(__('Page description'), 'seo_description')
                 ->hideFromIndex()
                 ->hideFromDetail()
                 ->sortable()
                 ->fullWidth()
-                ->rules('max:255'),
+                ->rules('max:255')
+                ->withMeta(['extraAttributes' => ['data-post-seo-description' => '1']]),
 
             Text::make(__('Page keywords'), 'seo_keywords')
                 ->hideFromIndex()
@@ -506,7 +508,12 @@ abstract class Post extends Resource
         ];
 
         // Create: без табов — одна форма. Edit: вкладки Общее / Контент / Настройки.
-        if ($this->exists) {
+        // Nova вызывает newResource() с пустой моделью для attachable/associatable/morphable,
+        // при этом resourceId в маршруте есть — без этого условия поля из вкладки «Настройки» (теги и т.д.)
+        // не попадают в availableFieldsOnIndexOrDetail и API отдаёт 404.
+        $expandPublicationTabs = $this->shouldExpandPublicationTabs($request);
+
+        if ($expandPublicationTabs) {
             if (static::getPostType() !== PostTypes::ONLINE) {
                 $publicationGroup = Tab::group(fields: [
                     Tab::make(__('General'), $general, 'general'),
@@ -547,10 +554,35 @@ abstract class Post extends Resource
             Hidden::make(__('Type'), 'type')->default(static::getPostType()),
             $FormActionBarTop,
             PostHistory::make(),
-            $this->exists ? $publicationGroup : $publicationFields,
+            $expandPublicationTabs ? $publicationGroup : $publicationFields,
             $FormActionBarBottom,
             $access,
         ];
+    }
+
+    /**
+     * Полная схема полей (вкладки) нужна не только при $this->exists: Nova для relatable API
+     * строит ресурс с newModel(), поэтому без проверки запроса поля из «Настроек» отсутствуют в ответе.
+     */
+    protected function shouldExpandPublicationTabs(Request $request): bool
+    {
+        if ($this->exists) {
+            return true;
+        }
+
+        if (! $request instanceof NovaRequest) {
+            return false;
+        }
+
+        if (filled($request->resourceId)) {
+            return true;
+        }
+
+        $path = $request->path();
+
+        return str_contains($path, '/associatable/')
+            || str_contains($path, '/attachable/')
+            || str_contains($path, '/morphable/');
     }
 
     public static function redirectAfterCreate(NovaRequest $request, NovaResource $resource)

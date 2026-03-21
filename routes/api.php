@@ -13,7 +13,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TrackingPixelController;
 use App\Http\Controllers\MailchimpController;
 
-Route::prefix('{language_code}')->group(function () {
+Route::prefix('{language_code}')->where(['language_code' => 'en|ru'])->group(function () {
     Route::get('/layout-data', [MainPageController::class, 'getLayoutData']);
     Route::get('/main-page', [MainPageController::class, 'getMainPage']);
     Route::get('/posts', [PostController::class, 'getAllExceptOpinions']);

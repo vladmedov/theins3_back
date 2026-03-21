@@ -1,0 +1,11 @@
+{
+    "http-basic": {
+        "nova.laravel.com": {
+            "username": "your-email@example.com",
+            "password": "your-nova-license-key"
+        }
+    },
+    "github-oauth": {
+        "github.com": "ghp_your_github_token"
+    }
+}

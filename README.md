@@ -1,61 +1,231 @@
-# Подсчет просмотров публикаций
+# The Insider v.3 — Backend
 
-docker compose exec app php artisan process:view-counts
+Серверная часть проекта на **Laravel 12** и **Laravel Nova**. Репозиторий отвечает за API, админку и фоновые процессы; публичный фронтенд живет отдельно и работает с этим бэкендом по HTTP/API.
 
-## About Laravel
+## Что здесь есть
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Laravel-приложение с Nova-админкой
+- PostgreSQL как основная база
+- Redis для кэша, сессий и очередей
+- Elasticsearch для поиска через Laravel Scout
+- Docker-окружение для локальной разработки
+- Инструменты для импорта данных из legacy-базы
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Требования
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Рекомендуемый вариант: Docker
 
-## Learning Laravel
+- Docker Engine
+- Docker Compose v2
+- `dev/auth.json` с ключом к [nova.laravel.com](https://nova.laravel.com) для установки приватных Composer-зависимостей
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Файл с примером: `dev/auth.json.example`.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Вариант без Docker
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP `8.2+`
+- Composer `2`
+- Node.js + npm
+- PostgreSQL
+- Redis
+- Elasticsearch
+- PHP-расширения для Laravel/Nova, используемые в проекте: `pdo_pgsql`, `zip`, `gd`, `exif`, `imagick`, `redis` и другие из `Dockerfile`
 
-## Laravel Sponsors
+## Сервисы приложения
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Ниже перечислены внешние сервисы, которые ожидает приложение.
 
-### Premium Partners
+| Сервис | Обязателен | Назначение |
+|--------|------------|------------|
+| PostgreSQL | Да | Основная база приложения |
+| Redis | Да | Кэш, сессии, очереди |
+| Elasticsearch | Да | Поиск и индексация через Laravel Scout |
+| nginx + PHP-FPM | Да | Веб-слой и обработка HTTP-запросов |
+| Laravel scheduler | Да | Периодический запуск `schedule:run` |
+| PostgreSQL legacy | Нет | Нужен для команд `legacy:*` и импорта старых данных |
+| Kibana | Нет | Удобна для отладки Elasticsearch |
+| pgAdmin | Нет | Удобна для ручной работы с PostgreSQL |
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+В локальном Docker-стеке этим ролям соответствуют сервисы из `dev/docker-compose.dev.xml`: `backend`, `backend-scheduler`, `db`, `redis`, `elasticsearch`, `legacy_db`, `nginx`, `kibana`, `pgadmin`.
 
-## Contributing
+## Быстрый старт
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1. Подготовить окружение
 
-## Code of Conduct
+```bash
+cp .env.example .env
+cp dev/auth.json.example dev/auth.json
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+После этого заполни `.env` и `dev/auth.json` реальными значениями.
 
-## Security Vulnerabilities
+### 2. Собрать PHP-образ
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+./dev.sh build backend
+```
 
-## License
+Альтернатива через npm:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+npm run dc -- build backend
+```
+
+Если нужен прямой `docker buildx`, образ собирается из `Dockerfile`, а секрет Composer передается так:
+
+```bash
+DOCKER_BUILDKIT=1 docker buildx build \
+  --secret id=composer_auth,src=dev/auth.json \
+  --target production \
+  -t theins3-php:dev .
+```
+
+### 3. Поднять стек
+
+```bash
+./dev.sh up -d
+```
+
+Или:
+
+```bash
+npm run dc -- up -d
+```
+
+### 4. Проверить сервисы
+
+```bash
+npm run dc -- ps
+```
+
+Основной PHP-сервис называется `backend`. Для artisan-команд используй именно его, а не старое имя `app`.
+
+## Повседневные команды
+
+### Artisan внутри контейнера
+
+```bash
+npm run artisan -- migrate
+npm run artisan -- optimize:clear
+npm run artisan -- process:view-counts
+npm run scout:reindex
+npm run scout:info
+```
+
+`npm run artisan -- ...` выполняет `php artisan` внутри контейнера `backend`.
+
+Для переиндексации `Post` есть отдельный shortcut. Он вызывает штатную команду пакета `scout:import` внутри контейнера `backend`.
+
+```bash
+npm run scout:reindex
+```
+
+Эквивалент без npm-алиасов:
+
+```bash
+npm run dc -- exec backend php artisan migrate
+npm run dc -- exec backend php artisan scout:import "App\\Models\\Post"
+```
+
+Для просмотра состояния Elasticsearch через Docker есть отдельные команды:
+
+```bash
+npm run scout:health
+npm run scout:indices
+npm run scout:aliases
+npm run scout:info
+```
+
+`scout:info` выводит cluster health, список индексов и список alias за один запуск.
+
+### Логи и отладка
+
+```bash
+./dev.sh logs -f backend
+./dev.sh logs -f nginx
+./dev.sh logs -f elasticsearch
+```
+
+### Остановка и перезапуск
+
+```bash
+./dev.sh down
+./dev.sh up -d
+```
+
+## Планировщик задач
+
+В Docker для периодических задач используется отдельный сервис `backend-scheduler`. Он в бесконечном цикле вызывает `php artisan schedule:run` раз в минуту, а само расписание описано в `routes/console.php`.
+
+Сейчас по расписанию выполняются:
+
+| Команда | Частота | Назначение |
+|--------|---------|------------|
+| `process:view-counts` | каждые 5 минут | Агрегирует и сохраняет просмотры публикаций |
+| `update:currencies` | каждые 4 часа | Обновляет курсы валют |
+| `update:oil` | каждые 4 часа | Обновляет данные по цене нефти |
+| `generate:sitemap` | каждый час | Пересобирает sitemap |
+
+Для всех задач включен `withoutOverlapping()`, поэтому Laravel не запускает новый экземпляр команды, пока не завершился предыдущий.
+
+Есть также заготовка для `sync:legacy`, но сейчас она закомментирована и по расписанию не выполняется.
+
+## Данные локального окружения
+
+Каталоги с данными контейнеров создаются под `dev/data/` и не коммитятся в git.
+
+Используются под:
+
+- `db`
+- `legacy_db`
+- `redis`
+- `elasticsearch`
+- `pgadmin`
+
+Если локально возникают проблемы с Elasticsearch после рестарта, проверь состояние диска: при почти заполненном разделе Elasticsearch может перевести индексы в режим read-only.
+
+## Legacy-импорт
+
+Для импорта из старой системы нужен отдельный PostgreSQL-сервис `legacy_db`.
+
+Большой дамп в формате `pg_dump -Fd` ожидается по пути `dev/theins_prod_09112025_tar` и не хранится в git.
+
+Восстановление дампа:
+
+```bash
+dev/restore-legacy-db.sh
+```
+
+Запуск основного импорта:
+
+```bash
+npm run artisan -- legacy:import_main
+```
+
+Если нужен поиск после полного импорта постов, индекс можно заполнить отдельно:
+
+```bash
+npm run scout:reindex
+```
+
+Обычная автосинхронизация поиска для `Post` продолжает работать сама. На пустом Elasticsearch приложение теперь сначала bootstrap-ит write alias для `posts`, чтобы следующие автосохранения и ручная переиндексация использовали одну и ту же схему индексации.
+
+## Фронтенд
+
+Публичный сайт находится в отдельном репозитории. В полной схеме он обычно поднимается отдельным сервисом, а этот бэкенд обслуживает API, админку и внутренние процессы.
+
+## Продакшен
+
+`dev/docker-compose.dev.xml` служит ориентиром по составу сервисов, но не является готовым production-манифестом.
+
+Для production стоит предусмотреть:
+
+- хранение секретов вне репозитория и вне Docker-образа
+- отдельные процессы для `php-fpm`, очередей и планировщика
+- внешний веб-слой перед PHP-FPM
+- управляемые тома и резервное копирование для PostgreSQL, Redis и Elasticsearch
+- мониторинг, healthchecks и алерты по очередям, диску и ошибкам приложений
+
+## Лицензия
+
+Laravel распространяется по лицензии [MIT](https://opensource.org/licenses/MIT). Код проекта и зависимости, включая Nova, распространяются по своим лицензиям.

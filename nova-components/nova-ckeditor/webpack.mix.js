@@ -9,6 +9,8 @@ const CKERegex = {
 
 
 Mix.listen('configReady', webpackConfig => {
+    webpackConfig.devtool = false;
+
     const rules = webpackConfig.module.rules;
 
     const targetSVG = /(\.(png|jpe?g|gif|webp|avif)$|^((?!font).)*\.svg$)/;

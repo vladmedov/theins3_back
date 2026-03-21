@@ -21,6 +21,7 @@ use App\Services\ChangeDetectorService;
 use App\Services\FrontendCacheTagService;
 use App\Services\FrontendRevalidationService;
 use App\Services\ImageService;
+use App\Services\SearchIndexManager;
 use App\Services\ShareImageService;
 
 use Illuminate\Support\Facades\Log;
@@ -170,10 +171,17 @@ class Post extends Model { //implements HasMedia {
                 $post->createImageVariants();
             }
 
-            // Sync Elasticsearch index: remove draft/deleted posts from the index
+            // Keep automatic writes and full reindex on the same alias-based scheme.
+            $searchIndexManager = app(SearchIndexManager::class);
+            $searchIndexName = $post->searchableAs();
+
             if ($post->shouldBeSearchable()) {
+                $searchIndexManager->ensureWriteTarget($post);
                 $post->searchable();
-            } else {
+            } elseif (
+                $searchIndexManager->aliasExists($searchIndexName)
+                || $searchIndexManager->indexExists($searchIndexName)
+            ) {
                 $post->unsearchable();
             }
 
@@ -201,7 +209,15 @@ class Post extends Model { //implements HasMedia {
         });
 
         static::deleted(function ($post) {
-            $post->unsearchable();
+            $searchIndexManager = app(SearchIndexManager::class);
+            $searchIndexName = $post->searchableAs();
+
+            if (
+                $searchIndexManager->aliasExists($searchIndexName)
+                || $searchIndexManager->indexExists($searchIndexName)
+            ) {
+                $post->unsearchable();
+            }
 
             app(FrontendRevalidationService::class)->queuePostChange(
                 $post->getKey(),

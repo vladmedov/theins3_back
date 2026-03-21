@@ -1,3 +1,134 @@
+// Post SEO в форме: title→seo_title; lead→seo_description (plain, ≤255). У lead-change лишние
+// срабатывания Nova — храним по форме { manual, first } и сброс на inertia:finish.
+(function () {
+    var MAX = 255;
+    var TRUNC = 252;
+    var fromLead = false;
+    var byForm = {};
+
+    function fid(f) {
+        return (f && f.getAttribute('data-form-unique-id')) || '_default';
+    }
+
+    function row(f) {
+        var id = fid(f);
+        return byForm[id] || (byForm[id] = { manual: false, first: false });
+    }
+
+    function push(input, v) {
+        if (!input) {
+            return;
+        }
+        var s = v == null ? '' : String(v);
+        // Без изменения значения не шлём события — иначе Nova считает форму «грязной» после save / лишних lead-change.
+        if (input.value === s) {
+            return;
+        }
+        input.value = s;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function plain(html) {
+        if (html == null || html === '') {
+            return '';
+        }
+        var s = String(html)
+            .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+        var d = document.createElement('div');
+        d.innerHTML = s;
+        s = (d.textContent || d.innerText || '').replace(/\s+/g, ' ').trim();
+        if (!s) {
+            return '';
+        }
+        return s.length <= MAX ? s : s.substring(0, TRUNC) + '...';
+    }
+
+    document.addEventListener('input', function (e) {
+        var t = e.target;
+        if (!t.matches || !t.matches('input[data-post-seo-description="1"]') || fromLead) {
+            return;
+        }
+        var f = t.closest('form');
+        if (f) {
+            row(f).manual = true;
+        }
+    }, true);
+
+    var seoSyncPath = typeof location !== 'undefined' ? location.pathname : '';
+    document.addEventListener('inertia:finish', function () {
+        if (typeof location === 'undefined' || location.pathname === seoSyncPath) {
+            return;
+        }
+        byForm = {};
+        seoSyncPath = location.pathname;
+    });
+
+    document.addEventListener('input', function (e) {
+        var t = e.target;
+        if (!t.matches || !t.matches('input[data-char-counter="title"]')) {
+            return;
+        }
+        var f = t.closest('form');
+        if (f) {
+            push(f.querySelector('input[data-post-seo-title="1"]'), t.value);
+        }
+    }, true);
+
+    function syncDesc(html) {
+        var f = document.querySelector('form[data-form-unique-id]') || document.querySelector('form');
+        if (!f) {
+            return;
+        }
+        var seo = f.querySelector('input[data-post-seo-description="1"]');
+        if (!seo) {
+            return;
+        }
+        var r = row(f);
+        if (r.manual) {
+            return;
+        }
+        var p = plain(html);
+        var c = seo.value;
+        if (!r.first) {
+            r.first = true;
+            if (c !== '' && c !== p) {
+                return;
+            }
+        }
+        fromLead = true;
+        push(seo, p);
+        fromLead = false;
+    }
+
+    function installLead() {
+        if (window.__postLeadSeoDescriptionSyncInstalled) {
+            return true;
+        }
+        if (!window.Nova || typeof window.Nova.$on !== 'function') {
+            return false;
+        }
+        window.__postLeadSeoDescriptionSyncInstalled = true;
+        window.Nova.$on('lead-change', function (v) {
+            syncDesc(v == null ? '' : String(v));
+        });
+        return true;
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', installLead);
+    } else {
+        installLead();
+    }
+    var n = 0;
+    var iv = setInterval(function () {
+        if (installLead() || ++n > 80) {
+            clearInterval(iv);
+        }
+    }, 100);
+}());
+
 // ─── Title character counter ──────────────────────────────────────────────────
 (function () {
     var pollTimer = null;
