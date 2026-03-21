@@ -29,7 +29,7 @@ Schedule::command('update:currencies')
     });
 
 Schedule::command('update:oil')
-    ->everyEightHours()
+    ->cron('0 */8 * * *')
     ->withoutOverlapping()
     ->onFailure(function () {
         \Log::error('UpdateOilPrice scheduled task failed');
