@@ -236,10 +236,10 @@ abstract class Post extends Resource
                     ? Hidden::make(__('Category'), 'category_id')
                         ->default(function () {
                             $category = \App\Models\Category
-                                ::where('type', static::getPostType())
+                                ::where('type', CategoryTypes::getCategoryTypeByPostType(static::getPostType()))
                                 ->where('language_code', app()->getLocale())
                                 ->first();
-                            return $category->id;
+                            return $category?->id;
                         })
                     : BelongsTo::make(__('Category'), 'category', Category::class)
                         ->relatableQueryUsing(function (Request $request, Builder $query) {
