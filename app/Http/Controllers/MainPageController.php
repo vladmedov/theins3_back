@@ -28,7 +28,12 @@ class MainPageController extends Controller
 
     public function getMainPage(Request $request, $language_code)
     {
-        $feature = $this->getCollectionPosts($language_code, CollectionPost::COLLECTION_CODE_FEATURE, 3);
+        $feature = $this->getCollectionPosts(
+            $language_code,
+            CollectionPost::COLLECTION_CODE_FEATURE,
+            3,
+            [PostTypes::ARTICLE, PostTypes::OPINION, PostTypes::ONLINE]
+        );
         $this->excludedIds = $feature->pluck('id');
 
         if ($request->has('page')) {
@@ -96,7 +101,7 @@ class MainPageController extends Controller
         );
     }
 
-    private function getCollectionPosts($language_code, $collection_code, $limit, $post_type = null, $sort_by = 'published_at')
+    private function getCollectionPosts($language_code, $collection_code, $limit, $post_types = null, $sort_by = 'published_at')
     {
         $forcedPosts = CollectionPost
             ::where('language_code', $language_code)
@@ -110,10 +115,6 @@ class MainPageController extends Controller
             ::whereIn('id', $forcedPosts)
             ->where('status', Post::STATUS_PUBLISHED)
             ->where('language_code', $language_code);
-        
-        if ($post_type) {
-            $query->where('type', $post_type);
-        }
 
         $forcedPostsCollection = $query->get()
             ->sortBy(function($post) use ($forcedPosts) {
@@ -126,8 +127,10 @@ class MainPageController extends Controller
                 ->where('status', Post::STATUS_PUBLISHED)
                 ->whereNotIn('id', $forcedPosts);
             
-            if ($post_type) {
-                $additionalQuery->where('type', $post_type);
+            if (is_array($post_types) && !empty($post_types)) {
+                $additionalQuery->whereIn('type', $post_types);
+            } elseif ($post_types) {
+                $additionalQuery->where('type', $post_types);
             }
 
             $additionalPosts = $additionalQuery

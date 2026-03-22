@@ -102,23 +102,30 @@ class LegacyImportMain extends Command
             // ----------------------------------------------------------------
             // Part A: Taxonomy
             // ----------------------------------------------------------------
+            $this->reserveLegacyIds('users', 'admins');
             $this->syncAdmins();
 
+            $this->reserveLegacyIds('categories', 'rubrics');
             $this->syncCategories(1);
+            $this->reserveLegacyIds('authors', 'people');
             $this->syncAuthors(1);
+            $this->reserveLegacyIds('investigation_themes', 'themes');
             $this->syncInvestigationThemes(1);
 
             $this->syncCategories(3);
             $this->syncAuthors(3);
             $this->syncInvestigationThemes(3);
 
+            $this->reserveLegacyIds('posts', 'posts');
+            $this->reserveLegacyIds('tags', 'tags');
+            $this->reserveLegacyIds('online_messages', 'online_items');
+            $this->syncSequenceToLocalMax('termins');
+
             // ----------------------------------------------------------------
             // Part B: Posts (chunked, all languages in ID order)
             // ----------------------------------------------------------------
             $this->syncPosts();
-
             $this->syncCollectionsCleanup();
-
             $this->resetSequences();
 
             $this->info('Import completed successfully!');

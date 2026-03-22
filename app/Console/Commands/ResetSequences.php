@@ -11,7 +11,7 @@ class ResetSequences extends Command
                             {--table= : Сбросить только указанную таблицу}
                             {--dry-run : Показать что будет сделано без изменений}';
 
-    protected $description = 'Сбрасывает PostgreSQL-последовательности (sequences) до max(id)+1 для всех таблиц';
+    protected $description = 'Синхронизирует PostgreSQL sequences так, чтобы nextval() возвращал max(id)+1';
 
     public function handle(): int
     {
@@ -38,22 +38,32 @@ class ResetSequences extends Command
                 continue;
             }
 
-            $maxId = DB::table($table)->max('id') ?? 0;
-            $nextVal = $maxId + 1;
+            $maxId = DB::table($table)->max('id');
+            if ($maxId === null) {
+                $this->line("  <fg=gray>SKIP</> {$table} — таблица пустая");
+                $skipped++;
+                continue;
+            }
 
-            $currentVal = DB::selectOne("SELECT last_value FROM {$sequence}")->last_value ?? 0;
+            $maxId = (int) $maxId;
+            $desiredNextVal = $maxId + 1;
 
-            if ($currentVal >= $nextVal) {
-                $this->line("  <fg=gray>OK</>   {$table} — sequence актуален ({$currentVal})");
+            $state = DB::selectOne("SELECT last_value, is_called FROM {$sequence}");
+            $lastValue = (int) ($state->last_value ?? 0);
+            $isCalled = (bool) ($state->is_called ?? false);
+            $currentNextVal = $isCalled ? $lastValue + 1 : $lastValue;
+
+            if ($currentNextVal >= $desiredNextVal) {
+                $this->line("  <fg=gray>OK</>   {$table} — next id актуален ({$currentNextVal})");
                 $skipped++;
                 continue;
             }
 
             if (!$dryRun) {
-                DB::statement("SELECT setval('{$sequence}', {$nextVal})");
+                DB::statement("SELECT setval('{$sequence}', {$maxId}, true)");
             }
 
-            $this->line("  <fg=green>FIXED</> {$table} — sequence: {$currentVal} → {$nextVal}" . ($dryRun ? ' (dry-run)' : ''));
+            $this->line("  <fg=green>FIXED</> {$table} — next id: {$currentNextVal} → {$desiredNextVal}" . ($dryRun ? ' (dry-run)' : ''));
             $fixed++;
         }
 

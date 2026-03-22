@@ -1416,6 +1416,12 @@ trait LegacyImportHelpersTrait
         $post = $posts[0];
 
         try {
+            // Single-post restore can create explicit-ID rows and auto-ID termins.
+            $this->reserveLegacyIds('posts', 'posts');
+            $this->reserveLegacyIds('tags', 'tags');
+            $this->reserveLegacyIds('online_messages', 'online_items');
+            $this->syncSequenceToLocalMax('termins');
+
             $imagePath = $this->downloadLegacyImage(
                 $post->id,
                 $post->preview_image ?? $post->detail_image ?? null,
@@ -2221,14 +2227,82 @@ trait LegacyImportHelpersTrait
     }
 
     // -------------------------------------------------------------------------
+    // Sequence helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Reserve a local explicit-ID range so concurrent local creates stay above
+     * both the current local max(id) and the full legacy max(id).
+     */
+    protected function reserveLegacyIds(string $localTable, string $legacyTable, string $idColumn = 'id'): void
+    {
+        $localMax = (int) (DB::table($localTable)->max($idColumn) ?? 0);
+        $legacyMax = (int) ($this->legacy_db->table($legacyTable)->max($idColumn) ?? 0);
+        $reservedMax = max($localMax, $legacyMax);
+
+        $this->advanceSequenceToLocalMax($localTable, $reservedMax, "local={$localMax}, legacy={$legacyMax}");
+    }
+
+    /**
+     * Align a local auto-increment sequence to the current local max(id).
+     */
+    protected function syncSequenceToLocalMax(string $table, string $idColumn = 'id'): void
+    {
+        $localMax = DB::table($table)->max($idColumn);
+        if ($localMax === null) {
+            return;
+        }
+
+        $this->advanceSequenceToLocalMax($table, (int) $localMax, 'local max');
+    }
+
+    /**
+     * Ensure the next nextval() for a table returns at least $targetMaxId + 1.
+     */
+    protected function advanceSequenceToLocalMax(string $table, int $targetMaxId, ?string $context = null): bool
+    {
+        if ($targetMaxId < 1) {
+            return false;
+        }
+
+        $seqRow = DB::selectOne(
+            "SELECT pg_get_serial_sequence('{$table}', 'id') AS seq"
+        );
+
+        $seq = $seqRow->seq ?? null;
+        if (!$seq) {
+            return false;
+        }
+
+        $desiredNextVal = $targetMaxId + 1;
+        $seqState = DB::selectOne("SELECT last_value, is_called FROM {$seq}");
+        $lastValue = (int) ($seqState->last_value ?? 0);
+        $isCalled = (bool) ($seqState->is_called ?? false);
+        $currentNextVal = $isCalled ? $lastValue + 1 : $lastValue;
+
+        if ($currentNextVal >= $desiredNextVal) {
+            return false;
+        }
+
+        DB::statement("SELECT setval('{$seq}', {$targetMaxId}, true)");
+
+        $message = "  → {$table}: next id {$currentNextVal} → {$desiredNextVal}";
+        if ($context) {
+            $message .= " ({$context})";
+        }
+        $this->line($message);
+
+        return true;
+    }
+
+    // -------------------------------------------------------------------------
     // Sequence reset
     // -------------------------------------------------------------------------
 
     /**
      * After bulk-inserting rows with explicit legacy IDs, PostgreSQL sequences
      * are NOT updated automatically. This method advances every sequence in the
-     * public schema to MAX(id)+1 so that the next auto-generated insert never
-     * collides with an already-occupied ID.
+     * public schema so that the next nextval() returns MAX(id)+1.
      */
     protected function resetSequences(): void
     {
@@ -2247,26 +2321,12 @@ trait LegacyImportHelpersTrait
             $table = $row->tablename;
 
             try {
-                $seqRow = DB::selectOne(
-                    "SELECT pg_get_serial_sequence('{$table}', 'id') AS seq"
-                );
-
-                $seq = $seqRow->seq ?? null;
-                if (!$seq) {
-                    continue;
-                }
-
                 $maxId = DB::table($table)->max('id');
                 if ($maxId === null) {
                     continue;
                 }
 
-                $nextVal    = (int) $maxId + 1;
-                $currentVal = (int) (DB::selectOne("SELECT last_value FROM {$seq}")->last_value ?? 0);
-
-                if ($currentVal < $nextVal) {
-                    DB::statement("SELECT setval('{$seq}', {$nextVal})");
-                    $this->line("  → {$table}: sequence {$currentVal} → {$nextVal}");
+                if ($this->advanceSequenceToLocalMax($table, (int) $maxId)) {
                     $fixed++;
                 }
             } catch (\Throwable) {
