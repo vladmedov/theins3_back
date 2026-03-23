@@ -435,7 +435,10 @@ class LegacyImportMain extends Command
 
         $post = Post::find($postId);
         if ($post && !empty($post->image)) {
-            ShareImageService::generate($post);
+            $sharePath = ShareImageService::getShareImagePath($post);
+            if (!Storage::disk('public')->exists($sharePath)) {
+                ShareImageService::generate($post);
+            }
         }
     }
 
