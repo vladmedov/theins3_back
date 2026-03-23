@@ -431,10 +431,22 @@ class LegacyImportMain extends Command
             return;
         }
 
-        ImageService::createImageVariants($postId, $imagePath);
+        $filename = basename($imagePath);
+        $smallPath = ImageService::getImagePath($postId, ImageService::TYPE_POST_COVER, ImageService::SIZE_SMALL)
+            . '/' . $filename;
+        $mediumPath = ImageService::getImagePath($postId, ImageService::TYPE_POST_COVER, ImageService::SIZE_MEDIUM)
+            . '/' . $filename;
 
-        $post = Post::find($postId);
+        if (
+            !Storage::disk('public')->exists($smallPath)
+            || !Storage::disk('public')->exists($mediumPath)
+        ) {
+            ImageService::createImageVariants($postId, $imagePath);
+        }
+
+        $post = $this->postModelCache[$postId] ?? Post::find($postId);
         if ($post && !empty($post->image)) {
+            $this->postModelCache[$postId] = $post;
             $sharePath = ShareImageService::getShareImagePath($post);
             if (!Storage::disk('public')->exists($sharePath)) {
                 ShareImageService::generate($post);
