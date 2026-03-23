@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ImageService;
+use App\Services\ShareImageService;
 use App\Models\SyncLog;
 use App\Models\Post;
 use App\Models\Termin;
@@ -231,6 +232,7 @@ class LegacyImportMain extends Command
                     ));
                     // Refresh the model cache entry after upsert
                     $this->postModelCache[$post->id] = Post::find($post->id);
+                    $this->syncPostCoverImages($post->id, $imagePath);
 
                     $this->syncPostRelations($post, $regionId, $languageCode);
                     $createdCount++;
@@ -273,6 +275,7 @@ class LegacyImportMain extends Command
                         Post::withoutEvents(fn () => Post::where('id', $post->id)->update(
                             $this->buildPostAttributes($post, $languageCode, $imagePath)
                         ));
+                        $this->syncPostCoverImages($post->id, $imagePath);
 
                         $this->syncPostRelations($post, $regionId, $languageCode);
                         $updatedCount++;
@@ -420,6 +423,20 @@ class LegacyImportMain extends Command
         $html = preg_replace('/(<p(?:\s[^>]*)?>)\s*&nbsp;\s*/i', '$1', $html);
 
         return trim($html);
+    }
+
+    private function syncPostCoverImages(int $postId, ?string $imagePath): void
+    {
+        if (empty($imagePath) || !Storage::disk('public')->exists($imagePath)) {
+            return;
+        }
+
+        ImageService::createImageVariants($postId, $imagePath);
+
+        $post = Post::find($postId);
+        if ($post && !empty($post->image)) {
+            ShareImageService::generate($post);
+        }
     }
 
     // -------------------------------------------------------------------------
