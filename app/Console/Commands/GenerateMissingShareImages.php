@@ -3,19 +3,20 @@
 namespace App\Console\Commands;
 
 use App\Models\Post;
+use App\Services\ImageService;
 use App\Services\ShareImageService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
 class GenerateMissingShareImages extends Command
 {
-    protected $signature = 'posts:generate-missing-share-images
+    protected $signature = 'posts:generate-missing-images
                             {--limit=0 : Process only first N posts (0 = all)}
                             {--chunk=1000 : Chunk size}
                             {--id-from= : Process posts with id >= value}
                             {--id-to= : Process posts with id <= value}';
 
-    protected $description = 'Generate share images only for posts where share file is missing';
+    protected $description = 'Generate missing post images (small, medium, share) for local posts';
 
     public function handle(): int
     {
@@ -57,13 +58,17 @@ class GenerateMissingShareImages extends Command
         }
 
         $processed = 0;
-        $generated = 0;
-        $alreadyExists = 0;
+        $generatedSmall = 0;
+        $generatedMedium = 0;
+        $generatedShare = 0;
+        $existsSmall = 0;
+        $existsMedium = 0;
+        $existsShare = 0;
         $failed = 0;
 
         $this->info("Processing {$total} posts...");
         $bar = $this->output->createProgressBar($total);
-        $bar->setFormat('  %current%/%max% [%bar%] %percent:3s%%  gen:%message%');
+        $bar->setFormat('  %current%/%max% [%bar%] %percent:3s%%  fixed:%message%');
         $bar->setBarWidth(30);
         $bar->setMessage('0');
         $bar->start();
@@ -75,21 +80,59 @@ class GenerateMissingShareImages extends Command
 
             $processed++;
 
-            $sharePath = ShareImageService::getShareImagePath($post);
-            if (Storage::disk('public')->exists($sharePath)) {
-                $alreadyExists++;
+            if (!Storage::disk('public')->exists($post->image)) {
+                $failed++;
+                $this->newLine();
+                $this->warn("Original image is missing for post #{$post->id}: {$post->image}");
+                $bar->setMessage((string) ($generatedSmall + $generatedMedium + $generatedShare));
+                $bar->advance();
+                continue;
+            }
+
+            $filename = basename($post->image);
+            $smallPath = ImageService::getImagePath($post->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_SMALL)
+                . '/' . $filename;
+            $mediumPath = ImageService::getImagePath($post->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_MEDIUM)
+                . '/' . $filename;
+
+            $needSmall = !Storage::disk('public')->exists($smallPath);
+            $needMedium = !Storage::disk('public')->exists($mediumPath);
+
+            if ($needSmall || $needMedium) {
+                ImageService::createImageVariants($post->id, $post->image);
+            }
+
+            if (Storage::disk('public')->exists($smallPath)) {
+                $needSmall ? $generatedSmall++ : $existsSmall++;
             } else {
+                $failed++;
+                $this->newLine();
+                $this->warn("Failed to ensure small image for post #{$post->id}");
+            }
+
+            if (Storage::disk('public')->exists($mediumPath)) {
+                $needMedium ? $generatedMedium++ : $existsMedium++;
+            } else {
+                $failed++;
+                $this->newLine();
+                $this->warn("Failed to ensure medium image for post #{$post->id}");
+            }
+
+            $sharePath = ShareImageService::getShareImagePath($post);
+            if (!Storage::disk('public')->exists($sharePath)) {
                 $result = ShareImageService::generate($post);
-                if ($result !== null) {
-                    $generated++;
+                if ($result !== null && Storage::disk('public')->exists($sharePath)) {
+                    $generatedShare++;
                 } else {
                     $failed++;
                     $this->newLine();
                     $this->warn("Failed to generate share for post #{$post->id}");
                 }
+            } else {
+                $existsShare++;
             }
 
-            $bar->setMessage((string) $generated);
+            $bar->setMessage((string) ($generatedSmall + $generatedMedium + $generatedShare));
             $bar->advance();
         }
 
@@ -97,8 +140,12 @@ class GenerateMissingShareImages extends Command
         $this->newLine(2);
 
         $this->info("Done. Processed: {$processed}");
-        $this->line("Generated: {$generated}");
-        $this->line("Already exists: {$alreadyExists}");
+        $this->line("Generated small: {$generatedSmall}");
+        $this->line("Generated medium: {$generatedMedium}");
+        $this->line("Generated share: {$generatedShare}");
+        $this->line("Already exists small: {$existsSmall}");
+        $this->line("Already exists medium: {$existsMedium}");
+        $this->line("Already exists share: {$existsShare}");
         $this->line("Failed: {$failed}");
 
         return self::SUCCESS;

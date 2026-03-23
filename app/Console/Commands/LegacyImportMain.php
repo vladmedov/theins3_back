@@ -39,11 +39,13 @@ class LegacyImportMain extends Command
     protected $signature = 'legacy:import_main
                             {--reset-stuck : Reset stuck import processes}
                             {--post= : Restore / re-sync a single post by legacy ID}
+                            {--skip-post-images : Do not generate missing small/medium/share images during import}
                             {--skip-share-images : Do not generate missing share images during import}';
 
     protected $description = 'Import / sync data from legacy database (v2 with chunked post sync and md5 termin cache)';
 
     protected $legacy_db;
+    protected bool $skipPostImages = false;
     protected bool $skipShareImages = false;
 
     private const LOCK_KEY              = 'legacy-import-main-lock';
@@ -66,6 +68,7 @@ class LegacyImportMain extends Command
 
     public function handle(): int
     {
+        $this->skipPostImages = (bool) $this->option('skip-post-images');
         $this->skipShareImages = (bool) $this->option('skip-share-images');
 
         if ($this->option('reset-stuck')) {
@@ -431,6 +434,10 @@ class LegacyImportMain extends Command
 
     private function syncPostCoverImages(int $postId, ?string $imagePath): void
     {
+        if ($this->skipPostImages) {
+            return;
+        }
+
         if (empty($imagePath) || !Storage::disk('public')->exists($imagePath)) {
             return;
         }
