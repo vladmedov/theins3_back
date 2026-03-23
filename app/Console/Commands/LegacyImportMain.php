@@ -38,11 +38,13 @@ class LegacyImportMain extends Command
 
     protected $signature = 'legacy:import_main
                             {--reset-stuck : Reset stuck import processes}
-                            {--post= : Restore / re-sync a single post by legacy ID}';
+                            {--post= : Restore / re-sync a single post by legacy ID}
+                            {--skip-share-images : Do not generate missing share images during import}';
 
     protected $description = 'Import / sync data from legacy database (v2 with chunked post sync and md5 termin cache)';
 
     protected $legacy_db;
+    protected bool $skipShareImages = false;
 
     private const LOCK_KEY              = 'legacy-import-main-lock';
     private const LOCK_TIMEOUT          = 180;
@@ -64,6 +66,8 @@ class LegacyImportMain extends Command
 
     public function handle(): int
     {
+        $this->skipShareImages = (bool) $this->option('skip-share-images');
+
         if ($this->option('reset-stuck')) {
             SyncLog::resetStuckProcesses(self::ACTIVITY_CHECK_MINUTES);
             Cache::lock(self::LOCK_KEY, self::LOCK_TIMEOUT)->forceRelease();
@@ -442,6 +446,10 @@ class LegacyImportMain extends Command
             || !Storage::disk('public')->exists($mediumPath)
         ) {
             ImageService::createImageVariants($postId, $imagePath);
+        }
+
+        if ($this->skipShareImages) {
+            return;
         }
 
         $post = $this->postModelCache[$postId] ?? Post::find($postId);
