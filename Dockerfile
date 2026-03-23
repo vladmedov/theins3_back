@@ -69,6 +69,8 @@ RUN --mount=type=secret,id=composer_auth,target=/root/.composer/auth.json \
 FROM php-base AS production
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV HOME=/var/www/html
+ENV XDG_CONFIG_HOME=/var/www/html/.config
 
 WORKDIR /var/www/html
 
@@ -84,7 +86,10 @@ RUN mkdir -p \
     storage/framework/views \
     storage/logs \
     bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R ug+rwx storage bootstrap/cache
+    /var/www/html/.config/psysh \
+    && chown -R www-data:www-data storage bootstrap/cache /var/www/html/.config \
+    && chmod -R ug+rwx storage bootstrap/cache /var/www/html/.config
+
+USER www-data
 
 CMD ["php-fpm"]
