@@ -12,6 +12,7 @@
     "laravel-nova-devtool": "file:vendor/laravel/nova-devtool"
   },
   "dependencies": {
-    "@heroicons/vue": "^2.2.0"
+    "@heroicons/vue": "^2.2.0",
+    "sortablejs": "^1.15.0"
   }
 }

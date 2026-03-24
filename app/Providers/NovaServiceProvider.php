@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 
 use Laravel\Fortify\Features;
 use Laravel\Nova\Nova;
@@ -103,6 +104,13 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
 
         Nova::footer(function (Request $request) {
             return Blade::render(__('THE INSIDER · REPORTS. ANALYTICS. INVESTIGATIONS.'));
+        });
+
+        Nova::serving(function () {
+            $path = base_path('nova-components/CustomFlexibleMenu/dist/js/flexible-form-override.js');
+            if (File::exists($path)) {
+                Nova::script('flexible-form-override', $path);
+            }
         });
     }
 
