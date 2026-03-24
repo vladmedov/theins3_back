@@ -23,7 +23,7 @@ class CollectionPostPolicy
 
     public function delete(User $user)
     {
-        return $user->canDeleteAll();
+        return $user->canViewAll();
     }
 
     public function restore()
