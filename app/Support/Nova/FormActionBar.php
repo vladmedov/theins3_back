@@ -103,6 +103,14 @@ class FormActionBar
         }
 
         $heading = $options['heading'] ?? null;
+        $scrollNav = $options['scrollNav'] ?? null;
+        if ($scrollNav) {
+            $scrollNav = array_merge([
+                'direction' => 'down',
+                'label' => '↓',
+                'title' => __('Scroll'),
+            ], $scrollNav);
+        }
 
         return view('nova.components.form-action-bar', [
             'heading' => $heading,
@@ -112,6 +120,7 @@ class FormActionBar
             'linkBlock' => $linkBlock,
             'metaBlock' => $metaBlock,
             'autosave' => $autosave,
+            'scrollNav' => $scrollNav,
         ])->render();
     }
 

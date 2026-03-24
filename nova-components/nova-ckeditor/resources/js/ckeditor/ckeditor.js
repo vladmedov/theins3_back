@@ -77,6 +77,7 @@ import {SpecialCharacters} from '@ckeditor/ckeditor5-special-characters'
 import ElementAddAttributes from './plugins/element-attribute/src/add-attribute-to-element'
 import SpecialCharsLimited from './plugins/SpecialCharsLimited'
 import ReplaceQuotesWithGuillemets from './plugins/ReplaceQuotesWithGuillemets'
+import ReplaceHyphenWithDash from './plugins/ReplaceHyphenWithDash'
 import {Emoji, EmojiActivity, EmojiFlags, EmojiFood, EmojiNature, EmojiObjects, EmojiPeople, EmojiPlaces, EmojiSymbols} from '@phudak/ckeditor5-emoji/src';
 
 
@@ -149,6 +150,7 @@ export default class CkEditor extends ClassicEditorBase {
             SpecialCharacters,
             SpecialCharsLimited,
             ReplaceQuotesWithGuillemets,
+            ReplaceHyphenWithDash,
             Indent,
             IndentBlock,
             ElementAddAttributes,

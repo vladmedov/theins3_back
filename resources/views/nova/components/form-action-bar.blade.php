@@ -7,6 +7,7 @@
     $saveButtonStyle = 'display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;font-size:14px;font-weight:700;border-radius:4px;border:1px solid #1f2937;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;white-space:nowrap;line-height:1;background:#111827;color:#fff;box-sizing:border-box;';
     $copyIcon = "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>";
     $hasSaveStatusRow = isset($autosave) && is_array($autosave);
+    $hasScrollNav = !empty($scrollNav['direction']) && in_array($scrollNav['direction'], ['up', 'down'], true);
 @endphp
 
 <style>
@@ -19,6 +20,41 @@
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
+    }
+    .nova-form-action-bar--with-scroll {
+        position: relative;
+        overflow: visible;
+        padding-left: 20px;
+        border-top-left-radius: 0 !important;
+        border-bottom-left-radius: 0 !important;
+    }
+    .nova-form-action-bar__scroll {
+        position: absolute;
+        top: -16px;
+        left: -32px;
+        bottom: -16px;
+        width: 28px;
+        min-width: 28px;
+        padding: 0;
+        border: 1px solid #e2e8f0;
+        border-right: none;
+        border-radius: 6px 0 0 6px;
+        background: rgba(100, 116, 139, 0.08);
+        color: #64748b;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: .9;
+    }
+    .nova-form-action-bar__scroll:hover {
+        background: rgba(100, 116, 139, 0.14);
+        color: #334155;
+    }
+    .nova-form-action-bar__scroll svg {
+        width: 16px;
+        height: calc(100% - 2px);
+        display: block;
     }
     .nova-form-action-bar__main {
         flex: 1;
@@ -118,13 +154,36 @@
 </style>
 
 <div
-    class="nova-form-action-bar"
+    class="nova-form-action-bar{{ $hasScrollNav ? ' nova-form-action-bar--with-scroll' : '' }}"
     id="nova-info-bar"
     data-form-action-bar="1"
     @if (!empty($autosave['enabled']))
         data-autosave-enabled="1"
     @endif
 >
+    @if ($hasScrollNav)
+        <button
+            type="button"
+            class="nova-form-action-bar__scroll"
+            data-scroll-nav="{{ $scrollNav['direction'] }}"
+            title="{{ $scrollNav['title'] }}"
+            aria-label="{{ $scrollNav['title'] }}"
+            onclick="window.scrollTo({ top: this.dataset.scrollNav === 'up' ? 0 : (document.documentElement.scrollHeight || document.body.scrollHeight || 0), behavior: 'smooth' })"
+        >
+            @if ($scrollNav['direction'] === 'up')
+                <svg aria-hidden="true" viewBox="0 0 16 100" preserveAspectRatio="none" fill="none">
+                    <line x1="8" x2="8" y1="90" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                    <polyline points="4,18 8,10 12,18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline>
+                </svg>
+            @else
+                <svg aria-hidden="true" viewBox="0 0 16 100" preserveAspectRatio="none" fill="none">
+                    <line x1="8" x2="8" y1="10" y2="90" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+                    <polyline points="4,82 8,90 12,82" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline>
+                </svg>
+            @endif
+        </button>
+    @endif
+
     @if (!empty($heading))
         <span class="nova-form-action-bar__main" style="font-size:14px;font-weight:600;color:#0f172a;">{{ $heading }}</span>
     @elseif (!empty($linkBlock['url']))

@@ -176,12 +176,24 @@ abstract class Post extends Resource
                 'updated_at' => $this->updated_at,
             ] : null,
         ];
+        $infoBarTopOptions = array_merge($infoBarOptions, [
+            'scrollNav' => [
+                'direction' => 'down',
+                'title' => __('Scroll to bottom'),
+            ],
+        ]);
+        $infoBarBottomOptions = array_merge($infoBarOptions, [
+            'scrollNav' => [
+                'direction' => 'up',
+                'title' => __('Scroll to top'),
+            ],
+        ]);
         $FormActionBarTop = PanelWithoutHeader::make([
-            FormActionBar::make($infoBarOptions, '_form_action_bar_top'),
+            FormActionBar::make($infoBarTopOptions, '_form_action_bar_top'),
         ], 'FormActionBarTop');
 
         $FormActionBarBottom = PanelWithoutHeader::make([
-            FormActionBar::make($infoBarOptions, '_form_action_bar_bottom'),
+            FormActionBar::make($infoBarBottomOptions, '_form_action_bar_bottom'),
         ], 'FormActionBarBottom');
 
         // Tab 1
