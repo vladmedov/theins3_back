@@ -207,4 +207,17 @@ return [
         'stopped' => '/',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Traffic Cop (concurrent edit) tolerance
+    |--------------------------------------------------------------------------
+    |
+    | Seconds added to the client _retrieved_at before comparing to updated_at.
+    | Positive: fewer false 409s (clock skew). Zero: same as stock Nova.
+    | Negative (e.g. -100): threshold moves into the past — conflicts become much more likely (testing).
+    |
+    */
+
+    'traffic_cop_tolerance_seconds' => (int) env('NOVA_TRAFFIC_COP_TOLERANCE_SECONDS', 1),
+
 ];

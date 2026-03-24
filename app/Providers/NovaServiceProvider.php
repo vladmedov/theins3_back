@@ -26,6 +26,11 @@ use App\Nova\_Posts\PostArticle;
 
 use App\Models\User;
 
+use App\Http\Controllers\Nova\AttachedResourceUpdateController as AppAttachedResourceUpdateController;
+use App\Http\Controllers\Nova\ResourceUpdateController as AppResourceUpdateController;
+use Laravel\Nova\Http\Controllers\AttachedResourceUpdateController as NovaAttachedResourceUpdateController;
+use Laravel\Nova\Http\Controllers\ResourceUpdateController as NovaResourceUpdateController;
+
 class NovaServiceProvider extends NovaApplicationServiceProvider
 {
     /**
@@ -172,6 +177,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
     {
         parent::register();
 
-        //
+        $this->app->bind(NovaResourceUpdateController::class, AppResourceUpdateController::class);
+        $this->app->bind(NovaAttachedResourceUpdateController::class, AppAttachedResourceUpdateController::class);
     }
 }
