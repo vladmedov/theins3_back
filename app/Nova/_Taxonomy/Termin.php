@@ -14,8 +14,9 @@ use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Fields\Hidden;
 use Laravel\Nova\Fields\Text;
-use Laravel\Nova\Fields\Markdown;
 use Laravel\Nova\Panel;
+
+use Mostafaznv\NovaCkEditor\CkEditor;
 
 class Termin extends Resource
 {
@@ -84,12 +85,13 @@ class Termin extends Resource
                 ->asHtml()
                 ->canSee(fn ($request) => !empty($request->resourceId)),
 
-            Text::make(__('Termin'), 'termin')
+            Text::make(__('Term'), 'termin')
                 ->sortable()
                 ->rules('required', 'max:255'),
 
-            Markdown::make(__('Description'), 'description')
-                ->sortable()
+            CkEditor::make(__('Description'), 'description')
+                ->toolbar('toolbar-theins-mini')
+                ->hideFromIndex()
                 ->rules('required'),
 
             Text::make(__('Posts count'), function () {
@@ -136,11 +138,11 @@ class Termin extends Resource
     }
 
     public static function label() {
-        return __('Termins');
+        return __('Terms');
     }
     
     public static function singularLabel() {
-        return __('Termin');
+        return __('Term');
     }
 
     public static function redirectAfterCreate(NovaRequest $request, Resource $resource)

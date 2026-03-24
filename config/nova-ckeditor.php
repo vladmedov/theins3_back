@@ -253,7 +253,96 @@ return [
 
             'options' => [],
         ],
-     
+
+        /** Minimal: bold, italic, link, image (e.g. term description in Nova). */
+        'toolbar-theins-mini' => [
+            'height' => 160,
+            'content-lang' => 'en',
+            'force-paste-as-plain-text' => false,
+            'alert-before-unsaved-changes' => true,
+            'should-not-group-when-full' => false,
+
+            'browser' => [
+                'image' => false,
+                'video' => false,
+                'audio' => false,
+                'file'  => false,
+            ],
+
+            'snippets' => [],
+
+            'items' => [
+                'bold',
+                'italic',
+                'link',
+                'insertImage',
+            ],
+
+            'options' => [
+                'image' => [
+                    'insert' => [
+                        'integrations' => ['url'],
+                    ],
+                    /** No file upload: images only via URL (paste/drag of files ignored). */
+                    'upload' => [
+                        'types' => [],
+                    ],
+                    'resizeUnit' => '%',
+                    'resizeOptions' => [
+                        [
+                            'name' => 'resizeImage:original',
+                            'value' => null,
+                            'label' => 'Original',
+                            'icon' => 'original',
+                        ],
+                        [
+                            'name' => 'resizeImage:25',
+                            'value' => '25',
+                            'label' => 'Small (25%)',
+                            'icon' => 'small',
+                        ],
+                        [
+                            'name' => 'resizeImage:50',
+                            'value' => '50',
+                            'label' => 'Medium (50%)',
+                            'icon' => 'medium',
+                        ],
+                        [
+                            'name' => 'resizeImage:75',
+                            'value' => '75',
+                            'label' => 'Large (75%)',
+                            'icon' => 'large',
+                        ],
+                    ],
+                    'toolbar' => [
+                        'imageStyle:full',
+                        'imageStyle:alignLeft',
+                        'imageStyle:alignCenter',
+                        'imageStyle:alignRight',
+                        '|',
+                        'imageTextAlternative',
+                        'toggleImageCaption',
+                        '|',
+                        'imageStyle:block',
+                        'imageStyle:side',
+                        '|',
+                        'linkImage',
+                        '|',
+                        'resizeImage:25',
+                        'resizeImage:50',
+                        'resizeImage:75',
+                        'resizeImage:original',
+                    ],
+                    'styles' => [
+                        'full',
+                        'alignLeft',
+                        'alignCenter',
+                        'alignRight',
+                    ],
+                ],
+            ],
+        ],
+
         'toolbar-1' => [
             'height' => 400,
 

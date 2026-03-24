@@ -93,19 +93,11 @@
                                 Описание
                                 <span class="ck-termin-hint">(необязательно)</span>
                             </label>
-                            <div class="ck-md-editor">
-                                <div class="ck-md-toolbar">
-                                    <button type="button" class="ck-md-btn" title="Жирный"   @mousedown.prevent @click="mdWrap('descTextarea', '**', '**')"><b>B</b></button>
-                                    <button type="button" class="ck-md-btn" title="Курсив"   @mousedown.prevent @click="mdWrap('descTextarea', '_', '_')"><i>I</i></button>
-                                    <button type="button" class="ck-md-btn" title="Ссылка"   @mousedown.prevent @click="mdWrap('descTextarea', '[', '](url)')">🔗</button>
-                                    <button type="button" class="ck-md-btn" title="Картинка" @mousedown.prevent @click="mdWrap('descTextarea', '![', '](url)')">🖼</button>
-                                </div>
+                            <div class="ck-termin-rich-editor">
                                 <textarea
-                                    ref="descTextarea"
-                                    v-model="createDescription"
-                                    class="ck-termin-input ck-termin-textarea"
-                                    placeholder="Краткое определение..."
-                                    rows="4"
+                                    ref="terminDescEditor"
+                                    class="hidden"
+                                    rows="1"
                                 />
                             </div>
                         </div>
@@ -163,6 +155,11 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
+import CkEditor from '../../ckeditor/ckeditor'
+import debounce from 'lodash/debounce'
+import { buildTerminDescriptionCkConfig } from './terminDescriptionEditorConfig'
+
 export default {
     name: 'TerminPickerModal',
 
@@ -187,7 +184,25 @@ export default {
             creating: false,
             createName: '',
             createDescription: '',
+            terminDescEditorInstance: null,
         }
+    },
+
+    watch: {
+        creating(val) {
+            if (val === 'form') {
+                this.$nextTick(() => this.mountTerminDescriptionEditor())
+            } else if (!val) {
+                this.destroyTerminDescriptionEditor()
+            }
+        },
+
+        isOpen(val) {
+            if (typeof document === 'undefined') {
+                return
+            }
+            document.body.classList.toggle('ck-termin-modal-open', !!val)
+        },
     },
 
     created() {
@@ -195,8 +210,12 @@ export default {
     },
 
     beforeUnmount() {
+        if (typeof document !== 'undefined') {
+            document.body.classList.remove('ck-termin-modal-open')
+        }
         Nova.$off(`ckeditor:termin:${this.fieldKey}:open`, this.open)
         clearTimeout(this.debounceTimer)
+        this.destroyTerminDescriptionEditor()
     },
 
     computed: {
@@ -313,23 +332,103 @@ export default {
             this.close()
         },
 
-        // Insert Markdown syntax around the selected text in a textarea ref
-        mdWrap(refName, before, after) {
-            const el = this.$refs[refName]
-            if (!el) return
-            const start = el.selectionStart
-            const end   = el.selectionEnd
-            const value = this.createDescription
-            const selected = value.slice(start, end) || 'текст'
-            const inserted = before + selected + after
-            this.createDescription = value.slice(0, start) + inserted + value.slice(end)
+        syncDescriptionFromEditor() {
+            if (this.terminDescEditorInstance) {
+                this.createDescription = this.terminDescEditorInstance.getData()
+            }
+        },
+
+        handleTerminEditorKeydown(event, data) {
+            if (['Tab', '/'].includes(data.key) || [191, 9].includes(data.keyCode)) {
+                data.stopPropagation()
+            }
+        },
+
+        terminEditorResizeFix(editor, writer) {
+            const resizeObserver = new ResizeObserver(
+                debounce((element) => {
+                    const height = element[0].target.offsetHeight
+
+                    if (height > 10) {
+                        writer.setStyle('height', `${height}px`, editor.editing.view.document.getRoot())
+                    }
+                }, 100),
+            )
+
+            const innerEditor = editor.ui.view.element.getElementsByClassName('ck-editor__editable')
+
+            if (innerEditor?.length) {
+                resizeObserver.observe(innerEditor[0])
+            }
+        },
+
+        mountTerminDescriptionEditor() {
+            this.destroyTerminDescriptionEditor()
+
             this.$nextTick(() => {
-                el.focus()
-                // Place cursor after the inserted text (or select 'текст' placeholder)
-                const selStart = start + before.length
-                const selEnd   = selStart + (end > start ? end - start : 'текст'.length)
-                el.setSelectionRange(selStart, selEnd)
+                const el = this.$refs.terminDescEditor
+                if (!el) {
+                    return
+                }
+
+                let built
+                try {
+                    built = buildTerminDescriptionCkConfig(this.fieldKey)
+                } catch (e) {
+                    console.error(e)
+                    Nova.error(e.message)
+
+                    return
+                }
+
+                const { config, toolbar } = built
+
+                CkEditor.create(el, config)
+                    .then((editor) => {
+                        // Must not store CKEditor in reactive state without markRaw — Vue's Proxy breaks the editor.
+                        this.terminDescEditorInstance = markRaw(editor)
+                        editor.setData(this.createDescription || '')
+
+                        editor.model.document.on(
+                            'change',
+                            debounce(() => {
+                                this.createDescription = editor.getData()
+                            }, 100),
+                            { priority: 'lowest' },
+                        )
+
+                        editor.editing.view.document.on('keydown', this.handleTerminEditorKeydown, {
+                            priority: 'highest',
+                        })
+
+                        editor.editing.view.change((writer) => {
+                            if (toolbar.height > 1) {
+                                writer.setStyle(
+                                    'height',
+                                    `${toolbar.height}px`,
+                                    editor.editing.view.document.getRoot(),
+                                )
+                            }
+
+                            this.terminEditorResizeFix(editor, writer)
+                        })
+                    })
+                    .catch((e) => {
+                        console.error(e)
+                        Nova.error(e.toString())
+                    })
             })
+        },
+
+        destroyTerminDescriptionEditor() {
+            if (!this.terminDescEditorInstance) {
+                return
+            }
+
+            const ed = this.terminDescEditorInstance
+            this.terminDescEditorInstance = null
+
+            ed.destroy().catch(() => {})
         },
 
         startCreate() {
@@ -344,6 +443,7 @@ export default {
         },
 
         async confirmCreate() {
+            this.syncDescriptionFromEditor()
             if (!this.createName.trim() || this.creating === 'saving') return
             this.creating = 'saving'
             try {
@@ -675,48 +775,12 @@ export default {
 }
 
 
-.ck-md-toolbar {
-    display: flex;
-    gap: 2px;
-    padding: 4px 6px;
-    background: #f9fafb;
-    border: 1px solid #d1d5db;
-    border-bottom: none;
-    border-radius: 8px 8px 0 0;
+.ck-termin-rich-editor .ck.ck-reset.ck-editor {
+    width: 100%;
 }
-
-.ck-md-btn {
-    padding: 3px 8px;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    color: #374151;
-    line-height: 1.4;
-    transition: background 0.1s, border-color 0.1s;
+.ck-termin-rich-editor .ck.ck-editor__editable_inline {
+    min-height: 80px;
 }
-.ck-md-btn:hover {
-    background: #e5e7eb;
-    border-color: #d1d5db;
-}
-
-.ck-md-editor {
-    display: flex;
-    flex-direction: column;
-}
-.ck-md-editor .ck-termin-textarea {
-    border-radius: 0 0 8px 8px;
-    margin-top: -1px;
-}
-
-.ck-termin-textarea {
-    resize: vertical;
-    min-height: 68px;
-    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
-    font-size: 13px;
-}
-
 
 /* Visual highlight of termin spans inside the CKEditor editing area */
 .ck-content .ck-termin-highlight {
@@ -725,5 +789,14 @@ export default {
     border-radius: 2px;
     padding: 0 1px;
     cursor: default;
+}
+
+/*
+ * Link / image UI opens in document.body with default z-index below our overlay (99999).
+ * While the termin modal is open, lift CKEditor floating UI above the dimmer so clicks work.
+ */
+body.ck-termin-modal-open .ck.ck-balloon-panel,
+body.ck-termin-modal-open .ck.ck-dropdown__panel {
+    z-index: 100000 !important;
 }
 </style>

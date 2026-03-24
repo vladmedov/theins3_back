@@ -6,5 +6,7 @@
     "Ignore image dimension requirements": "Игнорировать требования к размерам изображения",
     "If enabled, minimum image dimensions (800x100) will not be validated.": "Если включено, минимальные размеры изображения (800x100) не проверяются.",
     "Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.": "Допустимые форматы: jpeg, jpg, png, webp. Максимальный размер: 20 МБ. Минимальные размеры игнорируются.",
-    "Use this option only if no high-quality publication image is available. Low-quality images reduce the overall quality of the site.": "Используйте эту опцию только если нет качественного изображения публикации. Низкое качество изображений ухудшает общее качество сайта."
+    "Use this option only if no high-quality publication image is available. Low-quality images reduce the overall quality of the site.": "Используйте эту опцию только если нет качественного изображения публикации. Низкое качество изображений ухудшает общее качество сайта.",
+    "Terms": "Термины",
+    "Term": "Термин"
 }
