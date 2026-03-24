@@ -57,19 +57,19 @@ class ProcessViewCounts extends Command
                     $count = (int) $redis->rawCommand('GET', $key);
                     
                     if ($count > 0) {
-                        // Обновляем счетчик в БД
-                        $post = Post::find($postId);
-                        
-                        if ($post) {
-                            // Используем прямое обновление БД без timestamps
-                            Post::where('id', $postId)->increment('views_count', $count);
+                        // Обновляем views_count напрямую в таблице, не трогая updated_at.
+                        $affected = DB::table((new Post())->getTable())
+                            ->where('id', $postId)
+                            ->increment('views_count', $count);
+
+                        if ($affected > 0) {
                             $this->info("Post ID {$postId}: +{$count} просмотров");
                             $processed++;
                         } else {
                             $this->warn("Post ID {$postId} не найден");
                             $errors++;
                         }
-                        
+
                         // Удаляем обработанный ключ из Redis
                         $redis->rawCommand('DEL', $key);
                     }
