@@ -39,7 +39,7 @@ class PostController extends Controller
     }
 
     /**
-     * Preview a draft post by temporary token (valid 15 minutes).
+     * Preview a draft post by temporary token (valid 1 hour).
      * Frontend calls this when URL contains ?preview=TOKEN.
      */
     public function getPostPreview($language_code, PostPreviewTokenService $previewTokens)

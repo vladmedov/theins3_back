@@ -9,10 +9,10 @@ use Illuminate\Support\Str;
 class PostPreviewTokenService
 {
     public const CACHE_PREFIX = 'post_preview:';
-    public const TTL_MINUTES = 15;
+    public const TTL_MINUTES = 60;
 
     /**
-     * Create a temporary preview token for a post. Valid for 15 minutes.
+     * Create a temporary preview token for a post. Valid for 1 hour.
      */
     public function createToken(Post $post): string
     {
