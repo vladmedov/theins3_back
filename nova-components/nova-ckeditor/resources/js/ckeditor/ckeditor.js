@@ -73,7 +73,10 @@ import Audio from "./plugins/audio/audio"
 // Other
 import {Clipboard} from '@ckeditor/ckeditor5-clipboard'
 import SourceEditing from '@ckeditor/ckeditor5-source-editing/src/sourceediting'
+import {SpecialCharacters} from '@ckeditor/ckeditor5-special-characters'
 import ElementAddAttributes from './plugins/element-attribute/src/add-attribute-to-element'
+import SpecialCharsLimited from './plugins/SpecialCharsLimited'
+import ReplaceQuotesWithGuillemets from './plugins/ReplaceQuotesWithGuillemets'
 import {Emoji, EmojiActivity, EmojiFlags, EmojiFood, EmojiNature, EmojiObjects, EmojiPeople, EmojiPlaces, EmojiSymbols} from '@phudak/ckeditor5-emoji/src';
 
 
@@ -143,6 +146,9 @@ export default class CkEditor extends ClassicEditorBase {
             TableToolbar,
             HtmlEmbed,
             SourceEditing,
+            SpecialCharacters,
+            SpecialCharsLimited,
+            ReplaceQuotesWithGuillemets,
             Indent,
             IndentBlock,
             ElementAddAttributes,

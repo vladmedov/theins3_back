@@ -1,1 +1,665 @@
-.ck.ck-reset.ck-editor .ck.ck-toolbar{border-radius:10px 10px 0 0}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media{background-color:#fff;border:1px solid #dee2e6;border-radius:3px;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);display:inline-block;max-width:100%;padding:5px;text-align:center}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image img,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media img{height:auto;margin-bottom:4px;margin-left:auto;margin-right:auto;max-width:100%;width:100%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right{clear:both;display:table;float:none;margin-left:auto;margin-right:auto;max-width:100%;width:auto}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image img,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center img,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left img,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right img{max-width:100%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right{max-width:50%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center{max-width:75%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center:after{clear:both;display:block}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right{float:right;margin-bottom:.5em;margin-left:1.5em;margin-top:.5em}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left{float:left;margin-bottom:.5em;margin-right:1.5em;margin-top:.5em}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure figcaption{color:#000;font-size:13px;text-align:center}@media only screen and (max-width:768px){.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center{max-width:85%}}@media only screen and (max-width:576px){.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right{float:none;margin-left:auto;margin-right:auto;max-width:100%}}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media{display:block;height:auto;width:auto}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive{display:block;overflow:hidden;padding:0;position:relative;width:100%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive:before{content:"";display:block}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive-16by9:before{padding-top:56.25%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive-16by9 .embed-responsive-item,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive-16by9 iframe{border:0;bottom:0;height:100%;left:0;position:absolute;top:0;width:100%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table{-webkit-overflow-scrolling:touch;-ms-overflow-style:-ms-autohiding-scrollbar;display:block;overflow-x:auto;width:100%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table{background-color:#fff;box-shadow:0 0 15px #dee2e6;font-size-adjust:.5;margin-bottom:0;width:100%}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table thead th{line-height:1em;text-align:left;white-space:nowrap}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table thead td,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table thead th{border:1px solid #dee2e6;padding:.5em;white-space:pre-wrap}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table tbody th{white-space:nowrap}.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table tbody td,.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table tbody th{border:1px solid #dee2e6;line-height:1em;min-width:50px;padding:.5em;vertical-align:top;white-space:pre-wrap}@font-face{font-display:swap;font-family:RFDewi;font-style:normal;font-weight:200;src:url(/fonts/RFDewi-Regular/RFDewi-Regular.woff2) format("woff2"),url(/fonts/RFDewi-Regular/RFDewi-Regular.woff) format("woff")}@font-face{font-display:swap;font-family:RFDewi;font-style:normal;font-weight:300;src:url(/fonts/RFDewi-Bold/RFDewi-Bold.woff2) format("woff2"),url(/fonts/RFDewi-Bold/RFDewi-Bold.woff) format("woff")}@font-face{font-display:swap;font-family:RFDewi;font-style:normal;font-weight:400;src:url(/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff2) format("woff2"),url(/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff) format("woff")}@font-face{font-display:swap;font-family:RFDewi;font-style:normal;font-weight:500;src:url(/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff2) format("woff2"),url(/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff) format("woff")}@font-face{font-display:swap;font-family:RFDewi;font-style:normal;font-weight:600;src:url(/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff2) format("woff2"),url(/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff) format("woff")}@font-face{font-display:swap;font-family:RFDewi;font-style:normal;font-weight:700;src:url(/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff2) format("woff2"),url(/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff) format("woff")}@font-face{font-display:swap;font-family:RFDewi;font-style:normal;font-weight:900;src:url(/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff2) format("woff2"),url(/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff) format("woff")}.ck.ck-reset.ck-editor .ck-editor__editable_inline *{-webkit-font-smoothing:antialiased;font-family:RFDewi,Arial,Helvetica,sans-serif}.ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote,.ck.ck-reset.ck-editor .ck-editor__editable_inline li,.ck.ck-reset.ck-editor .ck-editor__editable_inline p{color:#333;font-size:1.075rem;font-weight:200;line-height:1.625rem}.ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote,.ck.ck-reset.ck-editor .ck-editor__editable_inline h1,.ck.ck-reset.ck-editor .ck-editor__editable_inline h2,.ck.ck-reset.ck-editor .ck-editor__editable_inline h3,.ck.ck-reset.ck-editor .ck-editor__editable_inline h4,.ck.ck-reset.ck-editor .ck-editor__editable_inline h5,.ck.ck-reset.ck-editor .ck-editor__editable_inline h6,.ck.ck-reset.ck-editor .ck-editor__editable_inline hr,.ck.ck-reset.ck-editor .ck-editor__editable_inline ol,.ck.ck-reset.ck-editor .ck-editor__editable_inline p,.ck.ck-reset.ck-editor .ck-editor__editable_inline ul{margin-bottom:1.5rem}.ck.ck-reset.ck-editor .ck-editor__editable_inline h1,.ck.ck-reset.ck-editor .ck-editor__editable_inline h2,.ck.ck-reset.ck-editor .ck-editor__editable_inline h3,.ck.ck-reset.ck-editor .ck-editor__editable_inline h4,.ck.ck-reset.ck-editor .ck-editor__editable_inline h5,.ck.ck-reset.ck-editor .ck-editor__editable_inline h6{color:#000}.ck.ck-reset.ck-editor .ck-editor__editable_inline h3{font-size:1.5rem!important;font-weight:700!important;line-height:1.2}.ck.ck-reset.ck-editor .ck-editor__editable_inline h3.outline-heading{border-top:.625rem solid #333;color:#333;font-size:1.375rem!important;font-weight:700!important;line-height:1.5rem;padding-top:1.25rem;position:relative;width:-moz-fit-content;width:fit-content}.ck.ck-reset.ck-editor .ck-editor__editable_inline h4{font-size:1.25rem!important;font-weight:700!important;line-height:1.2}.ck.ck-reset.ck-editor .ck-editor__editable_inline h5{font-size:1.125rem!important;font-weight:900!important;line-height:1.2}.ck.ck-reset.ck-editor .ck-editor__editable_inline b,.ck.ck-reset.ck-editor .ck-editor__editable_inline strong{font-weight:300}.ck.ck-reset.ck-editor .ck-editor__editable_inline a{color:#e54839;font-weight:200;transition:all .2s ease-in-out}.ck.ck-reset.ck-editor .ck-editor__editable_inline a:hover{text-decoration:underline}.ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote{background:none!important;border-left:1px solid #e54839!important;font-size:1.075rem;font-weight:200;line-height:1.625rem;padding-left:1.25rem}.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-content blockquote+blockquote{margin-top:-2.5rem;padding-top:2.5rem}.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-content blockquote{-webkit-font-smoothing:antialiased;background:none!important;border-left:none!important;font-size:1.075rem;font-weight:200;line-height:1.625rem;margin-bottom:0;padding-bottom:0;padding-left:1.25rem;position:relative}.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-content blockquote>:last-child{margin-bottom:0}.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-content blockquote:before{border-left:1px solid #e54839;content:"";height:100%;left:0;pointer-events:none;position:absolute;top:0;width:100%}.ck.ck-reset.ck-editor .ck-editor__editable_inline ul{list-style:none;padding-left:0}.ck.ck-reset.ck-editor .ck-editor__editable_inline ul li{font-size:1.075rem;font-weight:200;line-height:1.5rem;margin-bottom:.75rem;padding-left:1.25rem;position:relative}.ck.ck-reset.ck-editor .ck-editor__editable_inline ul li:before{background-color:#e54839;border-radius:50%;content:"";height:6px;left:0;position:absolute;top:.5em;width:6px}.ck.ck-reset.ck-editor .ck-editor__editable_inline ol{counter-reset:ol-counter;list-style:none;padding-left:0}.ck.ck-reset.ck-editor .ck-editor__editable_inline ol li{counter-increment:ol-counter;font-size:1.075rem;font-weight:200;line-height:1.5rem;margin-bottom:.75rem;padding-left:1.75rem;position:relative}.ck.ck-reset.ck-editor .ck-editor__editable_inline ol li:before{color:#e54839;content:counter(ol-counter) ".";font-size:1.075rem;font-weight:400;left:0;line-height:1.5rem;position:absolute;top:0}.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-termin-highlight{background-color:#ebebeb;border-bottom:2px dotted #e54839;border-radius:2px;color:#e54839;cursor:pointer;display:inline;padding:0 .375rem .125rem;transition:background-color .15s ease,color .15s ease}.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-termin-highlight--active{background-color:#e54839;color:#fff}.ck.ck-reset.ck-editor .ck-editor__editable_inline hr{background-color:#eee;border:none;clear:both;display:block;height:5px;padding:0}.ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote{padding-bottom:0!important}.ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote>:last-child{margin-bottom:0!important}.ck.ck-reset.ck-editor .ck-editor__editable_inline{border-radius:0 0 10px 10px;margin:0;padding:0 1.5rem}.ck.ck-editor__editable:not(.ck-editor__nested-editable).ck-focused{box-shadow:none!important}.ck-responsive-form .ck-labeled-input{display:block;float:none!important;margin-bottom:8px!important;margin-left:0!important;width:100%!important}[dusk^=content-] label[for=text-default-ckeditor]{display:none!important}[dusk^=content-] .space-y-2>textarea.hidden+.ck.ck-editor,[dusk^=content-]>.w-full>.grow>div.py-5>:not([hidden])~:not([hidden]),[dusk^=content-]>.w-full>.grow>div.py-5>div:nth-child(2){margin-top:0!important}.ck-widget.raw-html-embed .raw-html-embed__buttons-wrapper{z-index:1}.ck.ck-editor__main :has(>[dir=rtl]),.ckeditor_content :has(>[dir=rtl]){direction:rtl;text-align:right}.ck.ck-editor__main :has(>[dir=ltr]),.ckeditor_content :has(>[dir=ltr]){direction:ltr;text-align:left}.w-4\/5{width:80%}.p-sticky{position:sticky}.max-h-full{max-height:100%}.nc-grid-cols-6{grid-template-columns:repeat(6,minmax(0,1fr))}.fade-enter-active,.fade-leave-active{transition:opacity .2s ease}.fade-enter-from,.fade-leave-to{opacity:0}input.nova-ckeditor-range[type=range]{-webkit-appearance:none;-moz-appearance:none;appearance:none;background:rgba(var(--colors-primary-100));border-radius:15px;cursor:pointer;height:6px;outline:none;width:100%}input.nova-ckeditor-range[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;background-color:rgba(var(--colors-primary-600));border:none;border-radius:50%;height:15px;-webkit-transition:.2s ease-in-out;transition:.2s ease-in-out;width:15px}input.nova-ckeditor-range[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 0 10px rgba(var(--colors-primary-200),.5)}input.nova-ckeditor-range[type=range]::-moz-range-thumb{background-color:rgba(var(--colors-primary-600));border:none;border-radius:50%;height:15px;-moz-transition:.2s ease-in-out;transition:.2s ease-in-out;width:15px}input.nova-ckeditor-range[type=range]::-moz-range-thumb:hover{box-shadow:0 0 0 10px rgba(var(--colors-primary-200),.5)}input.nova-ckeditor-range[type=range]:active::-webkit-slider-thumb{box-shadow:0 0 0 13px rgba(var(--colors-primary-300),.5)}input.nova-ckeditor-range[type=range]:active::-moz-range-thumb{box-shadow:0 0 0 13px rgba(var(--colors-primary-300),.5)}input.nova-ckeditor-range[type=range]:focus::-webkit-slider-thumb{box-shadow:0 0 0 13px rgba(var(--colors-primary-300),.5)}input.nova-ckeditor-range[type=range]:focus::-moz-range-thumb{box-shadow:0 0 0 13px rgba(var(--colors-primary-300),.5)}.media-browser-btn{align-items:center;border-radius:6px;cursor:pointer;display:inline-flex;gap:4px;padding:4px 8px;transition:all .3s}.media-browser-btn svg{color:rgba(var(--colors-primary-600));width:20px}.media-browser-btn:hover:not(:disabled){background:rgba(var(--colors-gray-100))}.media-browser-btn:disabled{cursor:not-allowed;opacity:.5}.ck-character-grid__tiles{display:grid;grid-template-columns:repeat(10,1fr);height:200px!important;overflow-y:auto}@media (max-width:800px){.nova-ckeditor-mobile-none{display:none!important}}:root.dark{--ck-custom-background:rgba(var(--colors-gray-950));--ck-custom-foreground:rgba(var(--colors-gray-800));--ck-custom-border:rgba(var(--colors-gray-100),0.1);--ck-color-base-background:rgba(var(--colors-gray-900));--ck-color-base-border:rgba(var(--colors-gray-100),0.1);--ck-show-blocks-border-color:rgba(var(--colors-gray-700));--ck-color-base-foreground:var(--ck-custom-background);--ck-color-focus-border:rgba(var(--colors-gray-100),0.1);--ck-color-text:rgba(var(--colors-gray-400));--ck-color-shadow-drop:var(--ck-custom-background);--ck-color-shadow-inner:var(--ck-custom-background);--ck-color-button-default-background:var(--ck-custom-background);--ck-color-button-default-hover-background:rgba(var(--colors-gray-800));--ck-color-button-default-active-background:rgba(var(--colors-gray-700));--ck-color-button-default-active-shadow:rgba(var(--colors-gray-800));--ck-color-button-default-disabled-background:var(--ck-custom-background);--ck-color-button-on-background:var(--ck-custom-foreground);--ck-color-button-on-hover-background:rgba(var(--colors-gray-800));--ck-color-button-on-active-background:rgba(var(--colors-gray-700));--ck-color-button-on-active-shadow:rgba(var(--colors-gray-800));--ck-color-button-on-disabled-background:var(--ck-custom-foreground);--ck-color-button-action-background:rgba(var(--colors-green-600));--ck-color-button-action-hover-background:rgba(var(--colors-green-500));--ck-color-button-action-active-background:rgba(var(--colors-green-400));--ck-color-button-action-active-shadow:rgba(var(--colors-green-300));--ck-color-button-action-disabled-background:rgba(var(--colors-green-400));--ck-color-button-action-text:var(--ck-custom-white);--ck-color-button-save:rgba(var(--colors-green-500));--ck-color-button-cancel:rgba(var(--colors-red-500));--ck-focus-outer-shadow:none;--ck-color-dropdown-panel-background:var(--ck-custom-background);--ck-color-dropdown-panel-border:var(--ck-custom-foreground);--ck-color-dialog-background:var(--ck-custom-background);--ck-color-dialog-form-header-border:var(--ck-custom-border);--ck-color-split-button-hover-background:var(--ck-color-button-default-hover-background);--ck-color-split-button-hover-border:var(--ck-custom-foreground);--ck-color-input-background:var(--ck-custom-background);--ck-color-input-border:#6c6a71;--ck-color-input-text:#fafafa;--ck-color-input-disabled-background:#343338;--ck-color-input-disabled-border:#5f5e64;--ck-color-input-disabled-text:#c7c7c7;--ck-color-labeled-field-label-background:var(--ck-custom-background);--ck-color-list-background:var(--ck-custom-background);--ck-color-list-button-hover-background:rgba(var(--colors-gray-900));--ck-color-list-button-on-background:rgba(var(--colors-gray-800));--ck-color-list-button-on-background-focus:rgba(var(--colors-gray-700));--ck-color-list-button-on-text:rgba(var(--colors-gray-300));--ck-color-panel-background:var(--ck-custom-background);--ck-color-panel-border:var(--ck-custom-border);--ck-color-toolbar-background:var(--ck-custom-background);--ck-color-toolbar-border:var(--ck-custom-border);--ck-color-tooltip-background:#222126;--ck-color-tooltip-text:#ededed;--ck-color-image-caption-background:#f7f7f7;--ck-color-image-caption-text:#333;--ck-color-widget-blurred-border:rgba(var(--colors-primary-700));--ck-color-widget-hover-border:rgba(var(--colors-primary-600));--ck-color-widget-editable-focus-background:var(--ck-custom-white);--ck-color-link-default:rgba(var(--colors-primary-600));--ck-powered-by-text-color:rgba(var(--colors-gray-100));--ck-powered-by-border-radius:var(--ck-border-radius);--ck-powered-by-background:rgba(var(--colors-gray-600));--ck-powered-by-border-color:var(--ck-color-focus-border)}:root.dark .pagination__button svg{fill:rgba(var(--colors-gray-500))!important}:root.dark .pagination__button:hover:not(:disabled){background:rgba(var(--colors-gray-700))}:root.dark .pagination__button:hover:not(:disabled) svg{fill:rgba(var(--colors-gray-200))!important}:root.dark .browser-list__item:hover .browser-list__item--icon{background:rgba(var(--colors-gray-800))!important}:root.dark .item__details--select svg{color:rgba(var(--colors-gray-500))!important}:root.dark .item__details--select:hover:not(:disabled){background:rgba(var(--colors-gray-700))}:root.dark .item__details--select:hover:not(:disabled) svg{color:rgba(var(--colors-gray-200))!important}:root.dark .media-browser-btn:hover:not(:disabled){background:rgba(var(--colors-gray-700))}:root.dark .browser-list__item svg{fill:rgba(var(--colors-gray-500))!important}:root.dark .browser-list__item:hover{fill:rgba(var(--colors-gray-200))!important;color:rgba(var(--colors-gray-200))}:root.dark .browser-list__item:hover,:root.dark .info__header button:hover{background:rgba(var(--colors-gray-700))}:root.dark .info__header button svg{fill:rgba(var(--colors-gray-500))!important}:root.dark .ck-editor__editable_inline blockquote,:root.dark .ck-editor__editable_inline li,:root.dark .ck-editor__editable_inline ol,:root.dark .ck-editor__editable_inline p,:root.dark .ck-editor__editable_inline ul{color:rgba(var(--colors-gray-200))}:root.dark .ck-source-editing-area textarea{background-color:rgba(var(--colors-gray-900))!important}:root.dark .ck-code_selected,:root.dark hr{background-color:var(--ck-custom-foreground)!important}:root.dark blockquote{background-color:rgba(var(--colors-gray-800))!important;border-left-color:rgba(var(--colors-gray-950))!important}:root.dark figure.image,:root.dark figure.media{background-color:var(--ck-custom-foreground)!important;border-color:var(--ck-custom-foreground)!important}:root.dark figure.table table{background-color:transparent!important;border-color:rgba(var(--colors-gray-500))!important}:root.dark figure.table table tbody td,:root.dark figure.table table tbody th{border-color:rgba(var(--colors-gray-600))!important}
+/**
+ * * Nova Field Rounded Styles
+ * */
+.ck.ck-reset.ck-editor .ck.ck-toolbar {
+  border-radius: 10px 10px 0 0;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  padding: 5px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  display: inline-block;
+  max-width: 100%;
+  text-align: center;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media img,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image img {
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 4px;
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right {
+  float: none;
+  clear: both;
+  width: auto;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  display: table;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image img,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center img,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left img,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right img {
+  max-width: 100%;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left,
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right {
+  max-width: 50%;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center {
+  max-width: 75%;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center::after {
+  clear: both;
+  display: block;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right {
+  float: right;
+  margin-top: 0.5em;
+  margin-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left {
+  float: left;
+  margin-top: 0.5em;
+  margin-right: 1.5em;
+  margin-bottom: 0.5em;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure figcaption {
+  color: black;
+  font-size: 13px;
+  text-align: center;
+}
+@media only screen and (max-width: 768px) {
+  .ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center {
+    max-width: 85%;
+  }
+}
+@media only screen and (max-width: 576px) {
+  .ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-center,
+  .ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-left,
+  .ck.ck-reset.ck-editor .ck-editor__editable_inline figure.image.image-style-align-right {
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    float: none;
+  }
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media {
+  width: auto;
+  height: auto;
+  display: block;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive::before {
+  display: block;
+  content: "";
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive-16by9::before {
+  padding-top: 56.25%;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive-16by9 .embed-responsive-item, .ck.ck-reset.ck-editor .ck-editor__editable_inline figure.media .embed-responsive-16by9 iframe {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table {
+  margin-bottom: 0;
+  background-color: white;
+  width: 100%;
+  box-shadow: 0 0 15px #dee2e6;
+  font-size-adjust: 0.5;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table thead th {
+  white-space: nowrap;
+  line-height: 1em;
+  text-align: left;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table thead th, .ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table thead td {
+  border: 1px solid #dee2e6;
+  white-space: pre-wrap;
+  padding: 0.5em;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table tbody th {
+  white-space: nowrap;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table tbody th, .ck.ck-reset.ck-editor .ck-editor__editable_inline figure.table table tbody td {
+  border: 1px solid #dee2e6;
+  line-height: 1em;
+  min-width: 50px;
+  vertical-align: top;
+  white-space: pre-wrap;
+  padding: 0.5em;
+}
+@font-face {
+  font-family: "RFDewi";
+  src: url("/fonts/RFDewi-Regular/RFDewi-Regular.woff2") format("woff2"), url("/fonts/RFDewi-Regular/RFDewi-Regular.woff") format("woff");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "RFDewi";
+  src: url("/fonts/RFDewi-Bold/RFDewi-Bold.woff2") format("woff2"), url("/fonts/RFDewi-Bold/RFDewi-Bold.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "RFDewi";
+  src: url("/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff2") format("woff2"), url("/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "RFDewi";
+  src: url("/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff2") format("woff2"), url("/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "RFDewi";
+  src: url("/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff2") format("woff2"), url("/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "RFDewi";
+  src: url("/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff2") format("woff2"), url("/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "RFDewi";
+  src: url("/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff2") format("woff2"), url("/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff") format("woff");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline * {
+  font-family: "RFDewi", Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline p, .ck.ck-reset.ck-editor .ck-editor__editable_inline li, .ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote {
+  font-size: 1.075rem;
+  font-weight: 200;
+  line-height: 1.625rem;
+  color: #333;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline p, .ck.ck-reset.ck-editor .ck-editor__editable_inline h1, .ck.ck-reset.ck-editor .ck-editor__editable_inline h2, .ck.ck-reset.ck-editor .ck-editor__editable_inline h3, .ck.ck-reset.ck-editor .ck-editor__editable_inline h4, .ck.ck-reset.ck-editor .ck-editor__editable_inline h5, .ck.ck-reset.ck-editor .ck-editor__editable_inline h6, .ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote, .ck.ck-reset.ck-editor .ck-editor__editable_inline ul, .ck.ck-reset.ck-editor .ck-editor__editable_inline ol, .ck.ck-reset.ck-editor .ck-editor__editable_inline hr {
+  margin-bottom: 1.5rem;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline h1, .ck.ck-reset.ck-editor .ck-editor__editable_inline h2, .ck.ck-reset.ck-editor .ck-editor__editable_inline h3, .ck.ck-reset.ck-editor .ck-editor__editable_inline h4, .ck.ck-reset.ck-editor .ck-editor__editable_inline h5, .ck.ck-reset.ck-editor .ck-editor__editable_inline h6 {
+  color: #000;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline h3 {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline h3.outline-heading {
+  position: relative;
+  padding-top: 1.25rem;
+  width: -moz-fit-content;
+  width: fit-content;
+  border-top: 0.625rem solid #333;
+  font-weight: 700 !important;
+  color: #333;
+  font-size: 1.375rem !important;
+  line-height: 1.5rem;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline h4 {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline h5 {
+  font-size: 1.125rem !important;
+  font-weight: 900 !important;
+  line-height: 1.2;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline b, .ck.ck-reset.ck-editor .ck-editor__editable_inline strong {
+  font-weight: 300;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline a {
+  font-weight: 200;
+  color: #e54839;
+  transition: all 0.2s ease-in-out;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline a:hover {
+  text-decoration: underline;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote {
+  font-size: 1.075rem;
+  line-height: 1.625rem;
+  font-weight: 200;
+  padding-left: 1.25rem;
+  border-left: 1px solid #e54839 !important;
+  background: none !important;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-content blockquote + blockquote {
+  margin-top: -2.5rem;
+  padding-top: 2.5rem;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-content blockquote {
+  font-size: 1.075rem;
+  line-height: 1.625rem;
+  font-weight: 200;
+  -webkit-font-smoothing: antialiased;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  padding-left: 1.25rem;
+  position: relative;
+  border-left: none !important;
+  background: none !important;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-content blockquote > *:last-child {
+  margin-bottom: 0;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-content blockquote::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-left: 1px solid #e54839;
+  pointer-events: none;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline ul {
+  list-style: none;
+  padding-left: 0;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline ul li {
+  position: relative;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.075rem;
+  font-weight: 200;
+  line-height: 1.5rem;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline ul li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 6px;
+  height: 6px;
+  background-color: #e54839;
+  border-radius: 50%;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline ol {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: ol-counter;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline ol li {
+  position: relative;
+  padding-left: 1.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.075rem;
+  font-weight: 200;
+  line-height: 1.5rem;
+  counter-increment: ol-counter;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline ol li::before {
+  content: counter(ol-counter) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #e54839;
+  font-weight: 400;
+  font-size: 1.075rem;
+  line-height: 1.5rem;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-termin-highlight {
+  display: inline;
+  cursor: pointer;
+  background-color: #EBEBEB;
+  color: #E54839;
+  padding: 0 0.375rem 0.125rem 0.375rem;
+  border-radius: 2px;
+  border-bottom: 2px dotted #E54839;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline .ck-termin-highlight--active {
+  background-color: #E54839;
+  color: #fff;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline hr {
+  background-color: #eee;
+  border: none;
+  height: 5px;
+  padding: 0;
+  display: block;
+  clear: both;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote {
+  padding-bottom: 0 !important;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline blockquote > *:last-child {
+  margin-bottom: 0 !important;
+}
+.ck.ck-reset.ck-editor .ck-editor__editable_inline {
+  border-radius: 0 0 10px 10px;
+  padding: 0 1.5rem;
+  margin: 0;
+}
+
+.ck.ck-editor__editable:not(.ck-editor__nested-editable).ck-focused {
+  box-shadow: none !important;
+}
+
+.ck-responsive-form .ck-labeled-input {
+  margin-left: 0 !important;
+  margin-bottom: 8px !important;
+  display: block;
+  float: none !important;
+  width: 100% !important;
+}
+
+[dusk^=content-] label[for=text-default-ckeditor] {
+  display: none !important;
+}
+[dusk^=content-] > .w-full > .grow > div.py-5 > div:nth-child(2) {
+  margin-top: 0 !important;
+}
+[dusk^=content-] > .w-full > .grow > div.py-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0 !important;
+}
+[dusk^=content-] .space-y-2 > textarea.hidden + .ck.ck-editor {
+  margin-top: 0 !important;
+}
+
+.ck-widget.raw-html-embed .raw-html-embed__buttons-wrapper {
+  z-index: 1;
+}
+
+.ck.ck-editor__main *:has(> [dir=rtl]),
+.ckeditor_content *:has(> [dir=rtl]) {
+  direction: rtl;
+  text-align: right;
+}
+.ck.ck-editor__main *:has(> [dir=ltr]),
+.ckeditor_content *:has(> [dir=ltr]) {
+  direction: ltr;
+  text-align: left;
+}
+
+.w-4\/5 {
+  width: 80%;
+}
+
+.p-sticky {
+  position: sticky;
+}
+
+.max-h-full {
+  max-height: 100%;
+}
+
+.nc-grid-cols-6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 200ms ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+input.nova-ckeditor-range[type=range] {
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+  width: 100%;
+  cursor: pointer;
+  outline: none;
+  border-radius: 15px;
+  height: 6px;
+  background: rgba(var(--colors-primary-100));
+}
+input.nova-ckeditor-range[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+          appearance: none;
+  height: 15px;
+  width: 15px;
+  background-color: rgba(var(--colors-primary-600));
+  border-radius: 50%;
+  border: none;
+  -webkit-transition: 0.2s ease-in-out;
+  transition: 0.2s ease-in-out;
+}
+input.nova-ckeditor-range[type=range]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 10px rgba(var(--colors-primary-200), 0.5);
+}
+input.nova-ckeditor-range[type=range]::-moz-range-thumb {
+  height: 15px;
+  width: 15px;
+  background-color: rgba(var(--colors-primary-600));
+  border-radius: 50%;
+  border: none;
+  -moz-transition: 0.2s ease-in-out;
+  transition: 0.2s ease-in-out;
+}
+input.nova-ckeditor-range[type=range]::-moz-range-thumb:hover {
+  box-shadow: 0 0 0 10px rgba(var(--colors-primary-200), 0.5);
+}
+input.nova-ckeditor-range[type=range]:active::-webkit-slider-thumb {
+  box-shadow: 0 0 0 13px rgba(var(--colors-primary-300), 0.5);
+}
+input.nova-ckeditor-range[type=range]:active::-moz-range-thumb {
+  box-shadow: 0 0 0 13px rgba(var(--colors-primary-300), 0.5);
+}
+input.nova-ckeditor-range[type=range]:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 13px rgba(var(--colors-primary-300), 0.5);
+}
+input.nova-ckeditor-range[type=range]:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 13px rgba(var(--colors-primary-300), 0.5);
+}
+
+.media-browser-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 300ms;
+  cursor: pointer;
+}
+.media-browser-btn svg {
+  color: rgba(var(--colors-primary-600));
+  width: 20px;
+}
+.media-browser-btn:hover:not(:disabled) {
+  background: rgba(var(--colors-gray-100));
+}
+.media-browser-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ck-character-grid__tiles {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  height: 200px !important;
+  overflow-y: auto;
+}
+
+@media (max-width: 800px) {
+  .nova-ckeditor-mobile-none {
+    display: none !important;
+  }
+}
+:root.dark {
+  /* Overrides the border radius setting in the theme. */
+  /* Overrides the default font size in the theme. */
+  /* Helper variables to avoid duplication in the colors. */
+  --ck-custom-background: rgba(var(--colors-gray-950));
+  --ck-custom-foreground: rgba(var(--colors-gray-800));
+  --ck-custom-border: rgba(var(--colors-gray-100), 0.1);
+  --ck-color-base-background: rgba(var(--colors-gray-900));
+  --ck-color-base-border: rgba(var(--colors-gray-100), 0.1);
+  --ck-show-blocks-border-color: rgba(var(--colors-gray-700));
+  /* -- Overrides generic colors. ------------------------------------------------------------- */
+  --ck-color-base-foreground: var(--ck-custom-background);
+  --ck-color-focus-border: rgba(var(--colors-gray-100), 0.1);
+  --ck-color-text: rgba(var(--colors-gray-400));
+  --ck-color-shadow-drop: var(--ck-custom-background);
+  --ck-color-shadow-inner: var(--ck-custom-background);
+  /* -- Overrides the default .ck-button class colors. ---------------------------------------- */
+  --ck-color-button-default-background: var(--ck-custom-background);
+  --ck-color-button-default-hover-background: rgba(var(--colors-gray-800));
+  --ck-color-button-default-active-background: rgba(var(--colors-gray-700));
+  --ck-color-button-default-active-shadow: rgba(var(--colors-gray-800));
+  --ck-color-button-default-disabled-background: var(--ck-custom-background);
+  --ck-color-button-on-background: var(--ck-custom-foreground);
+  --ck-color-button-on-hover-background: rgba(var(--colors-gray-800));
+  --ck-color-button-on-active-background: rgba(var(--colors-gray-700));
+  --ck-color-button-on-active-shadow: rgba(var(--colors-gray-800));
+  --ck-color-button-on-disabled-background: var(--ck-custom-foreground);
+  --ck-color-button-action-background: rgba(var(--colors-green-600));
+  --ck-color-button-action-hover-background: rgba(var(--colors-green-500));
+  --ck-color-button-action-active-background: rgba(var(--colors-green-400));
+  --ck-color-button-action-active-shadow: rgba(var(--colors-green-300));
+  --ck-color-button-action-disabled-background: rgba(var(--colors-green-400));
+  --ck-color-button-action-text: var(--ck-custom-white);
+  --ck-color-button-save: rgba(var(--colors-green-500));
+  --ck-color-button-cancel: rgba(var(--colors-red-500));
+  --ck-focus-outer-shadow: none;
+  /* -- Overrides the default .ck-dropdown class colors. -------------------------------------- */
+  --ck-color-dropdown-panel-background: var(--ck-custom-background);
+  --ck-color-dropdown-panel-border: var(--ck-custom-foreground);
+  /* -- Overrides the default .ck-dialog class colors. ----------------------------------- */
+  --ck-color-dialog-background: var(--ck-custom-background);
+  --ck-color-dialog-form-header-border: var(--ck-custom-border);
+  /* -- Overrides the default .ck-splitbutton class colors. ----------------------------------- */
+  --ck-color-split-button-hover-background: var(--ck-color-button-default-hover-background);
+  --ck-color-split-button-hover-border: var(--ck-custom-foreground);
+  /* -- Overrides the default .ck-input class colors. ----------------------------------------- */
+  --ck-color-input-background: var(--ck-custom-background);
+  --ck-color-input-border: hsl(257, 3%, 43%);
+  --ck-color-input-text: hsl(0, 0%, 98%);
+  --ck-color-input-disabled-background: hsl(255, 4%, 21%);
+  --ck-color-input-disabled-border: hsl(250, 3%, 38%);
+  --ck-color-input-disabled-text: hsl(0, 0%, 78%);
+  /* -- Overrides the default .ck-labeled-field-view class colors. ---------------------------- */
+  --ck-color-labeled-field-label-background: var(--ck-custom-background);
+  /* -- Overrides the default .ck-list class colors. ------------------------------------------ */
+  --ck-color-list-background: var(--ck-custom-background);
+  --ck-color-list-button-hover-background: rgba(var(--colors-gray-900));
+  --ck-color-list-button-on-background: rgba(var(--colors-gray-800));
+  --ck-color-list-button-on-background-focus: rgba(var(--colors-gray-700));
+  --ck-color-list-button-on-text: rgba(var(--colors-gray-300));
+  /* -- Overrides the default .ck-balloon-panel class colors. --------------------------------- */
+  --ck-color-panel-background: var(--ck-custom-background);
+  --ck-color-panel-border: var(--ck-custom-border);
+  /* -- Overrides the default .ck-toolbar class colors. --------------------------------------- */
+  --ck-color-toolbar-background: var(--ck-custom-background);
+  --ck-color-toolbar-border: var(--ck-custom-border);
+  /* -- Overrides the default .ck-tooltip class colors. --------------------------------------- */
+  --ck-color-tooltip-background: hsl(252, 7%, 14%);
+  --ck-color-tooltip-text: hsl(0, 0%, 93%);
+  /* -- Overrides the default colors used by the ckeditor5-image package. --------------------- */
+  --ck-color-image-caption-background: hsl(0, 0%, 97%);
+  --ck-color-image-caption-text: hsl(0, 0%, 20%);
+  /* -- Overrides the default colors used by the ckeditor5-widget package. -------------------- */
+  --ck-color-widget-blurred-border: rgba(var(--colors-primary-700));
+  --ck-color-widget-hover-border: rgba(var(--colors-primary-600));
+  --ck-color-widget-editable-focus-background: var(--ck-custom-white);
+  /* -- Overrides the default colors used by the ckeditor5-link package. ---------------------- */
+  --ck-color-link-default: rgba(var(--colors-primary-600));
+  /* -- Overrides the default colors used by the ckeditor5-link package. ---------------------- */
+  --ck-powered-by-text-color: rgba(var(--colors-gray-100));
+  --ck-powered-by-border-radius: var(--ck-border-radius);
+  --ck-powered-by-background: rgba(var(--colors-gray-600));
+  --ck-powered-by-border-color: var(--ck-color-focus-border);
+}
+:root.dark .pagination__button svg {
+  fill: rgba(var(--colors-gray-500)) !important;
+}
+:root.dark .pagination__button:hover:not(:disabled) {
+  background: rgba(var(--colors-gray-700));
+}
+:root.dark .pagination__button:hover:not(:disabled) svg {
+  fill: rgba(var(--colors-gray-200)) !important;
+}
+:root.dark .browser-list__item:hover .browser-list__item--icon {
+  background: rgba(var(--colors-gray-800)) !important;
+}
+:root.dark .item__details--select svg {
+  color: rgba(var(--colors-gray-500)) !important;
+}
+:root.dark .item__details--select:hover:not(:disabled) {
+  background: rgba(var(--colors-gray-700));
+}
+:root.dark .item__details--select:hover:not(:disabled) svg {
+  color: rgba(var(--colors-gray-200)) !important;
+}
+:root.dark .media-browser-btn:hover:not(:disabled) {
+  background: rgba(var(--colors-gray-700));
+}
+:root.dark .browser-list__item svg {
+  fill: rgba(var(--colors-gray-500)) !important;
+}
+:root.dark .browser-list__item:hover {
+  background: rgba(var(--colors-gray-700));
+  color: rgba(var(--colors-gray-200));
+  fill: rgba(var(--colors-gray-200)) !important;
+}
+:root.dark .info__header button:hover {
+  background: rgba(var(--colors-gray-700));
+}
+:root.dark .info__header button svg {
+  fill: rgba(var(--colors-gray-500)) !important;
+}
+:root.dark .ck-editor__editable_inline p, :root.dark .ck-editor__editable_inline ol, :root.dark .ck-editor__editable_inline ul, :root.dark .ck-editor__editable_inline li, :root.dark .ck-editor__editable_inline blockquote {
+  color: rgba(var(--colors-gray-200));
+}
+:root.dark .ck-source-editing-area textarea {
+  background-color: rgba(var(--colors-gray-900)) !important;
+}
+:root.dark .ck-code_selected,
+:root.dark hr {
+  background-color: var(--ck-custom-foreground) !important;
+}
+:root.dark blockquote {
+  border-left-color: rgba(var(--colors-gray-950)) !important;
+  background-color: rgba(var(--colors-gray-800)) !important;
+}
+:root.dark figure.media,
+:root.dark figure.image {
+  background-color: var(--ck-custom-foreground) !important;
+  border-color: var(--ck-custom-foreground) !important;
+}
+:root.dark figure.table table {
+  background-color: transparent !important;
+  border-color: rgba(var(--colors-gray-500)) !important;
+}
+:root.dark figure.table table tbody th, :root.dark figure.table table tbody td {
+  border-color: rgba(var(--colors-gray-600)) !important;
+}
