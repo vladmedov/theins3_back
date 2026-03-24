@@ -111,8 +111,9 @@ abstract class Post extends Resource
     public function filters(Request $request)
     {
         $filters = [];
+        $postType = static::getPostType();
 
-        if (CategoryTypes::isDefault(static::getPostType())) {
+        if ($postType && CategoryTypes::isDefault($postType)) {
             $filters[] = new \App\Nova\Filters\CategoryFilter;
         }
 
@@ -436,7 +437,7 @@ abstract class Post extends Resource
                         ->stacked()
                         ->saveAsJSON()
                         ->reorderable() 
-                        ->asyncResource(static::class),
+                        ->asyncResource(PostRelated::class),
                 ])
         ];
 
@@ -663,17 +664,35 @@ abstract class Post extends Resource
     }
 
     public static function indexQuery(NovaRequest $request, $query) {
+        $query->where('language_code', app()->getLocale());
+
         if (static::getPostType()) {
-            $query->where('language_code', app()->getLocale());
             $query->where('type', static::getPostType());
-
-            if (!$request->user()->isAdmin() && !$request->user()->isEditor()) {
-                $query->whereHas('owners', function($q) {
-                    $q->where('user_id', auth()->user()->id);
-                });
-            }
-
-            return $query;
         }
+
+        if (!$request->user()->isAdmin() && !$request->user()->isEditor()) {
+            $query->whereHas('owners', function($q) {
+                $q->where('user_id', auth()->user()->id);
+            });
+        }
+
+        return $query;
     }
+
+    // public static function relatableQuery(NovaRequest $request, $query)
+    // {
+    //     $query->where('language_code', app()->getLocale());
+
+    //     if (static::getPostType()) {
+    //         $query->where('type', static::getPostType());
+    //     }
+
+    //     if (!$request->user()->isAdmin() && !$request->user()->isEditor()) {
+    //         $query->whereHas('owners', function($q) {
+    //             $q->where('user_id', auth()->user()->id);
+    //         });
+    //     }
+
+    //     return $query;
+    // }
 }
