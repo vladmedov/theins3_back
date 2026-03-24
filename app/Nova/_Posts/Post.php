@@ -50,6 +50,7 @@ use App\Nova\Flexible\Layouts\GalleryLayout;
 
 use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\FieldCollection;
+use Laravel\Nova\Fields\FormData;
 
 use Laravel\Nova\Resource as NovaResource;
 
@@ -274,12 +275,25 @@ abstract class Post extends Resource
                                     $model->authors()->sync($syncData);
                                 });
                             }),
-                
+
             Image::make(__('Image file'), 'image') 
                 ->hideFromDetail()
                 ->hideFromIndex()
                 ->disk('public')
                 ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
+                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 800x100 px.'))
+                ->dependsOn(
+                    ['ignore_image_dimension_requirements'],
+                    function (Image $field, NovaRequest $request, FormData $formData) {
+                        if ($formData->ignore_image_dimension_requirements) {
+                            $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480')
+                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.'));
+                        } else {
+                            $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
+                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 800x100 px.'));
+                        }
+                    }
+                )
                 ->nullable()
                 ->path(ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
                 ->preview(function ($value, $disk) {
@@ -317,6 +331,18 @@ abstract class Post extends Resource
                 ->rules('boolean')
                 ->help(__('The news headline will be displayed in bold.'));
         }
+
+        $general[] = Boolean::make(__('Ignore image dimension requirements'), 'ignore_image_dimension_requirements')
+            ->onlyOnForms()
+            ->help('<strong>' . __('Use this option only if no high-quality publication image is available. Low-quality images reduce the overall quality of the site.') . '</strong><br>' . __('If enabled, minimum image dimensions (800x100) will not be validated.'))
+            ->withMeta([
+                'extraAttributes' => [
+                    'class' => 'ignore-image-dimensions-boolean',
+                ],
+            ])
+            ->fillUsing(function () {
+                // UI-only toggle, do not persist to the model.
+            });
 
         // Tab 2
         $content = [
