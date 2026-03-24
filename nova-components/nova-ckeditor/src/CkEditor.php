@@ -72,6 +72,13 @@ class CkEditor extends Field
     public bool $forcePasteAsPlainText;
 
     /**
+     * Sanitize HTML paste/drop: unwrap all span elements (e.g. Google Docs) while keeping text and nested tags.
+     *
+     * @var bool
+     */
+    public bool $stripInlineStylesOnPaste;
+
+    /**
      * Alert Before Unsaved Changes
      *
      * @var bool
@@ -372,6 +379,7 @@ class CkEditor extends Field
             'indexLimit'                => $this->indexLimit,
             'contentLanguage'           => $this->contentLanguage,
             'forcePasteAsPlainText'     => $this->forcePasteAsPlainText,
+            'stripInlineStylesOnPaste'  => $this->stripInlineStylesOnPaste,
             'alertBeforeUnsavedChanges' => $this->alertBeforeUnsavedChanges,
             'textPartLanguage'          => $this->textPartLanguage,
             'htmlSupport'               => $this->htmlSupport,
@@ -464,6 +472,7 @@ class CkEditor extends Field
         $this->snippetBrowser = $this->prepareSnippets($toolbar['snippets']);
         $this->contentLanguage = $toolbar['content-lang'];
         $this->forcePasteAsPlainText = $toolbar['force-paste-as-plain-text'] ?? false;
+        $this->stripInlineStylesOnPaste = $toolbar['strip-inline-styles-on-paste'] ?? true;
         $this->alertBeforeUnsavedChanges = $toolbar['alert-before-unsaved-changes'] ?? true;
         $this->textPartLanguage = $toolbar['text-part-language'] ?? $defaultTextPartLanguage;
         $this->htmlSupport = $toolbar['html-support'] ?? $defaultHtmlSupport;

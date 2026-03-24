@@ -30,6 +30,7 @@
 
 <script>
 import CkEditor from '../ckeditor/ckeditor'
+import {sanitizePastedHtml} from '../utils/sanitizePastedHtml'
 import SnippetBrowser from "../components/snippet-browser/SnippetBrowser.vue"
 import MediaBrowser from '../components/media-browser/MediaBrowser.vue'
 import TerminPickerModal from '../components/termin-picker/TerminPickerModal.vue'
@@ -165,6 +166,8 @@ export default {
                                 }
                             });
                         })
+                    } else if (this.currentField.stripInlineStylesOnPaste !== false) {
+                        this.registerPasteInlineStyleStripper(editor)
                     }
                 })
                 .catch((e) => {
@@ -184,6 +187,26 @@ export default {
 
         setInitialValue() {
             this.value = this.currentField.value || ''
+        },
+
+        registerPasteInlineStyleStripper(editor) {
+            const clipboardPipeline = editor.plugins.get('ClipboardPipeline')
+
+            clipboardPipeline.on('inputTransformation', (evt, data) => {
+                if (!data.content || data.content.isEmpty) {
+                    return
+                }
+
+                const htmlProcessor = editor.data.htmlProcessor
+                const html = htmlProcessor.toData(data.content)
+                const cleaned = sanitizePastedHtml(html)
+
+                if (cleaned === html) {
+                    return
+                }
+
+                data.content = htmlProcessor.toView(cleaned)
+            }, {priority: 'high'})
         },
 
         initToolbarOptions(toolbarOptions) {
