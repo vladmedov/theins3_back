@@ -70,7 +70,7 @@ export default {
                 this.$nextTick(() => {
                     const input = [...document.querySelectorAll('[id*="related_title"]')].find(el => !before.has(el));
                     if (input && !input.value) {
-                        input.value = document.documentElement.lang === 'ru' ? 'Статьи по теме' : 'Articles on the topic';
+                        input.value = document.documentElement.lang === 'ru' ? 'Статьи по теме' : 'See also';
                         input.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                 });
