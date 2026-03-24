@@ -489,7 +489,7 @@ class LegacyImportMain extends Command
             return $targetPath;
         }
 
-        $url = 'https://insidertexts.com/storage/' . $legacySlug . '/' . $id . '/' . $legacyFilename;
+        $url = 'https://admin.theins.today/storage/' . $legacySlug . '/' . $id . '/' . $legacyFilename;
 
         try {
             Storage::disk('public')->makeDirectory(dirname($targetPath));
