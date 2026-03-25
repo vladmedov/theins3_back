@@ -23,7 +23,9 @@ use Laravel\Nova\Fields\Textarea;
 use Laravel\Nova\Fields\Avatar;
 use Laravel\Nova\Fields\MultiSelect;
 use Laravel\Nova\Fields\Boolean;
+use Laravel\Nova\Fields\BelongsTo;
 
+use App\Nova\_Users\User as NovaUser;
 use App\Services\ImageService;
 use App\Enums\PostTypes;
 class Author extends Resource
@@ -123,6 +125,11 @@ class Author extends Resource
             ]),
 
             Panel::make(__('User Information'), [
+                BelongsTo::make(__('User'), 'user', NovaUser::class)
+                    ->searchable()
+                    ->nullable()
+                    ->sortable(),
+
                 Textarea::make(__('Description'), 'description')
                     ->onlyOnForms(),
 
@@ -183,6 +190,12 @@ class Author extends Resource
     public static function redirectAfterUpdate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';
+    }
+
+    public static function indexQuery(NovaRequest $request, Builder $query): Builder
+    {
+        return $query
+            ->where('language_code', app()->getLocale());
     }
 
     public static function relatableQuery(NovaRequest $request, Builder $query): Builder

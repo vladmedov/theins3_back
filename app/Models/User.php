@@ -158,6 +158,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Post::class, 'post_owners', 'user_id', 'post_id');
     }
 
+    public function authors()
+    {
+        return $this->hasMany(Author::class);
+    }
+
     // public function posts()
     // {    
     //     return $this->belongsToMany(Post::class, 'post_authors', 'user_id', 'post_id');

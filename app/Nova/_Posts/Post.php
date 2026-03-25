@@ -108,6 +108,28 @@ abstract class Post extends Resource
         return null;
     }
 
+    /**
+     * First author row linked to the user for the current locale and this resource’s post type
+     * (same filters as the Authors multiselect options / Author::relatableQuery).
+     */
+    protected static function firstLinkedAuthorForCurrentUser(?\Illuminate\Contracts\Auth\Authenticatable $user): ?\App\Models\Author
+    {
+        if ($user === null) {
+            return null;
+        }
+        $postType = static::getPostType();
+        if ($postType === null) {
+            return null;
+        }
+
+        return \App\Models\Author::query()
+            ->where('user_id', $user->getAuthIdentifier())
+            ->where('language_code', app()->getLocale())
+            ->whereJsonContains('allowed_post_types', [$postType])
+            ->orderBy('id')
+            ->first();
+    }
+
     public function filters(Request $request)
     {
         $filters = [];
@@ -267,7 +289,11 @@ abstract class Post extends Resource
                             ->hideFromDetail()
                             ->searchable()
                             ->withSubtitles()
-                            //->default($request->user()->getKey())
+                            ->default(function (NovaRequest $request) {
+                                $author = static::firstLinkedAuthorForCurrentUser($request->user());
+
+                                return $author?->id;
+                            })
                             // ->immutable(function ($request) {
                             //     return !$request->user()->canViewAll();
                             // })
@@ -277,7 +303,11 @@ abstract class Post extends Resource
                             ->options(\App\Models\Author::getAuthorsByPostType(app()->getLocale(), [$this->type]))
                             ->reorderable()
                             ->optionsLimit(5)
-                            //->default(auth()->user())
+                            ->default(function (NovaRequest $request) {
+                                $author = static::firstLinkedAuthorForCurrentUser($request->user());
+
+                                return $author !== null ? collect([$author]) : null;
+                            })
                             ->when($this->exists, function($field) {
                                 return $field->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
                                     $authors = $request->{$requestAttribute} ?? [];

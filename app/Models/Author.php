@@ -19,6 +19,7 @@ class Author extends Model {
     protected $fillable = [
         'id', // TODO: check
         'language_code',
+        'user_id',
         'slug',
         'first_name',
         'last_name',
@@ -92,6 +93,11 @@ class Author extends Model {
 
             $author->frontendRevalidationOriginalSnapshot = null;
         });
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function getFullNameAttribute() {
