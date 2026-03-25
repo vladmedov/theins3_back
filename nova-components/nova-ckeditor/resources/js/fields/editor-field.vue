@@ -186,7 +186,33 @@ export default {
         },
 
         setInitialValue() {
-            this.value = this.currentField.value || ''
+            const raw = this.currentField.value || ''
+            this.value = this.normalizeHtmlForEditor(raw)
+        },
+
+        normalizeHtmlForEditor(html) {
+            // Project convention: <strong> + <i>. Legacy/alternate tags -> same.
+            if (!html || typeof html !== 'string') {
+                return html
+            }
+
+            return html
+                .replace(/<b\b([^>]*)>/gi, '<strong$1>')
+                .replace(/<\/b>/gi, '</strong>')
+                .replace(/<em\b([^>]*)>/gi, '<i$1>')
+                .replace(/<\/em>/gi, '</i>')
+        },
+
+        normalizeHtmlForStorage(html) {
+            // CKEditor outputs <em> for italic; we persist <i> to match the project.
+            // <strong> is left as-is.
+            if (!html || typeof html !== 'string') {
+                return html
+            }
+
+            return html
+                .replace(/<em\b([^>]*)>/gi, '<i$1>')
+                .replace(/<\/em>/gi, '</i>')
         },
 
         registerPasteInlineStyleStripper(editor) {
@@ -354,7 +380,7 @@ export default {
             const editor = this.$options[this.editorName]
 
             if (editor) {
-                this.handleChange(editor.getData())
+                this.handleChange(this.normalizeHtmlForStorage(editor.getData()))
             }
         },
 
