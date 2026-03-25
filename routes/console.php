@@ -8,6 +8,13 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('posts:publish-scheduled')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        \Log::error('PublishScheduledPosts scheduled task failed');
+    });
+
 Schedule::command('process:view-counts')
     ->everyFiveMinutes()
     ->withoutOverlapping()

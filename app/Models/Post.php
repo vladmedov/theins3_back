@@ -70,6 +70,7 @@ class Post extends Model { //implements HasMedia {
         'title_feature',
         'is_super_news',
         'views_count',
+        'auto_publish_pending',
     ];
 
     protected $casts = [
@@ -80,12 +81,24 @@ class Post extends Model { //implements HasMedia {
         'views_count' => 'integer',
         'content' => CompactFlexibleCast::class,
         'author_visibility' => 'string',
+        'auto_publish_pending' => 'boolean',
     ];
 
     protected ?array $frontendRevalidationOriginalSnapshot = null;
 
     public static function boot() {
         parent::boot();
+
+        static::saving(function (Post $post) {
+            if ($post->status === self::STATUS_PUBLISHED || !$post->published_at) {
+                $post->auto_publish_pending = false;
+
+                return;
+            }
+            if ($post->published_at->lte(now())) {
+                $post->auto_publish_pending = false;
+            }
+        });
 
         // Объединяем логику создания PostHistory в отдельный метод
         $createHistory = function($post, $oldData, $newData, $status) {

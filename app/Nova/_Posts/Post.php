@@ -247,9 +247,22 @@ abstract class Post extends Resource
                 ->displayUsing(function ($date, $resource) use ($request) {
                     $url =  config('nova.path') . static::redirectAfterUpdate($request, $this);
                     $formattedDate = static::formatPublishedAtForUser($date);
-                    return $resource->status == 'published' 
-                        ? "<a href='{$url}'><span class='font-bold text-green-600'>{$formattedDate}</span>" 
-                        : "<a href='{$url}'><span class='font-bold text-red-600'>{$formattedDate}</span></a>";
+                    if ($resource->status == 'published') {
+                        $dateHtml = "<a href='{$url}' class=\"nova-post-index-date-link nova-post-index-date-published shrink-0\"><span class=\"nova-post-index-date font-bold\">{$formattedDate}</span></a>";
+                    } elseif (! empty($resource->auto_publish_pending)) {
+                        $dateHtml = "<a href='{$url}' class=\"nova-post-index-date-link nova-post-index-date-draft-auto shrink-0\"><span class=\"nova-post-index-date nova-post-index-draft font-bold\">{$formattedDate}</span></a>";
+                    } else {
+                        $dateHtml = "<a href='{$url}' class=\"nova-post-index-date-link nova-post-index-date-draft shrink-0\"><span class=\"nova-post-index-date nova-post-index-draft font-bold\">{$formattedDate}</span></a>";
+                    }
+
+                    $autoQueue = '';
+                    if (! empty($resource->auto_publish_pending)) {
+                        $title = e(__('Auto-queue'));
+                        $marker = e(__('Auto-queue marker'));
+                        $autoQueue = '<span class="nova-post-auto-queue ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center self-center rounded-full text-[10px] font-semibold leading-none" title="'.$title.'">'.$marker.'</span>';
+                    }
+
+                    return '<span class="inline-flex max-w-full flex-nowrap items-center gap-1 whitespace-nowrap">'.$dateHtml.$autoQueue.'</span>';
                 })
                 ->asHtml(),
 
@@ -386,6 +399,11 @@ abstract class Post extends Resource
             ->fillUsing(function () {
                 // UI-only toggle, do not persist to the model.
             });
+
+        $general[] = Boolean::make(__('Queued for auto-publication'), 'auto_publish_pending')
+            ->sortable()
+            ->hideFromIndex()
+            ->help(__('When the publication time arrives, status becomes Published and this option is cleared automatically.'));
 
         // Tab 2
         $content = [

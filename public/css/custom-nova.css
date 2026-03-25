@@ -268,3 +268,45 @@ form .tab-group .tab.fields-tab > div {
         min-width: 0;
     }
 }
+
+/*
+ * Дата публикации: фиолетовый текст.
+ * Utility-классы в asHtml() часто не попадают в билд Tailwind; стили ссылек Nova перебивают цвет.
+ */
+a.nova-post-index-date-link.nova-post-index-date-published,
+a.nova-post-index-date-link.nova-post-index-date-published:hover {
+    color: #16a34a !important;
+}
+
+a.nova-post-index-date-link.nova-post-index-date-draft,
+a.nova-post-index-date-link.nova-post-index-date-draft:hover {
+    color: #dc2626 !important;
+}
+
+a.nova-post-index-date-link.nova-post-index-date-draft-auto,
+a.nova-post-index-date-link.nova-post-index-date-draft-auto:hover {
+    color: #7c3aed !important;
+}
+
+a.nova-post-index-date-link .nova-post-index-date {
+    color: inherit !important;
+}
+
+/* Маркер «А» авто-очереди: кружок, обводка белая */
+.nova-post-auto-queue {
+    border: 1px solid #fff !important;
+    background-color: rgba(124, 58, 237, 0.12);
+    color: #6d28d9 !important;
+}
+
+/*
+ * Черновики в списке постов: те же оттенки, что у Nova / Flexible Content
+ * (gray-50 / gray-100 — как hover и sortable-drag в whitecube/nova-flexible-content).
+ */
+table[dusk="resource-table"] tr.group:has(.nova-post-index-draft) td {
+    background-color: #f6e9e9 !important;
+}
+
+table[dusk="resource-table"] tr.group:has(.nova-post-index-draft):hover td {
+    background-color: #f1d5d5 !important;
+}
