@@ -3,7 +3,8 @@
 namespace App\Nova\_Posts;
 
 use App\Support\Nova\FormActionBar;
-use Laravel\Nova\Resource;
+use App\Nova\Resource;
+use Laravel\Nova\Resource as NovaResource;
 
 use Illuminate\Http\Request;
 use Laravel\Nova\Http\Requests\NovaRequest;
@@ -37,6 +38,8 @@ class OnlineMessage extends Resource
 
     public function fields(NovaRequest $request): array
     {
+        $locale = $this->effectiveResourceLanguageCode();
+
         $generalFields = [
             BelongsTo::make(__('Online'), 'online', PostOnline::class)
                 ->onlyOnForms(),
@@ -47,7 +50,7 @@ class OnlineMessage extends Resource
         ];
 
         return [
-            Hidden::make(__('Language'), 'language_code')->default(app()->getLocale()),
+            Hidden::make(__('Language'), 'language_code')->default($locale),
 
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
@@ -213,12 +216,12 @@ class OnlineMessage extends Resource
         ];
     }
 
-    public static function redirectAfterCreate(NovaRequest $request, Resource $resource)
+    public static function redirectAfterCreate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';
     }
 
-    public static function redirectAfterUpdate(NovaRequest $request, Resource $resource)
+    public static function redirectAfterUpdate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';
     }
@@ -231,8 +234,9 @@ class OnlineMessage extends Resource
         return __('Online Message');
     }
 
-    public static function indexQuery(NovaRequest $request, $query) {
-        $query->where('language_code', app()->getLocale());
+    public static function indexQuery(NovaRequest $request, \Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
+    {
+        $query->where('language_code', static::resolveResourceLanguageCodeForRequest($request));
 
         // if (!$request->user()->canViewAll()) {
         //     $query->whereHas('owners', function($q) {

@@ -2,7 +2,7 @@
 
 namespace App\Nova\_Posts;
 
-use Laravel\Nova\Resource;
+use App\Nova\Resource;
 use Illuminate\Support\Facades\Storage;
 
 use Laravel\Nova\Fields\ID;
@@ -112,7 +112,7 @@ abstract class Post extends Resource
      * First author row linked to the user for the current locale and this resource’s post type
      * (same filters as the Authors multiselect options / Author::relatableQuery).
      */
-    protected static function firstLinkedAuthorForCurrentUser(?\Illuminate\Contracts\Auth\Authenticatable $user): ?\App\Models\Author
+    protected static function firstLinkedAuthorForCurrentUser(?\Illuminate\Contracts\Auth\Authenticatable $user, string $languageCode): ?\App\Models\Author
     {
         if ($user === null) {
             return null;
@@ -124,7 +124,7 @@ abstract class Post extends Resource
 
         return \App\Models\Author::query()
             ->where('user_id', $user->getAuthIdentifier())
-            ->where('language_code', app()->getLocale())
+            ->where('language_code', $languageCode)
             ->whereJsonContains('allowed_post_types', [$postType])
             ->orderBy('id')
             ->first();
@@ -157,6 +157,8 @@ abstract class Post extends Resource
     }
 
     public function fields(Request $request) {
+
+        $locale = $this->effectiveResourceLanguageCode();
 
         $postUrl = ($this->exists && $this->category)
             ? rtrim(config('app.preview_url', config('app.frontend_url', config('app.url'))), '/') . $this->getPath()
@@ -280,21 +282,21 @@ abstract class Post extends Resource
 
             \App\Models\Category
                 ::where('type', CategoryTypes::getCategoryTypeByPostType(static::getPostType()))
-                ->where('language_code', app()->getLocale())
+                ->where('language_code', $locale)
                 ->count() === 1
                     ? Hidden::make(__('Category'), 'category_id')
-                        ->default(function () {
+                        ->default(function () use ($locale) {
                             $category = \App\Models\Category
                                 ::where('type', CategoryTypes::getCategoryTypeByPostType(static::getPostType()))
-                                ->where('language_code', app()->getLocale())
+                                ->where('language_code', $locale)
                                 ->first();
                             return $category?->id;
                         })
                     : BelongsTo::make(__('Category'), 'category', Category::class)
-                        ->relatableQueryUsing(function (Request $request, Builder $query) {
+                        ->relatableQueryUsing(function (Request $request, Builder $query) use ($locale) {
                             $query
                                 ->where('type', CategoryTypes::getCategoryTypeByPostType(static::getPostType()))
-                                ->where('language_code', app()->getLocale());
+                                ->where('language_code', $locale);
                         }),
 
                     static::getPostType() == PostTypes::OPINION
@@ -302,8 +304,8 @@ abstract class Post extends Resource
                             ->hideFromDetail()
                             ->searchable()
                             ->withSubtitles()
-                            ->default(function (NovaRequest $request) {
-                                $author = static::firstLinkedAuthorForCurrentUser($request->user());
+                            ->default(function (NovaRequest $request) use ($locale) {
+                                $author = static::firstLinkedAuthorForCurrentUser($request->user(), $locale);
 
                                 return $author?->id;
                             })
@@ -313,11 +315,11 @@ abstract class Post extends Resource
                         : EntityMultiselect::make(__('Authors'), 'authors')
                             ->onlyOnForms()
                             ->belongsToMany(Author::class, false)
-                            ->options(\App\Models\Author::getAuthorsByPostType(app()->getLocale(), [$this->type]))
+                            ->options(\App\Models\Author::getAuthorsByPostType($locale, [$this->type]))
                             ->reorderable()
                             ->optionsLimit(5)
-                            ->default(function (NovaRequest $request) {
-                                $author = static::firstLinkedAuthorForCurrentUser($request->user());
+                            ->default(function (NovaRequest $request) use ($locale) {
+                                $author = static::firstLinkedAuthorForCurrentUser($request->user(), $locale);
 
                                 return $author !== null ? collect([$author]) : null;
                             })
@@ -540,8 +542,8 @@ abstract class Post extends Resource
                 ->searchable()
                 ->nullable()
                 ->withSubtitles()
-                ->relatableQueryUsing(function (NovaRequest $request, Builder $query) {
-                    $query->where('language_code', app()->getLocale() === 'en' ? 'ru' : 'en');
+                ->relatableQueryUsing(function (NovaRequest $request, Builder $query) use ($locale) {
+                    $query->where('language_code', $locale === 'en' ? 'ru' : 'en');
                     $query->where('type', static::getPostType());
                 }),
 
@@ -637,7 +639,7 @@ abstract class Post extends Resource
 
         // Render
         return [  
-            Hidden::make(__('Language'), 'language_code')->default(app()->getLocale()),
+            Hidden::make(__('Language'), 'language_code')->default($locale),
             Hidden::make(__('Type'), 'type')->default(static::getPostType()),
             $FormActionBarTop,
             PostHistory::make(),
@@ -723,8 +725,9 @@ abstract class Post extends Resource
         return false;
     }
 
-    public static function indexQuery(NovaRequest $request, $query) {
-        $query->where('language_code', app()->getLocale());
+    public static function indexQuery(NovaRequest $request, \Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
+    {
+        $query->where('language_code', static::resolveResourceLanguageCodeForRequest($request));
 
         if (static::getPostType()) {
             $query->where('type', static::getPostType());
@@ -738,21 +741,4 @@ abstract class Post extends Resource
 
         return $query;
     }
-
-    // public static function relatableQuery(NovaRequest $request, $query)
-    // {
-    //     $query->where('language_code', app()->getLocale());
-
-    //     if (static::getPostType()) {
-    //         $query->where('type', static::getPostType());
-    //     }
-
-    //     if (!$request->user()->isAdmin() && !$request->user()->isEditor()) {
-    //         $query->whereHas('owners', function($q) {
-    //             $q->where('user_id', auth()->user()->id);
-    //         });
-    //     }
-
-    //     return $query;
-    // }
 }

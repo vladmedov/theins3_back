@@ -4,12 +4,13 @@ namespace App\Nova\_Taxonomy;
 
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\RelatedPostsPanel;
-use Laravel\Nova\Resource;
+use App\Nova\Resource;
 
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Resource as NovaResource;
 
 use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Fields\Hidden;
@@ -28,6 +29,8 @@ class Termin extends Resource
     public static $clickAction = 'edit';
 
     public function fields(Request $request) {
+        $locale = $this->effectiveResourceLanguageCode();
+
         $relatedPostsPageFromReferer = null;
         $refererUrl = $request->headers->get('referer');
         if ($refererUrl) {
@@ -101,7 +104,7 @@ class Termin extends Resource
 
         return [
             Hidden::make(__('Language code'), 'language_code')
-                ->default(app()->getLocale()),
+                ->default($locale),
 
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
@@ -145,12 +148,12 @@ class Termin extends Resource
         return __('Term');
     }
 
-    public static function redirectAfterCreate(NovaRequest $request, Resource $resource)
+    public static function redirectAfterCreate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/' . static::uriKey() . '/' . $resource->getKey() . '/edit';
     }
 
-    public static function redirectAfterUpdate(NovaRequest $request, Resource $resource)
+    public static function redirectAfterUpdate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/' . static::uriKey() . '/' . $resource->getKey() . '/edit';
     }
@@ -158,7 +161,7 @@ class Termin extends Resource
     public static function indexQuery(NovaRequest $request, Builder $query): Builder
     {
         return $query
-            ->where('language_code', app()->getLocale());
+            ->where('language_code', static::resolveResourceLanguageCodeForRequest($request));
     }
 
     public static function createButtonLabel(): string

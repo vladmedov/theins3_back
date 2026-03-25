@@ -3,7 +3,7 @@
 namespace App\Nova\_Collections;
 
 use App\Support\Nova\FormActionBar;
-use Laravel\Nova\Resource;
+use App\Nova\Resource;
 
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Database\Eloquent\Builder;
@@ -65,6 +65,8 @@ class Collection extends Resource
      */
     public function fields(NovaRequest $request): array
     {
+        $locale = $this->effectiveResourceLanguageCode();
+
         $currentPostId = $this->resolveCurrentPostId($request);
         $generalFields = [
             Badge::make(__('Status'), function () {
@@ -83,20 +85,20 @@ class Collection extends Resource
             BelongsTo::make(__('Title'), 'post', PostCollection::class)
                 ->searchable()
                 ->withSubtitles()
-                ->relatableQueryUsing(function (NovaRequest $request, Builder $query) use ($currentPostId) {
-                    $query->where('language_code', app()->getLocale());
+                ->relatableQueryUsing(function (NovaRequest $request, Builder $query) use ($currentPostId, $locale) {
+                    $query->where('language_code', $locale);
 
                     if ($postType = static::filterPostType()) {
                         $query->where('type', $postType);
                     }
 
-                    $query->where(function (Builder $collectionQuery) use ($currentPostId) {
-                        $collectionQuery->whereNotIn('id', function ($subquery) {
+                    $query->where(function (Builder $collectionQuery) use ($currentPostId, $locale) {
+                        $collectionQuery->whereNotIn('id', function ($subquery) use ($locale) {
                             $subquery
                                 ->select('post_id')
                                 ->from('collection_post')
                                 ->where('collection_code', static::getCollectionType())
-                                ->where('language_code', app()->getLocale());
+                                ->where('language_code', $locale);
                         });
 
                         if ($currentPostId) {
@@ -121,7 +123,7 @@ class Collection extends Resource
         ];
 
         return [
-            Hidden::make(__('Language code'), 'language_code')->default(app()->getLocale()),
+            Hidden::make(__('Language code'), 'language_code')->default($locale),
             Hidden::make('collection_code')->default(static::getCollectionType()),
 
             FormActionBar::make([
@@ -209,7 +211,7 @@ class Collection extends Resource
     public static function indexQuery(NovaRequest $request, Builder $query): Builder
     {
         $query
-            ->where('language_code', app()->getLocale())
+            ->where('language_code', static::resolveResourceLanguageCodeForRequest($request))
             ->where('collection_code', static::getCollectionType());
         return parent::indexQuery($request, static::indexSortableQuery($request, $query));
     }

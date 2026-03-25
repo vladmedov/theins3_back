@@ -3,7 +3,7 @@
 namespace App\Nova\_Taxonomy;
 
 use App\Support\Nova\FormActionBar;
-use Laravel\Nova\Resource;
+use App\Nova\Resource;
 
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Database\Eloquent\Builder;
@@ -40,6 +40,8 @@ class InvestigationTheme extends Resource
     public static $clickAction = 'edit';
 
     public function fields(Request $request) {
+        $locale = $this->effectiveResourceLanguageCode();
+
         $generalFields = [
             Boolean::make(__('Is it main Insvestigation theme?'), 'is_main')
                 ->sortable()
@@ -83,7 +85,7 @@ class InvestigationTheme extends Resource
 
         return [
             Hidden::make(__('Language code'), 'language_code')
-                ->default(app()->getLocale()),
+                ->default($locale),
 
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
@@ -115,19 +117,19 @@ class InvestigationTheme extends Resource
         return __('Investigation theme');
     }
 
-    public static function redirectAfterCreate(NovaRequest $request, Resource $resource)
+    public static function redirectAfterCreate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/' . static::uriKey() . '/' . $resource->getKey() . '/edit';
     }
 
-    public static function redirectAfterUpdate(NovaRequest $request, Resource $resource)
+    public static function redirectAfterUpdate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/' . static::uriKey() . '/' . $resource->getKey() . '/edit';
     }
 
     public static function indexQuery(NovaRequest $request, Builder $query): Builder
     {
-        $query->where('language_code', app()->getLocale());
+        $query->where('language_code', static::resolveResourceLanguageCodeForRequest($request));
         return parent::indexQuery($request, static::indexSortableQuery($request, $query));
     }
 

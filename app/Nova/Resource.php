@@ -10,6 +10,31 @@ use Laravel\Scout\Builder as ScoutBuilder;
 abstract class Resource extends NovaResource
 {
     /**
+     * Language for field defaults and relatable queries: the record’s `language_code` when editing, else app locale.
+     */
+    protected function effectiveResourceLanguageCode(): string
+    {
+        return $this->exists && $this->language_code !== null && $this->language_code !== ''
+            ? (string) $this->language_code
+            : app()->getLocale();
+    }
+
+    /**
+     * For static query hooks when the request targets a resource row (e.g. relatable from another resource’s form).
+     */
+    public static function resolveResourceLanguageCodeForRequest(NovaRequest $request): string
+    {
+        if (filled($request->resourceId)) {
+            $model = rescue(static fn () => $request->findModel(), null, false);
+            if ($model && isset($model->language_code) && $model->language_code !== '') {
+                return (string) $model->language_code;
+            }
+        }
+
+        return app()->getLocale();
+    }
+
+    /**
      * Build an "index" query for the given resource.
      */
     public static function indexQuery(NovaRequest $request, Builder $query): Builder

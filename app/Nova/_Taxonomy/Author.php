@@ -3,7 +3,7 @@
 namespace App\Nova\_Taxonomy;
 
 use App\Support\Nova\FormActionBar;
-use Laravel\Nova\Resource;
+use App\Nova\Resource;
 
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Database\Eloquent\Builder;
@@ -38,6 +38,8 @@ class Author extends Resource
     public static $clickAction = 'edit';
 
     public function fields(Request $request) {
+        $locale = $this->effectiveResourceLanguageCode();
+
         $generalFields = [
             Slug::make('Slug', 'slug')
                 ->from('last_name', 'last_name')
@@ -68,7 +70,7 @@ class Author extends Resource
 
         return array_merge([
             Hidden::make(__('Language code'), 'language_code')
-                ->default(app()->getLocale()),
+                ->default($locale),
 
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
@@ -195,13 +197,13 @@ class Author extends Resource
     public static function indexQuery(NovaRequest $request, Builder $query): Builder
     {
         return $query
-            ->where('language_code', app()->getLocale());
+            ->where('language_code', static::resolveResourceLanguageCodeForRequest($request));
     }
 
     public static function relatableQuery(NovaRequest $request, Builder $query): Builder
     {
         return $query
-            ->where('language_code', app()->getLocale())
+            ->where('language_code', static::resolveResourceLanguageCodeForRequest($request))
             ->whereJsonContains('allowed_post_types', [$request->newResource()->getPostType()]);
     }
 

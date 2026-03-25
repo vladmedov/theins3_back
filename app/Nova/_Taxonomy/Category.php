@@ -3,7 +3,7 @@
 namespace App\Nova\_Taxonomy;
 
 use App\Support\Nova\FormActionBar;
-use Laravel\Nova\Resource;
+use App\Nova\Resource;
 
 use Illuminate\Http\Request;
 
@@ -36,6 +36,8 @@ class Category extends Resource
     public static $clickAction = 'edit';
 
     public function fields(Request $request) {
+        $locale = $this->effectiveResourceLanguageCode();
+
         $generalFields = [
             Boolean::make(__('Is show in the menu?'), 'is_show_in_menu')
                 ->default(true)
@@ -62,7 +64,7 @@ class Category extends Resource
 
         return [
             Hidden::make(__('Language'), 'language_code')
-                ->default(app()->getLocale()),
+                ->default($locale),
 
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
@@ -94,18 +96,19 @@ class Category extends Resource
         return __('Category');
     }
 
-    public static function redirectAfterCreate(NovaRequest $request, Resource $resource)
+    public static function redirectAfterCreate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/' . static::uriKey() . '/' . $resource->getKey() . '/edit';
     }
 
-    public static function redirectAfterUpdate(NovaRequest $request, Resource $resource)
+    public static function redirectAfterUpdate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/' . static::uriKey() . '/' . $resource->getKey() . '/edit';
     }
 
-    public static function indexQuery(NovaRequest $request, $query) {
-        $query->where('language_code', app()->getLocale());
+    public static function indexQuery(NovaRequest $request, \Illuminate\Contracts\Database\Eloquent\Builder $query): \Illuminate\Contracts\Database\Eloquent\Builder
+    {
+        $query->where('language_code', static::resolveResourceLanguageCodeForRequest($request));
         return parent::indexQuery($request, static::indexSortableQuery($request, $query));
     }
 
