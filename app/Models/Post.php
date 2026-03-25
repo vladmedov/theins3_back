@@ -8,8 +8,6 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
 
-use Carbon\Carbon;
-
 use Whitecube\NovaFlexibleContent\Value\FlexibleCast;
 use App\Casts\CompactFlexibleCast;
 
@@ -90,6 +88,17 @@ class Post extends Model { //implements HasMedia {
         parent::boot();
 
         static::saving(function (Post $post) {
+            $publishClickAction = app()->bound('request')
+                ? request()->headers->get('X-Nova-Post-Publish-Click')
+                : null;
+
+            if ($publishClickAction === 'publish') {
+                $post->status = self::STATUS_PUBLISHED;
+                $post->published_at = now();
+            } elseif ($publishClickAction === 'unpublish') {
+                $post->status = self::STATUS_DRAFT;
+            }
+
             if ($post->status === self::STATUS_PUBLISHED || !$post->published_at) {
                 $post->auto_publish_pending = false;
 

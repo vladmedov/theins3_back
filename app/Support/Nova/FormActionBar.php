@@ -39,7 +39,6 @@ class FormActionBar
         if ($secondaryAction) {
             $secondaryAction = array_merge([
                 'label' => '',
-                'js' => '',
                 'variant' => 'neutral-link',
             ], $secondaryAction);
         }
@@ -209,7 +208,6 @@ class FormActionBar
 
         return array_merge([
             'label' => $isPublished ? __('Unpublish') : __('Publish'),
-            'js' => $isPublished ? self::unpublishJs() : self::publishJs(),
             'variant' => $isPublished ? 'danger-link' : 'success-link',
         ], $config);
     }
@@ -262,22 +260,4 @@ class FormActionBar
         return 'window.NovaCustomSave && window.NovaCustomSave.saveWithoutReload ? window.NovaCustomSave.saveWithoutReload(this) : null';
     }
 
-    protected static function publishJs(): string
-    {
-        return self::statusChangeJs('published');
-    }
-
-    protected static function unpublishJs(): string
-    {
-        return self::statusChangeJs('draft');
-    }
-
-    protected static function statusChangeJs(string $status): string
-    {
-        return "(function(){" .
-            "var s=Array.from(document.querySelectorAll('select')).find(function(el){return Array.from(el.options).some(function(o){return o.value==='published'});});" .
-            "if(s){s.value='" . $status . "';s.dispatchEvent(new Event('change',{bubbles:true}));s.dispatchEvent(new Event('input',{bubbles:true}));}" .
-            "setTimeout(function(){document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click();},100);" .
-        "})()";
-    }
 }

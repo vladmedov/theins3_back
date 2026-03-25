@@ -235,6 +235,7 @@
         active: false,
         hadValidationError: false,
         requestSucceeded: false,
+        publishToggleActionPending: null,
         currentAttemptHad422: false,
         attemptSeq: 0,
         clearUiTimeoutId: null,
@@ -1383,6 +1384,13 @@
         };
 
         XMLHttpRequest.prototype.send = function () {
+            if (isNovaSaveRequest(this.__novaSilentSaveMethod, this.__novaSilentSaveUrl) && state.publishToggleActionPending) {
+                try {
+                    this.setRequestHeader('X-Nova-Post-Publish-Click', state.publishToggleActionPending);
+                } catch (e) {}
+                state.publishToggleActionPending = null;
+            }
+
             if (isNovaSaveRequest(this.__novaSilentSaveMethod, this.__novaSilentSaveUrl)) {
                 this.addEventListener('loadend', function () {
                     markRequestResult(this.status, this.__novaSilentSaveMethod, this.__novaSilentSaveUrl);
@@ -1404,15 +1412,29 @@
             const url = typeof input === 'string'
                 ? input
                 : (input && input.url ? input.url : '');
+            const isSaveRequest = isNovaSaveRequest(method, url);
+            const shouldSendPublishHeader = isSaveRequest && !!state.publishToggleActionPending;
+            const publishAction = state.publishToggleActionPending;
+            const nextInit = shouldSendPublishHeader
+                ? Object.assign({}, init || {}, {
+                    headers: Object.assign({}, (init && init.headers) || {}, {
+                        'X-Nova-Post-Publish-Click': publishAction,
+                    }),
+                })
+                : init;
 
-            return originalFetch.apply(this, arguments).then(function (response) {
-                if (isNovaSaveRequest(method, url)) {
+            if (shouldSendPublishHeader) {
+                state.publishToggleActionPending = null;
+            }
+
+            return originalFetch.call(this, input, nextInit).then(function (response) {
+                if (isSaveRequest) {
                     markRequestResult(response.status, method, url);
                 }
 
                 return response;
             }).catch(function (error) {
-                if (isNovaSaveRequest(method, url)) {
+                if (isSaveRequest) {
                     resetState(false, true);
                 }
 
@@ -1746,9 +1768,8 @@
         if (!s) return;
 
         const saved = getLastSavedPublicationStatus();
-        s.value = saved === 'published' ? 'draft' : 'published';
-        s.dispatchEvent(new Event('change', { bubbles: true }));
-        s.dispatchEvent(new Event('input', { bubbles: true }));
+        const targetStatus = saved === 'published' ? 'draft' : 'published';
+        state.publishToggleActionPending = targetStatus === 'published' ? 'publish' : 'unpublish';
 
         setTimeout(function () {
             const submit = document.querySelector('button[dusk=create-button],button[dusk=update-button]');
