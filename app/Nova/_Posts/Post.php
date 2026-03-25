@@ -159,7 +159,7 @@ abstract class Post extends Resource
     public function fields(Request $request) {
 
         $postUrl = ($this->exists && $this->category)
-            ? rtrim(config('app.frontend_url', config('app.url')), '/') . $this->getPath()
+            ? rtrim(config('app.preview_url', config('app.frontend_url', config('app.url'))), '/') . $this->getPath()
             : null;
 
         $isDraft = $this->exists && $this->status === 'draft';
