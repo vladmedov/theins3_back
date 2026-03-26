@@ -101,18 +101,24 @@ class FormActionBar
             }
         }
 
-        $heading = $options['heading'] ?? null;
         $scrollNav = $options['scrollNav'] ?? null;
         if ($scrollNav) {
             $scrollNav = array_merge([
                 'direction' => 'down',
-                'label' => '↓',
                 'title' => __('Scroll'),
             ], $scrollNav);
         }
 
+        $postEditLockLockHtml = $options['postEditLockLockHtml'] ?? null;
+        $initialCanEdit = $options['initialCanEdit'] ?? true;
+        $postEditLockMeta = $options['postEditLockMeta'] ?? null;
+        $postEditLockEnabled = (bool) ($options['postEditLockEnabled'] ?? false);
+
         return view('nova.components.form-action-bar', [
-            'heading' => $heading,
+            'postEditLockLockHtml' => $postEditLockLockHtml,
+            'initialCanEdit' => $initialCanEdit,
+            'postEditLockMeta' => $postEditLockMeta,
+            'postEditLockEnabled' => $postEditLockEnabled,
             'secondaryAction' => $secondaryAction,
             'stayAction' => $stayAction,
             'saveAction' => $saveAction,
@@ -126,15 +132,8 @@ class FormActionBar
     protected static function expandShorthandOptions(array $options): array
     {
         $expanded = $options;
-        $tokens = collect($options)
-            ->filter(fn ($value, $key) => is_int($key) && is_string($value))
-            ->values()
-            ->all();
 
-        $usesShorthand = !empty($tokens)
-            || array_key_exists('created_at', $options)
-            || array_key_exists('updated_at', $options)
-            || array_key_exists('url', $options)
+        $usesShorthand = array_key_exists('url', $options)
             || array_key_exists('stay', $options)
             || array_key_exists('toggle_publish', $options);
 
@@ -143,7 +142,7 @@ class FormActionBar
         }
 
         if (!array_key_exists('saveAction', $expanded)) {
-            $expanded['saveAction'] = in_array('save', $tokens, true) ? [] : null;
+            $expanded['saveAction'] = null;
         }
 
         if (array_key_exists('stay', $options) && !array_key_exists('stayAction', $expanded)) {
@@ -156,22 +155,6 @@ class FormActionBar
 
         if (array_key_exists('url', $options) && !array_key_exists('linkBlock', $expanded)) {
             $expanded['linkBlock'] = self::makeLinkBlock($options['url']);
-        }
-
-        if (
-            (array_key_exists('created_at', $options) || array_key_exists('updated_at', $options))
-            && !array_key_exists('metaBlock', $expanded)
-        ) {
-            $expanded['metaBlock'] = [
-                'items' => array_values(array_filter([
-                    self::makeMetaItem('created_at', $options['created_at'] ?? null),
-                    self::makeMetaItem('updated_at', $options['updated_at'] ?? null),
-                ])),
-            ];
-        }
-
-        if (array_key_exists('autosave', $options) && !array_key_exists('autosave', $expanded)) {
-            $expanded['autosave'] = $options['autosave'];
         }
 
         return $expanded;
@@ -223,18 +206,6 @@ class FormActionBar
             : ['url' => $config];
     }
 
-    protected static function makeMetaItem(string $key, mixed $value): ?array
-    {
-        if (empty($value)) {
-            return null;
-        }
-
-        return [
-            'label' => __('form_action_bar.' . $key),
-            'date' => $value,
-        ];
-    }
-
     protected static function formatDate($date): ?string
     {
         if (!$date) {
@@ -259,5 +230,4 @@ class FormActionBar
     {
         return 'window.NovaCustomSave && window.NovaCustomSave.saveWithoutReload ? window.NovaCustomSave.saveWithoutReload(this) : null';
     }
-
 }

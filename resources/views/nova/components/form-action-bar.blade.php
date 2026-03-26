@@ -8,163 +8,36 @@
     $copyIcon = "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>";
     $hasSaveStatusRow = isset($autosave) && is_array($autosave);
     $hasScrollNav = !empty($scrollNav['direction']) && in_array($scrollNav['direction'], ['up', 'down'], true);
+    $postEditLockEnabled = !empty($postEditLockEnabled);
+    $postEditLockActive = $postEditLockEnabled && !empty($postEditLockMeta) && is_array($postEditLockMeta);
 @endphp
 
-<style>
-    .nova-form-action-bar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        justify-content: flex-end;
-        padding: 0;
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-    }
-    .nova-form-action-bar--with-scroll {
-        position: relative;
-        overflow: visible;
-        padding-left: 20px;
-        border-top-left-radius: 0 !important;
-        border-bottom-left-radius: 0 !important;
-    }
-    .nova-form-action-bar__scroll {
-        position: absolute;
-        top: -16px;
-        left: -32px;
-        bottom: -16px;
-        width: 28px;
-        min-width: 28px;
-        padding: 0;
-        border: 1px solid #e2e8f0;
-        border-right: none;
-        border-radius: 6px 0 0 6px;
-        background: rgba(100, 116, 139, 0.08);
-        color: #64748b;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        opacity: .9;
-    }
-    .nova-form-action-bar__scroll:hover {
-        background: rgba(100, 116, 139, 0.14);
-        color: #334155;
-    }
-    .nova-form-action-bar__scroll svg {
-        width: 16px;
-        height: calc(100% - 2px);
-        display: block;
-    }
-    .nova-form-action-bar__main {
-        flex: 1;
-        min-width: 0;
-    }
-    .nova-form-action-bar__actions {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 6px;
-        min-width: 0;
-        flex-shrink: 0;
-    }
-    .nova-form-action-bar__actions-row {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-    }
-    .nova-form-action-bar__url-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        width: fit-content;
-        max-width: 100%;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: 4px;
-        padding: 3px 4px 3px 6px;
-        box-sizing: border-box;
-    }
-    .nova-form-action-bar__url-link {
-        margin-top: 1px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #0f172a;
-        text-decoration: none;
-        line-height: 1.2;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: min(100vw - 120px, 520px);
-    }
-    @media (max-width: 768px) {
-        .nova-form-action-bar {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 12px;
-        }
-        .nova-form-action-bar__main {
-            flex: none;
-            width: 100%;
-        }
-        .nova-form-action-bar__actions {
-            width: 100%;
-        }
-        .nova-form-action-bar__actions-row {
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: stretch;
-            gap: 10px;
-        }
-        .nova-form-action-bar__actions-row > button {
-            width: 100% !important;
-            min-height: 44px !important;
-            justify-content: center !important;
-            box-sizing: border-box !important;
-        }
-        .nova-form-action-bar__autosave {
-            justify-content: flex-start !important;
-            text-align: left !important;
-        }
-        .nova-form-action-bar__autosave [data-autosave-status-text="1"] {
-            white-space: normal !important;
-            text-align: left;
-        }
-        .nova-form-action-bar__url-row {
-            flex-direction: column;
-            align-items: flex-start !important;
-            gap: 6px !important;
-        }
-        .nova-form-action-bar__url-chip {
-            width: 100%;
-            max-width: 100%;
-        }
-        .nova-form-action-bar__url-link {
-            white-space: normal !important;
-            word-break: break-all;
-            max-width: 100%;
-        }
-        .nova-form-action-bar__meta {
-            gap: 16px !important;
-        }
-    }
-</style>
-
 <div
-    class="nova-form-action-bar{{ $hasScrollNav ? ' nova-form-action-bar--with-scroll' : '' }}"
+    class="nova-form-action-bar{{ $hasScrollNav ? ' nova-form-action-bar--with-scroll' : '' }}{{ !empty($postEditLockEnabled) ? ' nova-form-action-bar--post-edit-lock' : '' }}"
     id="nova-info-bar"
     data-form-action-bar="1"
+    @if ($postEditLockEnabled)
+        data-post-edit-lock-enabled="1"
+        data-nova-post-edit-disabled="{{ !empty($initialCanEdit) ? '0' : '1' }}"
+        @if (!empty($initialCanEdit))
+            data-post-edit-lock-initial-can-edit="1"
+        @endif
+    @endif
     @if (!empty($autosave['enabled']))
         data-autosave-enabled="1"
+    @endif
+    @if ($postEditLockActive)
+        @foreach ($postEditLockMeta as $metaKey => $metaValue)
+            @if ($metaValue !== null && $metaValue !== '')
+                data-{{ $metaKey }}="{{ e($metaValue) }}"
+            @endif
+        @endforeach
     @endif
 >
     @if ($hasScrollNav)
         <button
             type="button"
-            class="nova-form-action-bar__scroll"
+            class="nova-form-action-bar__scroll nova-form-action-bar__segment--scroll"
             data-scroll-nav="{{ $scrollNav['direction'] }}"
             title="{{ $scrollNav['title'] }}"
             aria-label="{{ $scrollNav['title'] }}"
@@ -184,10 +57,45 @@
         </button>
     @endif
 
-    @if (!empty($heading))
-        <span class="nova-form-action-bar__main" style="font-size:14px;font-weight:600;color:#0f172a;">{{ $heading }}</span>
+    @if (!empty($postEditLockEnabled))
+        <span
+            class="nova-form-action-bar__main nova-form-action-bar__main--post-edit-lock nova-form-action-bar__segment--main"
+        >
+            @if (!empty($linkBlock['url']))
+                <span class="nova-form-action-bar__url-col nova-form-action-bar__url-col--with-lock" style="display:flex;flex-direction:column;gap:3px;">
+                    <span class="nova-form-action-bar__url-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;">{{ $linkBlock['eyebrow'] }}</span>
+                        <span class="nova-form-action-bar__url-chip">
+                            <a href="{{ $linkBlock['url'] }}" target="_blank" class="nova-form-action-bar__url-link">{{ $linkBlock['url'] }}</a>
+                            @if (!empty($linkBlock['copyable']))
+                                <button
+                                    type="button"
+                                    class="js-copy-post-url"
+                                    data-copy-url="{{ $linkBlock['url'] }}"
+                                    title="{{ $linkBlock['copyTitle'] }}"
+                                    style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:none;border-radius:3px;background:#fff;color:#64748b;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.06);"
+                                    onmouseover='this.style.background="#e2e8f0";this.style.color="#334155"'
+                                    onmouseout='this.style.background="#fff";this.style.color="#64748b"'
+                                >{!! $copyIcon !!}</button>
+                            @endif
+                        </span>
+                    </span>
+                    @if (!empty($linkBlock['notice']))
+                        <span
+                            style="font-size:11px;color:#64748b;line-height:1.5;"
+                            @if (!empty($linkBlock['noticeExpiresAt']))
+                                data-preview-notice="1"
+                                data-preview-expires-at="{{ $linkBlock['noticeExpiresAt'] }}"
+                                data-preview-prefix="{{ $linkBlock['noticePrefix'] ?? '' }}"
+                                data-preview-suffix="{{ $linkBlock['noticeSuffix'] ?? '' }}"
+                            @endif
+                        >{{ $linkBlock['notice'] }}</span>
+                    @endif
+                </span>
+            @endif
+        </span>
     @elseif (!empty($linkBlock['url']))
-        <span class="nova-form-action-bar__main" style="display:flex;flex-direction:column;gap:3px;">
+        <span class="nova-form-action-bar__main nova-form-action-bar__segment--main" style="display:flex;flex-direction:column;gap:3px;">
             <span class="nova-form-action-bar__url-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;">{{ $linkBlock['eyebrow'] }}</span>
                 <span class="nova-form-action-bar__url-chip">
@@ -219,7 +127,7 @@
             @endif
         </span>
     @elseif (!empty($metaBlock['items']))
-        <span class="nova-form-action-bar__main nova-form-action-bar__meta" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <span class="nova-form-action-bar__main nova-form-action-bar__meta nova-form-action-bar__segment--main" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
             @foreach ($metaBlock['items'] as $item)
                 <span style="display:flex;flex-direction:column;gap:2px;min-width:0;">
                     <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;">{{ $item['label'] }}</span>
@@ -228,72 +136,64 @@
             @endforeach
         </span>
     @else
-        <span class="nova-form-action-bar__main" style="flex:1;"></span>
+        <span class="nova-form-action-bar__main nova-form-action-bar__segment--main" style="flex:1;"></span>
     @endif
 
     @if ($secondaryAction || $stayAction || $saveAction || $hasSaveStatusRow)
-        <span class="nova-form-action-bar__actions">
-            <span class="nova-form-action-bar__actions-row">
-                @if ($secondaryAction)
-                    <button
-                        type="button"
-                        data-toggle-publish-action="1"
-                        data-label-when-published="{{ __('Unpublish') }}"
-                        data-label-when-draft="{{ __('Publish') }}"
-                        data-variant-when-published="danger-link"
-                        data-variant-when-draft="success-link"
-                        onclick="window.NovaFormActionBar && window.NovaFormActionBar.togglePublish && window.NovaFormActionBar.togglePublish()"
-                        style="{{ $secondaryActionStyles[$secondaryAction['variant']] ?? $secondaryActionStyles['neutral-link'] }}"
-                    >{{ $secondaryAction['label'] }}</button>
-                @endif
-
-                @if ($stayAction)
-                    <button
-                        type="button"
-                        onclick="{{ $stayAction['js'] }}"
-                        data-saving-label="{{ $stayAction['savingLabel'] }}"
-                        @if (!is_null($stayAction['originalStatus']))
-                            data-original-status="{{ $stayAction['originalStatus'] }}"
-                        @endif
-                        style="{{ ($stayAction['variant'] ?? null) === 'primary' ? $saveButtonStyle : ($secondaryActionStyles[$stayAction['variant']] ?? $secondaryActionStyles['neutral-link']) }}"
-                    >{{ $stayAction['label'] }}</button>
-                @endif
-
-                @if ($saveAction)
-                    <button
-                        type="button"
-                        onclick="{{ $saveAction['js'] }}"
-                        style="{{ $saveButtonStyle }}"
-                    >{{ $saveAction['label'] }}</button>
-                @endif
-            </span>
-
-            @if ($hasSaveStatusRow)
+        @if (!empty($postEditLockEnabled))
+            <span class="nova-form-action-bar__rail">
                 <span
-                    class="nova-form-action-bar__autosave"
-                    style="display:inline-flex;align-items:center;justify-content:flex-end;width:100%;min-height:20px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;line-height:1.2;text-align:right;box-sizing:border-box;"
-                    data-autosave-status-root="1"
-                    data-autosave-label="{{ $autosave['statusLabel'] }}"
-                    data-autosave-idle-label="{{ $autosave['idleLabel'] }}"
-                    data-last-saved-label="{{ $autosave['lastSavedLabel'] }}"
-                    data-last-saved-date-prefix="{{ $autosave['lastSavedDatePrefix'] ?? '' }}"
-                    data-autosave-failure-label="{{ __('form_action_bar.autosave_failed') }}"
-                    data-autosave-countdown-prefix="{{ __('form_action_bar.autosave_in') }}"
-                    data-autosave-countdown-suffix="{{ __('form_action_bar.autosave_seconds_short') }}"
-                    @if (!empty($autosave['updatedAtIso']))
-                        data-last-saved-at="{{ $autosave['updatedAtIso'] }}"
-                    @endif
+                    class="nova-form-action-bar__rail-panel nova-form-action-bar__rail-panel--editor"
+                    data-post-edit-lock-panel="editor"
+                    @if (empty($initialCanEdit)) hidden @endif
                 >
-                    <span
-                        style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:20px;"
-                        data-autosave-status-text="1"
-                    >{{ $autosave['idleLabel'] }}</span>
-                    <span
-                        style="display:none;align-items:center;height:20px;margin-left:8px;padding:0 6px;border-radius:9999px;background:#f1f5f9;color:#475569;white-space:nowrap;box-sizing:border-box;flex-shrink:0;"
-                        data-autosave-countdown-text="1"
-                    ></span>
+                    @if (!empty($postEditLockLockHtml) || $hasSaveStatusRow)
+                        <div class="nova-form-action-bar__rail-status-row nova-form-action-bar__rail-status-row--editor">
+                            @if (!empty($postEditLockLockHtml))
+                                <span class="nova-form-action-bar__rail-lock" data-post-edit-lock-center="1">{!! $postEditLockLockHtml !!}</span>
+                            @endif
+                            @if ($hasSaveStatusRow && !empty($autosave['enabled']))
+                                <span class="nova-form-action-bar__autosave-hidden-for-js" aria-hidden="true">
+                                    @include('nova.components.form-action-bar-autosave', ['autosave' => $autosave, 'autosaveVariant' => 'inline'])
+                                </span>
+                            @endif
+                        </div>
+                    @endif
+                    @include('nova.components.form-action-bar-save-actions', ['includeAutosave' => false])
                 </span>
-            @endif
-        </span>
+                <span
+                    class="nova-form-action-bar__rail-panel nova-form-action-bar__rail-panel--readonly"
+                    data-post-edit-lock-panel="readonly"
+                    @if (! empty($initialCanEdit)) hidden @endif
+                >
+                    @if (!empty($postEditLockLockHtml))
+                        <div class="nova-form-action-bar__rail-status-row nova-form-action-bar__rail-status-row--readonly">
+                            <span class="nova-form-action-bar__rail-lock" data-post-edit-lock-center="1">{!! $postEditLockLockHtml !!}</span>
+                        </div>
+                    @endif
+                    <span class="nova-form-action-bar__takeover-rail">
+                        <span class="nova-form-action-bar__actions-row">
+                            <button type="button" class="nova-post-edit-lock__takeover" style="{{ $saveButtonStyle }}">{{ __('post_edit_lock.takeover') }}</button>
+                        </span>
+                    </span>
+                </span>
+                <span
+                    class="nova-form-action-bar__rail-panel nova-form-action-bar__rail-panel--freed"
+                    data-post-edit-lock-panel="freed"
+                    hidden
+                >
+                    <div class="nova-form-action-bar__rail-status-row nova-form-action-bar__rail-status-row--freed">
+                        <span class="nova-form-action-bar__rail-lock" data-post-edit-lock-center="1"></span>
+                    </div>
+                    <span class="nova-form-action-bar__takeover-rail">
+                        <span class="nova-form-action-bar__actions-row">
+                            <button type="button" class="nova-post-edit-lock__reload-to-edit" style="{{ $saveButtonStyle }}">{{ __('post_edit_lock.reload_to_edit_button') }}</button>
+                        </span>
+                    </span>
+                </span>
+            </span>
+        @else
+            @include('nova.components.form-action-bar-save-actions')
+        @endif
     @endif
 </div>

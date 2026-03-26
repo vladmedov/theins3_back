@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'cannot_save_without_lock' => 'Saving is not available: the edit lock is missing or expired.',
+    'cannot_save_not_editor' => 'Saving is not available: another user is editing this post.',
+    'editing_locked_with_expiry' => 'Held by you until :time',
+    'locked_until_label' => 'Held by you until',
+    'readonly_label' => 'Editing',
+    'readonly_intro' => 'This post is being edited by :name :email',
+    'last_edited_label' => 'Last saved',
+    'last_seen_online_label' => 'Last online',
+    'takeover' => 'Take over editing',
+    'takeover_confirm' => 'Are you sure? The other user may lose unsaved changes.',
+    'takeover_done_title' => 'Control taken',
+    'takeover_done_body' => 'The page will reload.',
+    'displaced_title' => 'Someone took over editing',
+    'displaced_body' => 'This post is now being edited by :name (:email).',
+    'publication_freed_line1' => 'The publication is free again.',
+    'publication_freed_as_of_label' => 'As of',
+    'reload_to_edit_button' => 'Continue editing',
+    'index_column' => 'Edit lock',
+    'index_lock_free' => 'Free',
+    'index_lock_you' => 'You',
+    'index_lock_busy_unknown' => 'Another user',
+    'index_presence_online_title' => 'Recent activity in the editor (within 5 minutes)',
+    'index_presence_away_title' => 'No recent activity in the editor (over 5 minutes)',
+];

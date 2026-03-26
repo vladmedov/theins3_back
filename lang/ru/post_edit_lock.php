@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'cannot_save_without_lock' => 'Сохранение недоступно: блокировка редактирования отсутствует или истекла.',
+    'cannot_save_not_editor' => 'Сохранение недоступно: запись редактирует другой пользователь.',
+    'editing_locked_with_expiry' => 'Занято вами до :time',
+    'locked_until_label' => 'Занято вами до',
+    'readonly_label' => 'Редактирует',
+    'readonly_intro' => 'Эту запись редактирует :name :email',
+    'last_edited_label' => 'Последнее сохранение',
+    'last_seen_online_label' => 'Был онлайн',
+    'takeover' => 'Перехватить управление',
+    'takeover_confirm' => 'Вы уверены? Пользователь может потерять свои изменения.',
+    'takeover_done_title' => 'Управление перехвачено',
+    'takeover_done_body' => 'Страница будет перезагружена.',
+    'displaced_title' => 'У вас перехватили управление',
+    'displaced_body' => 'Запись теперь редактирует :name (:email).',
+    'publication_freed_line1' => 'Публикация освободилась.',
+    'publication_freed_as_of_label' => 'Актуально на',
+    'reload_to_edit_button' => 'Перейти к управлению',
+    'index_column' => 'Редактирование',
+    'index_lock_free' => 'Свободно',
+    'index_lock_you' => 'Вы',
+    'index_lock_busy_unknown' => 'Другой пользователь',
+    'index_presence_online_title' => 'Недавняя активность в редакторе (меньше 5 минут)',
+    'index_presence_away_title' => 'Давно не было активности в редакторе (более 5 минут)',
+];

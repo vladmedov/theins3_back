@@ -1,0 +1,595 @@
+/* Nova Form Action Bar + post edit lock + autosave UI (see NovaServiceProvider: nova-form-action-bar) */
+
+/* БЛОК URL + КНОПКИ */
+
+.overflow-hidden:has(#nova-form-action-bar),
+.overflow-hidden:has(#nova-info-bar) {
+    background: #f8f8f8 !important;
+    box-shadow: none !important;
+    border: 2px solid #ccc !important;
+    border-radius: 6px !important;
+}
+
+.overflow-hidden:has(#nova-form-action-bar) > *,
+.overflow-hidden:has(#nova-form-action-bar) .heading,
+.overflow-hidden:has(#nova-info-bar) > *,
+.overflow-hidden:has(#nova-info-bar) .heading {
+    padding: 0 !important;
+    border: none !important;
+    border-color: transparent !important;
+}
+/* Post edit lock: hide Nova header save actions when not the active editor */
+body:has(.nova-form-action-bar[data-post-edit-lock-enabled="1"][data-nova-post-edit-disabled="1"])
+    button[dusk="update-button"],
+body:has(.nova-form-action-bar[data-post-edit-lock-enabled="1"][data-nova-post-edit-disabled="1"])
+    button[dusk="update-button-and-continue-editing-button"],
+body:has(.nova-form-action-bar[data-post-edit-lock-enabled="1"][data-nova-post-edit-disabled="1"])
+    button[dusk="update-and-add-another-button"] {
+    display: none !important;
+}
+
+/*
+ * Post edit lock: поля Nova — Vue; прямой disabled на input/select сбрасывается при ре-рендере.
+ * Блокируем указатель по форме; Form Action Bar (перехват, копирование URL) снова кликабелен.
+ */
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] {
+    pointer-events: none;
+}
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] #nova-info-bar,
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] #nova-info-bar *,
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] .nova-form-action-bar,
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] .nova-form-action-bar * {
+    pointer-events: auto;
+}
+
+/* Табы формы (Headless UI TabList): переключение вкладок без редактирования полей */
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] .tab-menu,
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] .tab-menu *,
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] [role="tablist"],
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] [role="tablist"] *,
+form[data-form-unique-id][data-post-edit-lock-fields-disabled="1"] [dusk$="-tab-trigger"] {
+    pointer-events: auto;
+}
+
+/*
+ * Nova Form/HeadingField.vue: на обёртке v-html стоят py-4 px-8 — для action bar убираем полностью,
+ * иначе белые поля сверху/снизу и сегменты (стрелка, rail) не тянутся на всю высоту карточки.
+ */
+div.remove-last-margin-bottom:has(#nova-info-bar) {
+    padding: 0 !important;
+}
+/*
+ * Form Action Bar: у контейнера padding: 0; каждый сегмент (стрелка, URL, rail / кнопки) со своим padding.
+ * Без отрицательных margin.
+ */
+.nova-form-action-bar {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    padding: 0;
+    margin: 0;
+    gap: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* center только для простой полосы без скролла; иначе стрелка/rail не на всю высоту */
+.nova-form-action-bar:not(.nova-form-action-bar--post-edit-lock):not(.nova-form-action-bar--with-scroll) {
+    align-items: center;
+}
+
+.nova-form-action-bar:not(.nova-form-action-bar--post-edit-lock):not(.nova-form-action-bar--with-scroll) {
+    justify-content: flex-end;
+}
+
+.nova-form-action-bar--post-edit-lock {
+    justify-content: flex-start;
+}
+
+.nova-form-action-bar--with-scroll {
+    justify-content: flex-start;
+}
+
+.nova-form-action-bar__segment--scroll {
+    position: relative;
+    flex-shrink: 0;
+    align-self: stretch;
+    width: 28px;
+    min-width: 28px;
+    min-height: 44px;
+    padding: 10px 8px;
+    border: 1px solid #e2e8f0;
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+    background: rgba(100, 116, 139, 0.08);
+    color: #64748b;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.9;
+    box-sizing: border-box;
+}
+
+.nova-form-action-bar__segment--scroll:hover {
+    background: rgba(100, 116, 139, 0.14);
+    color: #334155;
+}
+
+.nova-form-action-bar__segment--scroll svg {
+    width: 16px;
+    height: calc(100% - 2px);
+    display: block;
+}
+
+.nova-form-action-bar__segment--main {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    box-sizing: border-box;
+}
+
+.nova-form-action-bar__main--post-edit-lock {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.nova-form-action-bar--post-edit-lock .nova-form-action-bar__url-col--with-lock {
+    justify-content: center;
+}
+
+.nova-form-action-bar__url-col--with-lock {
+    max-width: min(100%, 420px);
+    min-width: 0;
+}
+
+.nova-form-action-bar__url-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 3px 4px 3px 6px;
+    box-sizing: border-box;
+}
+
+.nova-form-action-bar__url-link {
+    margin-top: 1px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    text-decoration: none;
+    line-height: 1.2;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: min(100vw - 120px, 520px);
+}
+
+.nova-form-action-bar__actions {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.nova-form-action-bar__actions-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+/* Кнопки без rail: отдельный сегмент с padding (как у rail — 14px со всех сторон) */
+.nova-form-action-bar > .nova-form-action-bar__actions {
+    padding: 14px;
+    box-sizing: border-box;
+}
+
+/* Текст блокировки внутри правого rail */
+.nova-form-action-bar__rail-lock {
+    width: 100%;
+    max-width: min(100%, 420px);
+    box-sizing: border-box;
+    text-align: right;
+}
+
+.nova-form-action-bar__rail-lock .nova-post-edit-lock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    max-width: 100%;
+    text-align: right;
+}
+
+.nova-form-action-bar__rail-panel--readonly .nova-form-action-bar__rail-lock {
+    text-align: left;
+    max-width: 100%;
+}
+
+.nova-form-action-bar__rail-panel--readonly .nova-form-action-bar__rail-lock .nova-post-edit-lock {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.nova-form-action-bar__rail-panel--freed .nova-form-action-bar__rail-lock {
+    text-align: left;
+    max-width: 100%;
+}
+
+.nova-form-action-bar__rail-status-row--freed {
+    justify-content: flex-start;
+}
+
+/* Единая сетка: подпись (11px slate) + значение/время (12px) */
+.nova-post-edit-lock--readonly,
+.nova-post-edit-lock--editor,
+.nova-post-edit-lock--freed {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+}
+
+.nova-post-edit-lock__line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    line-height: 1.35;
+    min-width: 0;
+}
+
+/* Редактор: подпись и значение столбиком (как в макете «Закреплено до» / время) */
+.nova-post-edit-lock__line--stacked {
+    flex-direction: column;
+    align-items: flex-end;
+    flex-wrap: nowrap;
+    gap: 2px;
+    width: 100%;
+}
+
+.nova-post-edit-lock__label {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.nova-post-edit-lock__value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    min-width: 0;
+}
+
+.nova-post-edit-lock__value .nova-post-edit-lock__muted {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.nova-post-edit-lock__muted {
+    font-weight: 500;
+    color: #64748b;
+}
+
+.nova-post-edit-lock__time {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Rail: блокировка + кнопки (единый фон, свой padding) */
+.nova-form-action-bar__rail {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: min(100%, 520px);
+    padding: 14px 18px;
+    background: rgba(100, 116, 139, 0.08);
+    box-sizing: border-box;
+    align-self: stretch;
+    justify-content: center;
+}
+
+.nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail {
+    flex: 0 0 auto;
+    margin-left: auto;
+    margin-right: 0;
+    width: max-content;
+}
+
+.nova-form-action-bar__rail-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail-panel--editor,
+.nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail-panel--readonly,
+.nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail-panel--freed {
+    align-self: stretch;
+    align-items: stretch;
+    max-width: 100%;
+}
+
+.nova-post-edit-lock--freed .nova-post-edit-lock__value {
+    font-weight: 500;
+    color: #1e3a8a;
+}
+
+/* Кнопки сохранения — слева, как у блока перехвата (там строка по ширине кнопки прижата к началу) */
+.nova-form-action-bar__rail-panel--editor .nova-form-action-bar__actions-row {
+    justify-content: flex-start;
+}
+
+/* Readonly: только текст блокировки — та же нижняя граница, что у редактора */
+.nova-form-action-bar__rail-status-row--readonly {
+    justify-content: flex-start;
+}
+
+/* Одна строка: «Закреплено до …» слева, статус автосохранения справа */
+.nova-form-action-bar__rail-status-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+    box-sizing: border-box;
+}
+
+/* Редактор: только текст блокировки; скрытый autosave для JS остаётся в DOM */
+.nova-form-action-bar__rail-status-row--editor {
+    position: relative;
+}
+
+.nova-form-action-bar__autosave-hidden-for-js {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Только строка автосохранения (без текста блокировки) — прижать вправо */
+.nova-form-action-bar__rail-status-row:not(:has(.nova-form-action-bar__rail-lock)) {
+    justify-content: flex-end;
+}
+
+.nova-form-action-bar__rail-status-row .nova-form-action-bar__rail-lock {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    text-align: left;
+}
+
+.nova-form-action-bar__rail-status-row .nova-form-action-bar__rail-lock .nova-post-edit-lock {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.nova-form-action-bar__rail-status-row .nova-post-edit-lock__line {
+    width: 100%;
+    min-width: 0;
+}
+
+.nova-form-action-bar__autosave-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 4px 8px;
+    min-width: 0;
+}
+
+.nova-form-action-bar__autosave--stacked {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    width: 100%;
+    min-height: 20px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(148, 163, 184, 0.45);
+    line-height: 1.25;
+    box-sizing: border-box;
+}
+
+.nova-form-action-bar__autosave--stacked .nova-form-action-bar__autosave-line {
+    width: 100%;
+    justify-content: flex-end;
+}
+
+.nova-form-action-bar__autosave--inline {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0 8px;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 48%;
+    line-height: 1.25;
+    box-sizing: border-box;
+}
+
+.nova-form-action-bar__autosave--inline .nova-form-action-bar__autosave-line {
+    justify-content: flex-end;
+}
+
+.nova-form-action-bar__autosave .nova-post-edit-lock__label {
+    color: #64748b;
+}
+
+.nova-form-action-bar__autosave-status-text:not(.nova-post-edit-lock__time) {
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.nova-form-action-bar__autosave .nova-post-edit-lock__value.nova-post-edit-lock__time {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.nova-form-action-bar__autosave-status-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.35;
+}
+
+.nova-form-action-bar__autosave-countdown {
+    display: none;
+    align-items: center;
+    height: 20px;
+    margin-left: 0;
+    padding: 0 6px;
+    border-radius: 9999px;
+    background: #f1f5f9;
+    color: #475569;
+    white-space: nowrap;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .nova-form-action-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .nova-form-action-bar:not(.nova-form-action-bar--post-edit-lock) {
+        align-items: stretch;
+    }
+
+    .nova-form-action-bar__segment--main,
+    .nova-form-action-bar__main {
+        flex: none;
+        width: 100%;
+    }
+
+    .nova-form-action-bar__segment--scroll {
+        align-self: stretch;
+        width: 100%;
+        min-width: 0;
+        border-right: 1px solid #e2e8f0;
+        border-radius: 6px;
+    }
+
+    .nova-form-action-bar > .nova-form-action-bar__actions {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .nova-form-action-bar__actions-row {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: stretch;
+        gap: 10px;
+    }
+
+    .nova-form-action-bar__actions-row > button {
+        width: 100% !important;
+        min-height: 44px !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+    }
+
+    .nova-form-action-bar__autosave {
+        justify-content: flex-start !important;
+        text-align: left !important;
+    }
+
+    .nova-form-action-bar__autosave [data-autosave-status-text="1"] {
+        white-space: normal !important;
+        text-align: left;
+    }
+
+    .nova-form-action-bar__url-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 6px !important;
+    }
+
+    .nova-form-action-bar__url-chip {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .nova-form-action-bar__url-link {
+        white-space: normal !important;
+        word-break: break-all;
+        max-width: 100%;
+    }
+
+    .nova-form-action-bar__meta {
+        gap: 16px !important;
+    }
+
+    .nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail {
+        margin-left: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .nova-form-action-bar__rail-status-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .nova-form-action-bar__autosave--inline {
+        max-width: 100%;
+        justify-content: flex-start;
+        text-align: left;
+    }
+}
+
+/* display:flex выше перебивает нативный [hidden]; скрываем явно */
+.nova-form-action-bar__rail-panel[hidden],
+.nova-form-action-bar__rail-panel.hidden {
+    display: none !important;
+}
+
+.nova-form-action-bar__takeover-rail {
+    display: block;
+    width: 100%;
+    padding-top: 0;
+    box-sizing: border-box;
+}
+
+.nova-form-action-bar__takeover-rail .nova-form-action-bar__actions-row {
+    justify-content: flex-end;
+}
+
+.nova-form-action-bar__takeover-rail .nova-post-edit-lock__takeover:hover {
+    background: #1e293b;
+}

@@ -48,7 +48,9 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
         Nova::style('custom-nova', asset('css/custom-nova.css'));
         Nova::style('nova-app-widgets', asset('css/nova-app-widgets.css'));
         Nova::script('custom-nova-scripts', asset('js/nova-custom.js'));
-        
+        Nova::style('nova-form-action-bar', asset('css/nova-form-action-bar.css'));
+        Nova::script('nova-form-action-bar', asset('js/nova-form-action-bar.js'));
+
         Nova::mainMenu(function ($request) {
             
             $menu = [

@@ -97,25 +97,6 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
     background-color: #222;
 }
 
-/* БЛОК URL + КНОПКИ */
-
-.overflow-hidden:has(#nova-form-action-bar),
-.overflow-hidden:has(#nova-info-bar) {
-    background: #f8f8f8 !important;
-    box-shadow: none !important;
-    border: 2px solid #ccc !important;
-    border-radius: 6px !important;
-}
-
-.overflow-hidden:has(#nova-form-action-bar) > *,
-.overflow-hidden:has(#nova-form-action-bar) .heading,
-.overflow-hidden:has(#nova-info-bar) > *,
-.overflow-hidden:has(#nova-info-bar) .heading {
-    padding: 0 !important;
-    border: none !important;
-    border-color: transparent !important;
-}
-
 /* ТАБЫ */
 
 [role="tablist"] {
@@ -310,3 +291,5 @@ table[dusk="resource-table"] tr.group:has(.nova-post-index-draft) td {
 table[dusk="resource-table"] tr.group:has(.nova-post-index-draft):hover td {
     background-color: #f1d5d5 !important;
 }
+
+

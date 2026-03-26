@@ -1,10 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
-
-// RSS Feeds
 use App\Http\Controllers\FeedController;
+use Illuminate\Http\Request;
+// RSS Feeds
+use Illuminate\Support\Facades\Route;
+
 Route::prefix('{language_code}/feed')->where(['language_code' => 'ru|en'])->group(function () {
     Route::get('/', [FeedController::class, 'rss']);
     Route::get('/yandex-news', [FeedController::class, 'yandexNews']);
@@ -17,12 +17,11 @@ Route::prefix('{language_code}/feed')->where(['language_code' => 'ru|en'])->grou
 Route::get('/set-locale/{locale}', function (Request $request, string $locale) {
     $request->session()->put('locale', $locale);
     App::setLocale($locale);
+
     return redirect(config('nova.path'));
 })->where('locale', 'ru|en');
 
-
-
-
+Route::middleware('auth')->prefix(rtrim(config('nova.path'), '/'))->group(base_path('routes/nova-post-edit-lock.php'));
 
 // use App\Models\Post;
 // use App\Models\PostAuthor;
