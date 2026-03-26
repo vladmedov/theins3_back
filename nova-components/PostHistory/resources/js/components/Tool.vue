@@ -1772,21 +1772,24 @@ export default {
 }
 
 .history-top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 12px;
   margin-bottom: 6px;
 }
 
 .history-post-title {
   color: rgb(100, 116, 139);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .history-top-actions {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .history-edit-link {
