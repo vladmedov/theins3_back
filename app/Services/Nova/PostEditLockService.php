@@ -201,11 +201,14 @@ class PostEditLockService
         }
 
         $dot = $this->indexLockPresenceDotHtml($lock);
+        $lastSeenLine = $this->indexLockLastSeenHtml($lock);
 
         $editorId = (int) ($lock['editor_user_id'] ?? 0);
         if ($viewerUserId !== null && $editorId === $viewerUserId) {
-            return '<span class="inline-flex items-center gap-1.5 whitespace-nowrap font-medium text-emerald-700">'
-                .$dot.e(__('post_edit_lock.index_lock_you')).'</span>';
+            return '<span class="inline-flex flex-col items-start text-emerald-700">'
+                .'<span class="inline-flex items-center gap-1.5 whitespace-nowrap font-medium">'.$dot.e(__('post_edit_lock.index_lock_you')).'</span>'
+                .$lastSeenLine
+                .'</span>';
         }
 
         $displayName = '';
@@ -218,8 +221,10 @@ class PostEditLockService
                 .$dot.e(__('post_edit_lock.index_lock_busy_unknown')).'</span>';
         }
 
-        return '<span class="inline-flex items-center gap-1.5 whitespace-nowrap text-amber-900">'
-            .$dot.e($displayName).'</span>';
+        return '<span class="inline-flex flex-col items-start text-amber-900">'
+            .'<span class="inline-flex items-center gap-1.5 whitespace-nowrap">'.$dot.e($displayName).'</span>'
+            .$lastSeenLine
+            .'</span>';
     }
 
     /**
@@ -249,6 +254,31 @@ class PostEditLockService
         $style = 'display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;vertical-align:middle;flex-shrink:0;background-color:'.$color.';';
 
         return '<span style="'.e($style).'" title="'.e($title).'" aria-hidden="true"></span>';
+    }
+
+    /**
+     * @param  array<string, mixed>  $lock
+     */
+    protected function indexLockLastSeenHtml(array $lock): string
+    {
+        $raw = $lock['last_heartbeat_at'] ?? null;
+        if (! is_string($raw) || $raw === '') {
+            return '<span class="text-xs leading-tight text-slate-500">'.e(__('post_edit_lock.index_last_seen_unknown')).'</span>';
+        }
+
+        try {
+            $minutes = (int) floor(max(0, Carbon::parse($raw)->diffInMinutes(now())));
+        } catch (\Throwable) {
+            return '<span class="text-xs leading-tight text-slate-500">'.e(__('post_edit_lock.index_last_seen_unknown')).'</span>';
+        }
+
+        if ($minutes <= 0) {
+            $text = __('post_edit_lock.index_last_seen_just_now');
+        } else {
+            $text = __('post_edit_lock.index_last_seen_minutes_ago', ['minutes' => $minutes]);
+        }
+
+        return '<span class="text-xs leading-tight text-slate-500">'.$text.'</span>';
     }
 
     /**

@@ -22,6 +22,11 @@ return [
     'index_lock_free' => 'Free',
     'index_lock_you' => 'You',
     'index_lock_busy_unknown' => 'Another user',
+    'index_last_seen_unknown' => 'online -',
+    'index_last_seen_just_now' => 'online just now',
+    'index_last_seen_minutes_ago' => 'online :minutes min ago',
+    'index_last_seen_minutes_seconds_ago' => 'online :minutes min :seconds sec ago',
+    'index_last_seen_seconds_ago' => 'online :seconds sec ago',
     'index_presence_online_title' => 'Recent activity in the editor (within 5 minutes)',
     'index_presence_away_title' => 'No recent activity in the editor (over 5 minutes)',
 ];

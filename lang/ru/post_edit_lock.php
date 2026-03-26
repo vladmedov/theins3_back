@@ -22,6 +22,11 @@ return [
     'index_lock_free' => 'Свободно',
     'index_lock_you' => 'Вы',
     'index_lock_busy_unknown' => 'Другой пользователь',
+    'index_last_seen_unknown' => '—',
+    'index_last_seen_just_now' => 'только что',
+    'index_last_seen_minutes_ago' => ':minutes мин назад',
+    'index_last_seen_minutes_seconds_ago' => ':minutes мин :seconds сек назад',
+    'index_last_seen_seconds_ago' => ':seconds сек назад',
     'index_presence_online_title' => 'Недавняя активность в редакторе (меньше 5 минут)',
     'index_presence_away_title' => 'Давно не было активности в редакторе (более 5 минут)',
 ];

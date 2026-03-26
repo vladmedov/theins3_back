@@ -769,20 +769,26 @@ abstract class Post extends Resource
         } else {
             $editorName = (string) ($lockState['editor_name'] ?? '');
             $editorEmail = (string) ($lockState['editor_email'] ?? '');
-            $userTz = $user->timezone ?? config('app.timezone');
 
             $onlineLine = '';
             $heartbeatAt = $lockState['last_heartbeat_at'] ?? null;
             if (! empty($heartbeatAt)) {
                 try {
-                    $hb = Carbon::parse($heartbeatAt);
-                    if ($userTz && in_array($userTz, timezone_identifiers_list(), true)) {
-                        $hb = $hb->copy()->setTimezone($userTz);
-                    }
+                    $secondsTotal = (int) floor(max(0, Carbon::parse($heartbeatAt)->diffInSeconds(now())));
+                    $onlineText = $secondsTotal <= 0
+                        ? __('post_edit_lock.index_last_seen_just_now')
+                        : (intdiv($secondsTotal, 60) <= 0
+                            ? __('post_edit_lock.index_last_seen_seconds_ago', [
+                                'seconds' => $secondsTotal % 60,
+                            ])
+                            : __('post_edit_lock.index_last_seen_minutes_seconds_ago', [
+                                'minutes' => intdiv($secondsTotal, 60),
+                                'seconds' => $secondsTotal % 60,
+                            ]));
                     $onlineLine = '<div class="nova-post-edit-lock__line">'
                         .'<span class="nova-post-edit-lock__label">'.e(__('post_edit_lock.last_seen_online_label')).'</span>'
                         .'<span class="nova-post-edit-lock__value nova-post-edit-lock__time">'
-                        .e($hb->format('d.m.Y H:i:s'))
+                        .e($onlineText)
                         .'</span></div>';
                 } catch (\Throwable) {
                     $onlineLine = '';
@@ -818,6 +824,15 @@ abstract class Post extends Resource
             'pe-msg-readonly-intro' => __('post_edit_lock.readonly_intro', ['name' => ':name', 'email' => ':email']),
             'pe-msg-last-edited' => __('post_edit_lock.last_edited_label'),
             'pe-msg-last-seen-online' => __('post_edit_lock.last_seen_online_label'),
+            'pe-msg-last-seen-unknown' => __('post_edit_lock.index_last_seen_unknown'),
+            'pe-msg-last-seen-just-now' => __('post_edit_lock.index_last_seen_just_now'),
+            'pe-msg-last-seen-min-sec-ago' => __('post_edit_lock.index_last_seen_minutes_seconds_ago', [
+                'minutes' => ':minutes',
+                'seconds' => ':seconds',
+            ]),
+            'pe-msg-last-seen-sec-ago' => __('post_edit_lock.index_last_seen_seconds_ago', [
+                'seconds' => ':seconds',
+            ]),
             'pe-msg-takeover' => __('post_edit_lock.takeover'),
             'pe-msg-takeover-confirm' => __('post_edit_lock.takeover_confirm'),
             'pe-msg-takeover-done-title' => __('post_edit_lock.takeover_done_title'),

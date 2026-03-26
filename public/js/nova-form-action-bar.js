@@ -2139,6 +2139,10 @@
                 readonly_intro: root.getAttribute('data-pe-msg-readonly-intro') || '',
                 last_edited_label: root.getAttribute('data-pe-msg-last-edited') || '',
                 last_seen_online_label: root.getAttribute('data-pe-msg-last-seen-online') || '',
+                last_seen_unknown: root.getAttribute('data-pe-msg-last-seen-unknown') || '—',
+                last_seen_just_now: root.getAttribute('data-pe-msg-last-seen-just-now') || 'только что',
+                last_seen_min_sec_ago: root.getAttribute('data-pe-msg-last-seen-min-sec-ago') || ':minutes мин :seconds сек назад',
+                last_seen_sec_ago: root.getAttribute('data-pe-msg-last-seen-sec-ago') || ':seconds сек назад',
                 takeover: root.getAttribute('data-pe-msg-takeover') || '',
                 takeover_confirm: root.getAttribute('data-pe-msg-takeover-confirm') || '',
                 takeover_done_title: root.getAttribute('data-pe-msg-takeover-done-title') || '',
@@ -2211,6 +2215,31 @@
             ':' +
             pad(d.getSeconds())
         );
+    }
+
+    function formatMinutesAgoFromIso(iso, i18n) {
+        if (!iso) {
+            return (i18n && i18n.last_seen_unknown) ? i18n.last_seen_unknown : '—';
+        }
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) {
+            return (i18n && i18n.last_seen_unknown) ? i18n.last_seen_unknown : '—';
+        }
+        var diffMs = Date.now() - d.getTime();
+        var totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
+        if (totalSeconds <= 0) {
+            return (i18n && i18n.last_seen_just_now) ? i18n.last_seen_just_now : 'только что';
+        }
+        var minutes = Math.floor(totalSeconds / 60);
+        var seconds = totalSeconds % 60;
+        if (minutes <= 0) {
+            var secTemplate = (i18n && i18n.last_seen_sec_ago) ? i18n.last_seen_sec_ago : ':seconds сек назад';
+            return secTemplate.replace(':seconds', String(seconds));
+        }
+        var template = (i18n && i18n.last_seen_min_sec_ago) ? i18n.last_seen_min_sec_ago : ':minutes мин :seconds сек назад';
+        return template
+            .replace(':minutes', String(minutes))
+            .replace(':seconds', String(seconds));
     }
 
     function renderCenter(lockRoot, data, i18n) {
@@ -2323,8 +2352,7 @@
             if (osl) {
                 var onlineDisplay = '—';
                 if (data.last_heartbeat_at) {
-                    var formattedHb = formatLastEditedAtLocal(data.last_heartbeat_at);
-                    onlineDisplay = formattedHb || '—';
+                    onlineDisplay = formatMinutesAgoFromIso(data.last_heartbeat_at, i18n);
                 }
                 onlineLine =
                     '<div class="nova-post-edit-lock__line">' +
