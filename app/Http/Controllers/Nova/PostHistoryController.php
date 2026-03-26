@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Nova;
 
+use App\Enums\PostTypes as PostTypesEnum;
 use App\Models\Post;
 use App\Models\PostHistory;
 
@@ -19,6 +20,7 @@ class PostHistoryController extends Controller
 
         return response()->json([
             'post' => $post->title,
+            'type_label' => PostTypesEnum::get($post->type) ?: ($post->type ?: '-'),
             'changes' => $changes
         ]);
     }
@@ -35,7 +37,7 @@ class PostHistoryController extends Controller
             'post_id' => $change->post_id,
             'status' => $change->status,
             'changes' => $change->changes,
-            'user_fullname' => $change->user->fullname,
+            'user' => $change->user,
         ]);
     }
 }
