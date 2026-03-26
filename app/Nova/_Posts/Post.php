@@ -410,6 +410,7 @@ abstract class Post extends Resource
         $general[] = Boolean::make(__('Queued for auto-publication'), 'auto_publish_pending')
             ->sortable()
             ->hideFromIndex()
+            ->hideFromDetail()
             ->help(__('When the publication time arrives, status becomes Published and this option is cleared automatically.'));
 
         // Tab 2
@@ -659,10 +660,39 @@ abstract class Post extends Resource
             Hidden::make(__('Language'), 'language_code')->default($locale),
             Hidden::make(__('Type'), 'type')->default(static::getPostType()),
             $FormActionBarTop,
-            PostHistory::make(),
             $expandPublicationTabs ? $publicationGroup : $publicationFields,
             $FormActionBarBottom,
             $access,
+        ];
+    }
+
+    public function fieldsForDetail(Request $request): array
+    {
+        return [
+            PostHistory::make(),
+            PanelWithoutHeader::make([
+                Text::make(__('Date created'), 'created_at')->resolveUsing(function () {
+                    return $this->created_at->format('d.m.Y H:i:s');
+                }),
+                Text::make(__('Publication date'), 'published_at')->resolveUsing(function () {
+                    return $this->status == 'published' ? $this->published_at->format('d.m.Y H:i:s') : __(ucfirst($this->status));
+                }),
+                Text::make(__('Category'), 'category')->resolveUsing(function () {
+                    return $this->category->title;
+                }),
+                Text::make(__('Title'), 'title'),
+                Text::make(__('Authors'), 'authors')->resolveUsing(function () {
+                    return $this->authors->pluck('fullname')->implode(', ');
+                }),
+                Text::make(__('Views'), 'views_count')->resolveUsing(function () {
+                    return $this->views_count;
+                }),
+                Text::make(__('Image file'), 'image')->resolveUsing(function () {
+                    return $this->image
+                        ? '<img src="' . e(\Storage::disk('public')->url($this->image)) . '" style="max-width: 512px; height: auto; display:block;" />'
+                        : null;
+                })->asHtml(),
+            ]),
         ];
     }
 
