@@ -32,7 +32,6 @@ use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\FormData;
 use Laravel\Nova\Fields\Heading;
 use Laravel\Nova\Fields\Hidden;
-use Laravel\Nova\Fields\Image;
 use Laravel\Nova\Fields\MultiSelect;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\Tag as TagField;
@@ -49,6 +48,7 @@ use Medov\ImageGallery\ImageGallery;
 use Medov\InsertionCode\InsertionCode;
 use Medov\PostHistory\PostHistory;
 use Mostafaznv\NovaCkEditor\CkEditor;
+use OneStrive\NovaImageCropper\ImageCropper;
 use Outl1ne\MultiselectField\Multiselect as EntityMultiselect;
 use Whitecube\NovaFlexibleContent\Flexible;
 
@@ -338,15 +338,16 @@ abstract class Post extends Resource
                         });
                     }),
 
-            Image::make(__('Image file'), 'image')
+            ImageCropper::make(__('Image file'), 'image')
                 ->hideFromDetail()
                 ->hideFromIndex()
                 ->disk('public')
+                ->croppable(3 / 2)
                 ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
                 ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 800x100 px.'))
                 ->dependsOn(
                     ['ignore_image_dimension_requirements'],
-                    function (Image $field, NovaRequest $request, FormData $formData) {
+                    function (ImageCropper $field, NovaRequest $request, FormData $formData) {
                         if ($formData->ignore_image_dimension_requirements) {
                             $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480')
                                 ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.'));

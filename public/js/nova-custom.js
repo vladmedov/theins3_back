@@ -129,6 +129,27 @@
     }, 100);
 }());
 
+// ─── Nova image cropper: allow reselecting same file after cancel ────────────
+(function () {
+    function clearCropperFileInputFromCancel(target) {
+        if (!target || !target.closest) return;
+
+        var cancelButton = target.closest('outlinebutton');
+        if (!cancelButton) return;
+
+        var fieldRoot = cancelButton.closest('div.space-y-4') || cancelButton.parentElement;
+        if (!fieldRoot || !fieldRoot.querySelectorAll) return;
+
+        fieldRoot.querySelectorAll('input.form-file-input[type="file"]').forEach(function (input) {
+            input.value = '';
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        clearCropperFileInputFromCancel(e.target);
+    }, true);
+}());
+
 // ─── Title character counter ──────────────────────────────────────────────────
 (function () {
     var pollTimer = null;

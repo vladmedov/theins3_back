@@ -27,6 +27,7 @@
         "medov/post-history": "@dev",
         "medov/top-users-card": "@dev",
         "mostafaznv/nova-ckeditor": "^7.7",
+        "one-strive/nova-image-cropper": "^5.2",
         "outl1ne/nova-multiselect-field": "^5.0",
         "outl1ne/nova-sortable": "^4.0",
         "spatie/laravel-medialibrary": "^11.12",

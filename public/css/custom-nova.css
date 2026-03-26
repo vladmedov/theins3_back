@@ -292,4 +292,92 @@ table[dusk="resource-table"] tr.group:has(.nova-post-index-draft):hover td {
     background-color: #f1d5d5 !important;
 }
 
+/*
+ * one-strive/nova-image-cropper still uses legacy Nova classes (btn/btn-link/dim).
+ * Nova 5 does not style them, so Delete/Cancel actions look unstyled.
+ */
+.btn.btn-link {
+    border: 0 !important;
+    background: transparent !important;
+    color: #2563eb !important;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    padding: 0 !important;
+}
+
+.btn.btn-link:hover {
+    color: #1d4ed8 !important;
+}
+
+.btn.btn-link.dim {
+    opacity: 1 !important;
+}
+
+/* Make cropper Delete action look like a proper button in Nova 5 */
+div.space-y-4:has(input.form-file-input[type="file"]) .btn.btn-link {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem !important;
+    border: 1px solid #fecaca !important;
+    border-radius: 0.375rem;
+    background: #fff5f5 !important;
+    color: #b91c1c !important;
+}
+
+div.space-y-4:has(input.form-file-input[type="file"]) .btn.btn-link:hover {
+    background: #fee2e2 !important;
+    border-color: #fca5a5 !important;
+    color: #991b1b !important;
+}
+
+/* one-strive/nova-image-cropper: fallback when OutlineButton is rendered as <outlinebutton> tag */
+outlinebutton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: #2563eb;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    padding: 0;
+    cursor: pointer;
+    margin: 0 auto 0.75rem;
+}
+
+outlinebutton:hover {
+    color: #1d4ed8;
+}
+
+/* one-strive/nova-image-cropper: fallback when DeleteButton is rendered as <deletebutton> tag */
+deletebutton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #fecaca;
+    border-radius: 0.25rem;
+    background: #fff5f5;
+    color: #b91c1c;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    cursor: pointer;
+}
+
+deletebutton:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
+deletebutton > span {
+    margin: 0 !important;
+}
+
 
