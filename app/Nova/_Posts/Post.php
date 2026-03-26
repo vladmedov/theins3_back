@@ -274,7 +274,6 @@ abstract class Post extends Resource
                 ->asHtml(),
 
             Text::make(__('Title'), 'title')
-                ->sortable()
                 ->rules('required', 'max:140')
                 ->withMeta(['extraAttributes' => ['data-char-counter' => 'title', 'maxlength' => '140']])
                 ->displayUsing(function ($title, $resource) use ($request) {
@@ -382,9 +381,9 @@ abstract class Post extends Resource
                 ->hideFromDetail()
                 ->rules('nullable'),
 
-            Text::make(__('Views'), function () {
-                return $this->views_count;
-            })->hideFromDetail(),
+            Text::make(__('Views'), 'views_count')
+                ->sortable()
+                ->hideFromDetail(),
         ];
 
         if (static::getPostType() == PostTypes::NEWS) {
