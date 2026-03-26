@@ -223,7 +223,7 @@ class FormActionBar
 
     protected static function defaultSaveJs(): string
     {
-        return "document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click()";
+        return "window.NovaCustomSave && window.NovaCustomSave.cancelPendingAutosave && window.NovaCustomSave.cancelPendingAutosave(); document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click()";
     }
 
     protected static function saveWithoutReloadJs(): string

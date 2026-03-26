@@ -51,6 +51,7 @@
         bootstrapLoadListener: null,
         /** Не перечитывать data-last-saved-at с DOM на каждом ensureInstalled (ломает время на бою) */
         domSavedAtSyncedForPath: null,
+        suppressUntilTs: 0,
     };
 
     /** Синхронно с `form-action-bar.blade.php` ($secondaryActionStyles) */
@@ -751,8 +752,24 @@
         stopAutosaveCountdown();
     }
 
+    function suppressAutosaveAfterManualSave(durationMs) {
+        clearAutosaveTimer();
+        autosaveState.suppressUntilTs = Date.now() + (durationMs || 1000);
+    }
+
+    function isAutosaveSuppressedNow() {
+        return Date.now() < autosaveState.suppressUntilTs;
+    }
+
     function scheduleAutosave() {
         clearAutosaveTimer();
+
+        if (isAutosaveSuppressedNow()) {
+            if (hasAutosaveUi()) {
+                showAutosaveIdleState();
+            }
+            return;
+        }
 
         if (!isAutosaveEnabled()) {
             if (hasAutosaveUi()) {
@@ -774,6 +791,11 @@
     }
 
     function notifyAutosaveChange() {
+        if (isAutosaveSuppressedNow()) {
+            clearAutosaveTimer();
+            return;
+        }
+
         if (isStatusChangeLocked()) {
             clearAutosaveTimer();
             return;
@@ -812,7 +834,7 @@
 
         stopAutosaveCountdown();
         setAutosaveStatusText(getAutosaveSavingLabel());
-        saveWithoutReload(button);
+        saveWithoutReload(button, { fromAutosave: true });
     }
 
     function normalizeTarget(target) {
@@ -1691,11 +1713,19 @@
         return statusSelect.value !== originalStatus;
     }
 
-    function saveWithoutReload(button) {
+    function saveWithoutReload(button, options) {
         const updateButton = findUpdateButton();
         const submitButton = updateButton || findUpdateAndContinueEditingButton();
+        const fromAutosave = !!(options && options.fromAutosave);
 
         if (!button || !submitButton || state.active) return;
+
+        if (!fromAutosave) {
+            // Manual save: cancel active countdown and suppress immediate re-scheduling from reactive field updates.
+            suppressAutosaveAfterManualSave(1000);
+        } else {
+            clearAutosaveTimer();
+        }
 
         ensureInstalled();
 
@@ -1860,7 +1890,7 @@
     }
 
     function cancelPendingAutosave() {
-        clearAutosaveTimer();
+        suppressAutosaveAfterManualSave(1000);
         if (hasAutosaveUi()) {
             showAutosaveIdleState();
         }

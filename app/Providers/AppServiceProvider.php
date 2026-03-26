@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Http\Resources\Json\JsonResource;
-use Laravel\Scout\EngineManager;
 use Elastic\Elasticsearch\Client;
-use Matchish\ScoutElasticSearch\Engines\ElasticSearchEngine;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\ServiceProvider;
+use Laravel\Scout\EngineManager;
 use Matchish\ScoutElasticSearch\ElasticSearchServiceProvider;
+use Matchish\ScoutElasticSearch\Engines\ElasticSearchEngine;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         JsonResource::withoutWrapping();
+
+        RateLimiter::for('nova-post-edit-lock', function (Request $request) {
+            return Limit::perMinute(120)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
 
         // Backward-compatible alias: many installs use SCOUT_DRIVER=elasticsearch.
         // matchish registers the engine under ElasticSearchEngine::class.

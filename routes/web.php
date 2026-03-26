@@ -21,7 +21,9 @@ Route::get('/set-locale/{locale}', function (Request $request, string $locale) {
     return redirect(config('nova.path'));
 })->where('locale', 'ru|en');
 
-Route::middleware('auth')->prefix(rtrim(config('nova.path'), '/'))->group(base_path('routes/nova-post-edit-lock.php'));
+Route::middleware(['auth', 'throttle:nova-post-edit-lock'])
+    ->prefix(rtrim(config('nova.path'), '/'))
+    ->group(base_path('routes/nova-post-edit-lock.php'));
 
 // use App\Models\Post;
 // use App\Models\PostAuthor;

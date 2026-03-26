@@ -126,6 +126,19 @@ abstract class Post extends Resource
         ];
     }
 
+    /**
+     * Only persisted updates (Nova ResourceUpdateController) require the Redis edit lock; opening the form does not.
+     */
+    public function authorizeToUpdate(Request $request): void
+    {
+        parent::authorizeToUpdate($request);
+
+        if ($request instanceof UpdateResourceRequest) {
+            $postKey = PostEditLockService::makePostKey(static::uriKey(), (string) $this->resource->getKey());
+            app(PostEditLockService::class)->assertCanEditOrFail($postKey, $request->user());
+        }
+    }
+
     public function fields(Request $request)
     {
         $locale = $this->effectiveResourceLanguageCode();
@@ -525,7 +538,7 @@ abstract class Post extends Resource
                 ->hideFromDetail()
                 ->hideFromIndex(function () {
                     return static::getPostType() == PostTypes::OPINION;
-                }),     
+                }),
 
             Text::make(__('post_edit_lock.index_column'), 'id')
                 ->onlyOnIndex()
