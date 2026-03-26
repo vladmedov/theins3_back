@@ -19,6 +19,13 @@ export default class ReplaceHyphenWithDash extends Plugin {
             })
 
             buttonView.on('execute', () => {
+                const hasSelection = !editor.model.document.selection.isCollapsed
+
+                if (hasSelection) {
+                    this._replaceHyphenInSelection()
+                    return
+                }
+
                 const currentData = editor.getData()
                 const updatedData = this._replaceHyphenInHtml(currentData)
 
@@ -55,6 +62,56 @@ export default class ReplaceHyphenWithDash extends Plugin {
         }
 
         return root.innerHTML
+    }
+
+    _replaceHyphenInSelection() {
+        const editor = this.editor
+        const selection = editor.model.document.selection
+        const ranges = Array.from(selection.getRanges())
+        const replacements = []
+
+        for (const range of ranges) {
+            for (const item of range.getItems()) {
+                if (!item.is('$textProxy')) {
+                    continue
+                }
+
+                if (item.hasAttribute('code')) {
+                    continue
+                }
+
+                const originalText = item.data || ''
+                const updatedText = this._replaceHyphenSmart(originalText)
+
+                if (updatedText === originalText) {
+                    continue
+                }
+
+                replacements.push({
+                    parent: item.parent,
+                    startOffset: item.startOffset,
+                    endOffset: item.endOffset,
+                    attributes: Object.fromEntries(item.getAttributes()),
+                    text: updatedText,
+                })
+            }
+        }
+
+        if (replacements.length === 0) {
+            return
+        }
+
+        editor.model.change(writer => {
+            for (let i = replacements.length - 1; i >= 0; i--) {
+                const replacement = replacements[i]
+                const start = writer.createPositionAt(replacement.parent, replacement.startOffset)
+                const end = writer.createPositionAt(replacement.parent, replacement.endOffset)
+                const replaceRange = writer.createRange(start, end)
+
+                writer.remove(replaceRange)
+                writer.insertText(replacement.text, replacement.attributes, start)
+            }
+        })
     }
 
     _replaceHyphenSmart(text) {

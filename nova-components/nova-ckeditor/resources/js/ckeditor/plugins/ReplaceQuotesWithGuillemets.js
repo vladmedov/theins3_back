@@ -19,6 +19,13 @@ export default class ReplaceQuotesWithGuillemets extends Plugin {
             })
 
             buttonView.on('execute', () => {
+                const hasSelection = !editor.model.document.selection.isCollapsed
+
+                if (hasSelection) {
+                    this._replaceStraightQuotesInSelection()
+                    return
+                }
+
                 const currentData = editor.getData()
                 const updatedData = this._replaceStraightQuotesInHtml(currentData)
 
@@ -45,6 +52,56 @@ export default class ReplaceQuotesWithGuillemets extends Plugin {
         return root.innerHTML
     }
 
+    _replaceStraightQuotesInSelection() {
+        const editor = this.editor
+        const selection = editor.model.document.selection
+        const ranges = Array.from(selection.getRanges())
+        const replacements = []
+
+        for (const range of ranges) {
+            const segments = this._collectEligibleSelectionTextSegments(range)
+
+            if (segments.length === 0) {
+                continue
+            }
+
+            const updatedTextsBySegmentIndex = this._buildUpdatedTextsForSegments(segments)
+
+            for (let i = 0; i < segments.length; i++) {
+                const originalText = segments[i].text
+                const updatedText = updatedTextsBySegmentIndex[i]
+
+                if (typeof updatedText !== 'string' || updatedText === originalText) {
+                    continue
+                }
+
+                replacements.push({
+                    parent: segments[i].parent,
+                    startOffset: segments[i].startOffset,
+                    endOffset: segments[i].endOffset,
+                    attributes: segments[i].attributes,
+                    text: updatedText,
+                })
+            }
+        }
+
+        if (replacements.length === 0) {
+            return
+        }
+
+        editor.model.change(writer => {
+            for (let i = replacements.length - 1; i >= 0; i--) {
+                const replacement = replacements[i]
+                const start = writer.createPositionAt(replacement.parent, replacement.startOffset)
+                const end = writer.createPositionAt(replacement.parent, replacement.endOffset)
+                const replaceRange = writer.createRange(start, end)
+
+                writer.remove(replaceRange)
+                writer.insertText(replacement.text, replacement.attributes, start)
+            }
+        })
+    }
+
     _replaceStraightQuotesByPairsAcrossNodes(doc, root) {
         const textNodes = this._collectEligibleTextNodes(doc, root)
 
@@ -68,39 +125,9 @@ export default class ReplaceQuotesWithGuillemets extends Plugin {
             }
         }
 
-        const openQuoteStack = []
-
-        for (let i = 0; i < flatChars.length; i++) {
-            const current = flatChars[i]
-
-            if (current.char !== '"') {
-                continue
-            }
-
-            const isLeftBoundary = this._isLeftBoundaryInFlatChars(flatChars, i)
-            const isRightBoundary = this._isRightBoundaryInFlatChars(flatChars, i)
-
-            if (!isLeftBoundary && !isRightBoundary) {
-                continue
-            }
-
-            // Prefer opening if we don't have anything to close yet.
-            if (isLeftBoundary && (!isRightBoundary || openQuoteStack.length === 0)) {
-                openQuoteStack.push(current)
-                continue
-            }
-
-            if (isRightBoundary && openQuoteStack.length > 0) {
-                const openQuoteRef = openQuoteStack.pop()
-                this._setNodeChar(nodeToChars, openQuoteRef.node, openQuoteRef.offset, '«')
-                this._setNodeChar(nodeToChars, current.node, current.offset, '»')
-                continue
-            }
-
-            if (isLeftBoundary) {
-                openQuoteStack.push(current)
-            }
-        }
+        this._replaceFlatCharsQuotesByPairs(flatChars, (node, offset, replacement) => {
+            this._setNodeChar(nodeToChars, node, offset, replacement)
+        })
 
         for (const [node, chars] of nodeToChars.entries()) {
             node.nodeValue = chars.join('')
@@ -126,6 +153,103 @@ export default class ReplaceQuotesWithGuillemets extends Plugin {
         return nodes
     }
 
+    _collectEligibleSelectionTextSegments(range) {
+        const segments = []
+
+        for (const item of range.getItems()) {
+            if (!item.is('$textProxy')) {
+                continue
+            }
+
+            if (item.hasAttribute('code')) {
+                continue
+            }
+
+            segments.push({
+                parent: item.parent,
+                startOffset: item.startOffset,
+                endOffset: item.endOffset,
+                text: item.data,
+                attributes: Object.fromEntries(item.getAttributes()),
+            })
+        }
+
+        return segments
+    }
+
+    _buildUpdatedTextsForSegments(segments) {
+        const segmentToChars = new Map()
+        const flatChars = []
+
+        for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+            const chars = Array.from(segments[segmentIndex].text || '')
+            segmentToChars.set(segmentIndex, chars)
+
+            for (let i = 0; i < chars.length; i++) {
+                flatChars.push({
+                    char: chars[i],
+                    node: segmentIndex,
+                    offset: i,
+                })
+            }
+        }
+
+        this._replaceFlatCharsQuotesByPairs(flatChars, (segmentIndex, offset, replacement) => {
+            const chars = segmentToChars.get(segmentIndex)
+
+            if (!chars || offset < 0 || offset >= chars.length) {
+                return
+            }
+
+            chars[offset] = replacement
+        })
+
+        const updatedTexts = []
+
+        for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+            const chars = segmentToChars.get(segmentIndex) || []
+            updatedTexts.push(chars.join(''))
+        }
+
+        return updatedTexts
+    }
+
+    _replaceFlatCharsQuotesByPairs(flatChars, applyReplacement) {
+        const openQuoteStack = []
+
+        for (let i = 0; i < flatChars.length; i++) {
+            const current = flatChars[i]
+
+            if (current.char !== '"') {
+                continue
+            }
+
+            const isLeftBoundary = this._isLeftBoundaryInFlatChars(flatChars, i)
+            const isRightBoundary = this._isRightBoundaryInFlatChars(flatChars, i)
+
+            if (!isLeftBoundary && !isRightBoundary) {
+                continue
+            }
+
+            // Prefer opening if we don't have anything to close yet.
+            if (isLeftBoundary && (!isRightBoundary || openQuoteStack.length === 0)) {
+                openQuoteStack.push(current)
+                continue
+            }
+
+            if (isRightBoundary && openQuoteStack.length > 0) {
+                const openQuoteRef = openQuoteStack.pop()
+                applyReplacement(openQuoteRef.node, openQuoteRef.offset, '«')
+                applyReplacement(current.node, current.offset, '»')
+                continue
+            }
+
+            if (isLeftBoundary) {
+                openQuoteStack.push(current)
+            }
+        }
+    }
+
     _setNodeChar(nodeToChars, node, offset, replacement) {
         const chars = nodeToChars.get(node)
 
@@ -141,11 +265,21 @@ export default class ReplaceQuotesWithGuillemets extends Plugin {
             return true
         }
 
+        // New text node means a visual boundary (e.g. after <br> or block split).
+        if (flatChars[index - 1].node !== flatChars[index].node) {
+            return true
+        }
+
         return /\s/u.test(flatChars[index - 1].char)
     }
 
     _isRightBoundaryInFlatChars(flatChars, index) {
         if (index === flatChars.length - 1) {
+            return true
+        }
+
+        // Node transition is also a valid right boundary.
+        if (flatChars[index + 1].node !== flatChars[index].node) {
             return true
         }
 
