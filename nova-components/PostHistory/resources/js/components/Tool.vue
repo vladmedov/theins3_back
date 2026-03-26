@@ -67,6 +67,9 @@
                   v-if="isVisualMode(blockId)"
                   class="html-preview-frame unified-frame"
                   sandbox
+                  :ref="`visual-frame-${blockId}`"
+                  @load="onVisualFrameLoad(blockId, $event)"
+                  :style="getVisualFrameStyle(block)"
                   :srcdoc="buildDiffIframeDoc(buildRenderedDiffHtml(block))"
                 ></iframe>
                 <div v-else class="debug-html-block">
@@ -121,7 +124,7 @@
 
 <script>
 import axios from 'axios';
-import { diffWordsWithSpace } from 'diff';
+import { diffArrays, diffWordsWithSpace } from 'diff';
 
 export default {
   props: ['resourceName', 'resourceId', 'panel'],
@@ -134,6 +137,7 @@ export default {
       currentChange: null,
       wordDiffOptions: null,
       blockViewModes: {},
+      visualFrameHeights: {},
     };
   },
 
@@ -244,6 +248,32 @@ export default {
       return this.stripResidualHtmlTokens(doc.body?.textContent ?? '');
     },
 
+    htmlToVisualText(html) {
+      const decodedHtml = this.decodeHtmlEntitiesDeep(html);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(String(decodedHtml ?? ''), 'text/html');
+      const body = doc.body;
+
+      if (!body) {
+        return '';
+      }
+
+      const paragraphs = Array.from(body.querySelectorAll('p'));
+      if (paragraphs.length > 0) {
+        const parts = paragraphs.map((p) => {
+          // Preserve manual line breaks inside paragraph.
+          const withBreaks = p.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+          const tmp = parser.parseFromString(`<div>${withBreaks}</div>`, 'text/html');
+          return this.stripResidualHtmlTokens(tmp.body?.textContent ?? '').trim();
+        }).filter(Boolean);
+
+        return parts.join('\n\n');
+      }
+
+      // Fallback when no paragraph tags exist.
+      return this.stripResidualHtmlTokens(body.textContent ?? '');
+    },
+
     escapeHtml(value) {
       return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -316,6 +346,20 @@ export default {
 
     tokenizeWithSpaces(text) {
       return String(text ?? '').match(/\s+|[^\s]+/g) || [];
+    },
+
+    tokenizeHtmlForDebugDiff(html) {
+      const source = String(html ?? '');
+      // Keep URLs as single tokens so replaced links are shown whole.
+      const regex = /(https?:\/\/[^\s"'<>]+)|(\s+)|([^\s]+)/g;
+      const tokens = [];
+      let match;
+
+      while ((match = regex.exec(source)) !== null) {
+        tokens.push(match[0]);
+      }
+
+      return tokens;
     },
 
     getFormattingSignature(textNode) {
@@ -560,29 +604,27 @@ export default {
     buildRenderedDiffHtml(block) {
       const oldHtml = this.sanitizeHtmlForPreview(this.extractTextHtml(block.old));
       const newHtml = this.sanitizeHtmlForPreview(this.extractTextHtml(block.new));
-      const oldText = this.htmlToDisplayText(oldHtml);
-      const newText = this.htmlToDisplayText(newHtml);
+      const oldText = this.htmlToVisualText(oldHtml);
+      const newText = this.htmlToVisualText(newHtml);
       const tokenSets = this.buildFormatTokenSets(oldHtml, newHtml);
       const changedMarkupTokenIndices = tokenSets.changed;
       const strongTokenIndices = tokenSets.strong;
-      const ops = diffWordsWithSpace(
-        String(oldText ?? ''),
-        String(newText ?? ''),
-        this.getWordDiffOptions()
-      );
+      const oldTokens = this.tokenizeWithSpaces(oldText);
+      const newTokens = this.tokenizeWithSpaces(newText);
+      const ops = diffArrays(oldTokens, newTokens);
 
       let html = '';
       let newTokenIndex = 0;
       for (let i = 0; i < ops.length; i += 1) {
         const op = ops[i];
         const nextOp = ops[i + 1];
-        const value = op?.value ?? '';
-        const displayText = this.htmlToDisplayText(value);
+        const value = Array.isArray(op?.value) ? op.value.join('') : String(op?.value ?? '');
+        const displayText = value;
 
         // If only formatting changed for the same visible text, use neutral highlight.
         if (op?.removed && nextOp?.added) {
-          const removedText = this.htmlToPlainText(op.value);
-          const addedText = this.htmlToPlainText(nextOp.value);
+          const removedText = Array.isArray(op.value) ? op.value.join('') : String(op.value ?? '');
+          const addedText = Array.isArray(nextOp.value) ? nextOp.value.join('') : String(nextOp.value ?? '');
           if (removedText && removedText === addedText) {
             html += `<span class="diff-format-change">${this.escapeHtml(addedText)}</span>`;
             i += 1;
@@ -600,12 +642,12 @@ export default {
           html += rendered.html;
           newTokenIndex = rendered.nextIndex;
         } else if (op.removed) {
-          const removedText = this.htmlToPlainText(value);
+          const removedText = value;
           if (removedText) {
             html += `<span class="diff-removed">${this.escapeHtml(removedText)}</span>`;
           }
         } else if (op.added) {
-          const addedText = this.htmlToPlainText(value);
+          const addedText = value;
           if (addedText) {
             const tokens = this.tokenizeWithSpaces(addedText);
             for (let ti = 0; ti < tokens.length; ti += 1) {
@@ -631,21 +673,57 @@ export default {
       return this.decodeHtmlEntitiesDeep(this.extractTextHtml(value));
     },
 
+    getVisualFrameStyle(block) {
+      const blockId = block?.id || block;
+      const measured = this.visualFrameHeights[blockId];
+      if (measured) {
+        return { height: `${measured}px` };
+      }
+      return { height: '320px' };
+    },
+
+    onVisualFrameLoad(blockId, event) {
+      const iframe = event?.target;
+      if (!iframe?.contentWindow?.document?.body) {
+        return;
+      }
+
+      const body = iframe.contentWindow.document.body;
+      const html = iframe.contentWindow.document.documentElement;
+      const contentHeight = Math.max(
+        body.scrollHeight || 0,
+        body.offsetHeight || 0,
+        html?.scrollHeight || 0,
+        html?.offsetHeight || 0
+      );
+
+      const maxHeight = 320;
+      const height = Math.min(maxHeight, contentHeight + 2);
+
+      this.visualFrameHeights = {
+        ...this.visualFrameHeights,
+        [blockId]: height,
+      };
+    },
+
     buildRawHtmlDiff(block) {
       const oldHtml = this.debugHtml(block.old);
       const newHtml = this.debugHtml(block.new);
-      const ops = diffWordsWithSpace(String(oldHtml ?? ''), String(newHtml ?? ''), this.getWordDiffOptions());
+      const oldTokens = this.tokenizeHtmlForDebugDiff(oldHtml);
+      const newTokens = this.tokenizeHtmlForDebugDiff(newHtml);
+      const ops = diffArrays(oldTokens, newTokens);
 
       let html = '';
       for (const op of ops) {
-        const escaped = this.escapeHtml(op.value ?? '')
-          .replace(/&lt;\/p&gt;/g, '&lt;/p&gt;\n\n');
+        const value = Array.isArray(op.value) ? op.value.join('') : String(op.value ?? '');
+        const escaped = this.escapeHtml(value);
+        const escapedWithParagraphSpacing = escaped.replace(/&lt;\/p&gt;/g, '&lt;/p&gt;\n\n');
         if (!op.added && !op.removed) {
-          html += escaped;
+          html += escapedWithParagraphSpacing;
         } else if (op.removed) {
           html += `<span class="debug-removed">${escaped}</span>`;
         } else if (op.added) {
-          html += `<span class="debug-added">${escaped}</span>`;
+          html += `<span class="debug-added">${escapedWithParagraphSpacing}</span>`;
         }
       }
 
@@ -675,6 +753,7 @@ export default {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         line-height: 1.5;
         color: #1f2937;
+        white-space: pre-wrap;
         word-break: break-word;
       }
       p { margin: 0 0 10px; }
@@ -841,7 +920,7 @@ export default {
 .html-preview-frame {
   margin-top: 8px;
   width: 100%;
-  min-height: 320px;
+  max-height: 320px;
   border: 1px solid #d1d5db;
   border-radius: 4px;
   background: #fff;
