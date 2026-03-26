@@ -89,9 +89,15 @@ class ChangeDetectorService
         if ($value instanceof \Datetime) {
             return $value->format('Y-m-d\TH:i:s.u\Z');
         } elseif (is_array($value)) {
-            return json_encode(array_map([self::class, 'toString'], $value));
+            return json_encode(
+                array_map([self::class, 'toString'], $value),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
         } elseif (is_object($value)) {
-            return json_encode(array_map([self::class, 'toString'], (array) $value));
+            return json_encode(
+                array_map([self::class, 'toString'], (array) $value),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
         } else {
             return (string) $value;
         }

@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "laravel-nova-devtool": "file:vendor/laravel/nova-devtool"
+  },
+  "dependencies": {
+    "diff": "^8.0.4"
   }
 }
