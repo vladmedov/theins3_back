@@ -70,13 +70,26 @@ class SearchController extends Controller
             // Определяем тип сортировки
             $sort = $request->input('sort', 'relevant');
 
+            // Pick language-specific field analyzers (ru/en) defined in Elasticsearch mapping.
+            $languageCodeLower = mb_strtolower((string) $language_code);
+            $langSuffix = $languageCodeLower === 'ru' ? 'ru' : 'en';
+
+            $fields = [
+                "title.$langSuffix^10",
+                "lead.$langSuffix^3",
+                "content.$langSuffix",
+                "authors.$langSuffix^5",
+                "columnist.$langSuffix^5",
+                "tags.$langSuffix^5",
+            ];
+
             // Базовый query
             $baseQuery = [
                 'bool' => [
                     'must' => [
                         ['multi_match' => [
                             'query' => $query,
-                            'fields' => ['title^10', 'lead^3', 'content', 'authors^5', 'columnist^5', 'tags^5'],
+                            'fields' => $fields,
                             'type' => 'most_fields', // Аналог word_start - поиск с начала слов
                         ]]
                     ],

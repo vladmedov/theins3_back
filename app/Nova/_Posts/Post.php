@@ -469,7 +469,6 @@ abstract class Post extends Resource
                             'facebook' => 'Facebook',
                             'instagram' => 'Instagram',
                             'vk' => 'VK',
-                            'ok' => 'OK',
                             'iframe' => 'iFrame',
                         ])
                         ->default('hidden')

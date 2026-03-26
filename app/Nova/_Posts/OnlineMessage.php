@@ -194,7 +194,6 @@ class OnlineMessage extends Resource
                         'facebook' => 'Facebook',
                         'instagram' => 'Instagram',
                         'vk' => 'VK',
-                        'ok' => 'OK',
                         'iframe' => 'iFrame',
                     ])
                     ->displayUsingLabels()

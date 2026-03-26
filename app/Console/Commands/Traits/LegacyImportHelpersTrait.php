@@ -975,7 +975,7 @@ trait LegacyImportHelpersTrait
         $content   = [];
         $textHtml  = '';
         $mainKinds = ['number', 'text', 'social', 'related_posts', 'audio', 'iframe'];
-        $socialTypes = ['iframe', 'telegram', 'twitter', 'facebook', 'instagram', 'vk', 'ok', 'audio'];
+        $socialTypes = ['iframe', 'telegram', 'twitter', 'facebook', 'instagram', 'vk', 'audio'];
 
         foreach ($allBlocks as $block) {
             if (!in_array($block->kind, $mainKinds)) {
@@ -2044,9 +2044,7 @@ trait LegacyImportHelpersTrait
             return 'vk';
         }
 
-        if (str_contains($embedCode, 'ok.ru') || str_contains($embedCode, 'odnoklassniki.ru')) {
-            return 'ok';
-        }
+        // NOTE: 'ok.ru' / 'odnoklassniki.ru' intentionally not detected anymore.
 
         return null;
     }
@@ -2058,7 +2056,7 @@ trait LegacyImportHelpersTrait
 
     protected function embedTypeRequiresHtmlCode(string $embedType): bool
     {
-        return in_array($embedType, ['twitter', 'facebook', 'vk', 'ok', 'iframe'], true);
+        return in_array($embedType, ['twitter', 'facebook', 'vk', 'iframe'], true);
     }
 
     protected function wrapUrlAsAnchor(string $url): string
