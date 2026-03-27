@@ -12,6 +12,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TrackingPixelController;
 use App\Http\Controllers\MailchimpController;
+use App\Http\Controllers\FeedController;
 
 Route::prefix('{language_code}')->where(['language_code' => 'en|ru'])->group(function () {
     Route::get('/layout-data', [MainPageController::class, 'getLayoutData']);
@@ -34,4 +35,12 @@ Route::prefix('{language_code}')->where(['language_code' => 'en|ru'])->group(fun
     Route::post('/track-view', [TrackingPixelController::class, 'trackView']);
     
     Route::post('/newsletter/subscribe', [MailchimpController::class, 'subscribe']);
+
+    Route::prefix('feed')->group(function () {
+        Route::get('/', [FeedController::class, 'rss']);
+        Route::get('/yandex-news', [FeedController::class, 'yandexNews']);
+        Route::get('/dzen', [FeedController::class, 'dzen']);
+        Route::get('/google-news', [FeedController::class, 'googleNews']);
+        Route::get('/facebook-instant', [FeedController::class, 'facebookInstant']);
+    });
 });
