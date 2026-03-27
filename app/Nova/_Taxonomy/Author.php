@@ -108,12 +108,14 @@ class Author extends Resource
                 MultiSelect::make(__('Allowed post types'), 'allowed_post_types')
                     ->options(PostTypes::all())
                     ->nullable()
-                    ->onlyOnForms(),
+                    ->onlyOnForms()
+                    ->help(__('Types of publications where this author can be selected as the author of the content.')),
 
                 MultiSelect::make(__('Post types with hidden author name'), 'post_types_with_hidden_author_name')
                     ->options(PostTypes::all())
                     ->nullable()
-                    ->onlyOnForms(),
+                    ->onlyOnForms()
+                    ->help(__('Types of publications where the author name is hidden unless the publication is configured to show all authors.')),
 
                 Boolean::make(__('Hide author page'), 'is_author_page_hidden')
                     ->onlyOnForms()

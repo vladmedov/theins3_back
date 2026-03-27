@@ -12,5 +12,9 @@
     "Queued for auto-publication": "В очереди на авто-публикацию",
     "When the publication time arrives, status becomes Published and this option is cleared automatically.": "Когда наступит время публикации, статус станет «Опубликовано», а эта отметка снимется автоматически.",
     "Auto-queue": "Авто-очередь",
-    "Auto-queue marker": "А"
+    "Auto-queue marker": "А",
+    "Allowed post types": "Допустимые типы публикаций",
+    "Post types with hidden author name": "Типы публикаций со скрытым именем автора",
+    "Types of publications where this author can be selected as the author of the content.": "Типы публикаций, в которых можно выбрать этого автора как автора материала.",
+    "Types of publications where the author name is hidden unless the publication is configured to show all authors.": "Типы публикаций, в которых имя автора будет скрыто (если в настройках публикации не указано показать всех авторов публикации)."
 }
