@@ -681,6 +681,16 @@
   "The image could not be loaded.": "The image could not be loaded.",
   "Action Events": "Action Events",
   "Action Event": "Action Event",
-  "User Actions": "User Actions"
+  "User Actions": "User Actions",
+  "Cancel image selection": "Отменить выбор изображения",
+  "Selected image details": "Параметры изображения",
+  "Image dimensions are unavailable": "размеры не определены",
+  "Image dimensions could not be determined": "Не удалось определить размеры изображения",
+  "Image dimensions do not meet minimum requirements": "Размеры изображения не соответствуют минимальным требованиям",
+  "File size is unknown": "вес неизвестен",
+  "Crop area": "Область кадрирования",
+  "Selected crop area": "Выбранная область кадрирования",
+  "Could not delete the image. Please try again.": "Не удалось удалить изображение. Попробуйте еще раз.",
+  "Choose image": "Выбрать изображение"
   
 }

@@ -48,7 +48,7 @@ use Medov\ImageGallery\ImageGallery;
 use Medov\InsertionCode\InsertionCode;
 use Medov\PostHistory\PostHistory;
 use Mostafaznv\NovaCkEditor\CkEditor;
-use OneStrive\NovaImageCropper\ImageCropper;
+use App\Nova\Fields\ImageCropperDnd as ImageCropper;
 use Outl1ne\MultiselectField\Multiselect as EntityMultiselect;
 use Whitecube\NovaFlexibleContent\Flexible;
 
@@ -343,8 +343,8 @@ abstract class Post extends Resource
                 ->hideFromIndex()
                 ->disk('public')
                 ->croppable(3 / 2)
-                ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
-                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 800x100 px.'))
+                ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=640,min_height=100')
+                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.'))
                 ->dependsOn(
                     ['ignore_image_dimension_requirements'],
                     function (ImageCropper $field, NovaRequest $request, FormData $formData) {
@@ -352,8 +352,8 @@ abstract class Post extends Resource
                             $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480')
                                 ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.'));
                         } else {
-                            $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=800,min_height=100')
-                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 800x100 px.'));
+                            $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=640,min_height=100')
+                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.'));
                         }
                     }
                 )
@@ -397,7 +397,7 @@ abstract class Post extends Resource
 
         $general[] = Boolean::make(__('Ignore image dimension requirements'), 'ignore_image_dimension_requirements')
             ->onlyOnForms()
-            ->help('<strong>'.__('Use this option only if no high-quality publication image is available. Low-quality images reduce the overall quality of the site.').'</strong><br>'.__('If enabled, minimum image dimensions (800x100) will not be validated.'))
+            ->help('<strong>'.__('Use this option only if no high-quality publication image is available. Low-quality images reduce the overall quality of the site.').'</strong><br>'.__('If enabled, minimum image dimensions (640x100) will not be validated.'))
             ->withMeta([
                 'extraAttributes' => [
                     'class' => 'ignore-image-dimensions-boolean',

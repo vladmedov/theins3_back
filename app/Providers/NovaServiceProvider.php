@@ -113,6 +113,15 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
             if (File::exists($path)) {
                 Nova::script('flexible-form-override', $path);
             }
+
+            $imageCropperDndScriptPath = base_path('nova-components/ImageCropperDnd/dist/js/nova-image-cropper-dnd.js');
+            $imageCropperDndStylePath = base_path('nova-components/ImageCropperDnd/dist/css/nova-image-cropper-dnd.css');
+            if (File::exists($imageCropperDndScriptPath)) {
+                Nova::script('nova-image-cropper-dnd', $imageCropperDndScriptPath);
+            }
+            if (File::exists($imageCropperDndStylePath)) {
+                Nova::style('nova-image-cropper-dnd', $imageCropperDndStylePath);
+            }
         });
     }
 
