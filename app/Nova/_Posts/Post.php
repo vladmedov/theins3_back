@@ -381,10 +381,6 @@ abstract class Post extends Resource
                 ->hideFromIndex()
                 ->hideFromDetail()
                 ->rules('nullable'),
-
-            Text::make(__('Views'), 'views_count')
-                ->sortable()
-                ->hideFromDetail(),
         ];
 
         if (static::getPostType() == PostTypes::NEWS) {
