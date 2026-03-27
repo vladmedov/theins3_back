@@ -479,8 +479,8 @@ class Post extends Model { //implements HasMedia {
             'status' => $this->status,
             'published_at' => $this->published_at?->timestamp,
             'views_count' => $this->views_count ?? 0,
-            'authors' => $this->authors->pluck('fullname')->toArray(),
-            'columnist' => $this->columnist?->fullname ?? '',
+            'authors' => $this->authorsForSearchIndex()->pluck('fullname')->values()->all(),
+            'columnist' => $this->columnistNameForSearchIndex(),
             'tags' => $this->tags->pluck('title')->toArray(),
         ];
     }
@@ -542,5 +542,67 @@ class Post extends Model { //implements HasMedia {
         
         // Возвращаем весь контент без ограничений
         return trim($text);
+    }
+
+    /**
+     * Авторы, чьи ФИО допустимо искать так же, как они показываются в API (PostResource).
+     */
+    private function authorsForSearchIndex(): \Illuminate\Support\Collection
+    {
+        if (!$this->shouldExposeAuthorsInPublication()) {
+            return collect();
+        }
+
+        return $this->authors->filter(
+            fn (Author $author) => !in_array($this->type, $author->post_types_with_hidden_author_name ?? [], true)
+                || $this->author_visibility === 'force_shown'
+        );
+    }
+
+    private function columnistNameForSearchIndex(): string
+    {
+        if (!$this->shouldExposeColumnistInPublication()) {
+            return '';
+        }
+
+        return $this->columnist?->fullname ?? '';
+    }
+
+    /** См. PostResource::shouldShowAuthors */
+    private function shouldExposeAuthorsInPublication(): bool
+    {
+        if ($this->type === PostTypes::OPINION) {
+            return false;
+        }
+
+        if ($this->author_visibility === 'force_hidden') {
+            return false;
+        }
+
+        return true;
+    }
+
+    /** См. PostResource::shouldShowColumnist */
+    private function shouldExposeColumnistInPublication(): bool
+    {
+        if ($this->columnist === null) {
+            return false;
+        }
+
+        if ($this->type !== PostTypes::OPINION) {
+            return false;
+        }
+
+        if ($this->author_visibility === 'force_hidden') {
+            return false;
+        }
+
+        if ($this->author_visibility !== 'force_shown'
+            && in_array($this->type, $this->columnist->post_types_with_hidden_author_name ?? [], true)
+        ) {
+            return false;
+        }
+
+        return true;
     }
 }
