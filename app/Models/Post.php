@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 use Whitecube\NovaFlexibleContent\Value\FlexibleCast;
 use App\Casts\CompactFlexibleCast;
@@ -101,6 +102,12 @@ class Post extends Model { //implements HasMedia {
                 $post->published_at = now();
             } elseif ($publishClickAction === 'unpublish') {
                 $post->status = self::STATUS_DRAFT;
+            }
+
+            if ($post->status === self::STATUS_PUBLISHED && empty($post->image)) {
+                throw ValidationException::withMessages([
+                    'image' => __('posts.image_required_for_published'),
+                ]);
             }
 
             if ($post->status === self::STATUS_PUBLISHED || !$post->published_at) {
