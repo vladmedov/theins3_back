@@ -82,6 +82,10 @@ class Post extends Model { //implements HasMedia {
         'auto_publish_pending' => 'boolean',
     ];
 
+    protected $attributes = [
+        'views_count' => 0,
+    ];
+
     protected ?array $frontendRevalidationOriginalSnapshot = null;
 
     public static function boot() {
@@ -248,6 +252,12 @@ class Post extends Model { //implements HasMedia {
             );
 
             $post->frontendRevalidationOriginalSnapshot = null;
+        });
+
+        static::creating(function ($post) {
+            if ($post->views_count === null) {
+                $post->views_count = 0;
+            }
         });
 
         if (defined('static::TYPE')) {
