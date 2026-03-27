@@ -10,15 +10,15 @@ class TrackingPixelController extends Controller
 {
     public function trackView($language_code, Request $request)
     {
-        $postId = $request->input('post_id');
+        $postSlug = $request->input('post_slug');
         $ip = $request->input('ip');
         
-        if (!$postId || !$ip) {
+        if (!$postSlug || !$ip) {
             return response()->json(['status' => 'ERROR_INVALID_REQUEST'], 400);
         }
         
         $post = Post::select('id')
-            ->where('slug', $postId)
+            ->where('slug', $postSlug)
             ->where('language_code', $language_code)
             ->where('status', Post::STATUS_PUBLISHED)
             ->first();
@@ -29,7 +29,7 @@ class TrackingPixelController extends Controller
         
         $redis = Redis::connection()->client();
         
-        $ipKey = "view_ip:{$postId}:{$ip}";
+        $ipKey = "view_ip:{$post->id}:{$ip}";
         
         if ($redis->exists($ipKey)) {
             return response()->json(['status' => 'ERROR_IP_LIMIT']);
@@ -37,7 +37,7 @@ class TrackingPixelController extends Controller
         
         $redis->setex($ipKey, 3600, '1');
         
-        $redis->incr("view_count:{$postId}");
+        $redis->incr("view_count:{$post->id}");
         
         return response()->json(['status' => 'SUCCESS']);
     }
