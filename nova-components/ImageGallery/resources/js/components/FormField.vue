@@ -490,4 +490,22 @@ export default {
   width: 24px;
   height: 24px;
 }
+
+@media (max-width: 768px) {
+  .image-gallery-item {
+    position: relative;
+    flex-wrap: wrap;
+  }
+
+  .image-gallery-details {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .image-gallery-btn-danger {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+}
 </style>
