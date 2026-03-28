@@ -119,9 +119,7 @@ class Author extends Model {
 
     public function posts() {
         return $this
-            ->belongsToMany(Post::class, 'post_authors', 'author_id', 'post_id')
-            ->where('posts.language_code', $this->language_code)
-            ->where('posts.status', Post::STATUS_PUBLISHED);
+            ->belongsToMany(Post::class, 'post_authors', 'author_id', 'post_id');
     }
 
     public function news() {
