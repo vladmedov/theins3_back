@@ -1,6 +1,89 @@
 /**
- * Nova: навигация — аккордеон сайдбара; ссылка «Перейти на сайт» в шапке.
+ * Nova: навигация — логотип → внешний сайт (новое окно), аккордеон сайдбара.
+ * Логотип: document capture + stopPropagation, чтобы Inertia Link не перехватывал клик.
  */
+
+(function () {
+    function frontendUrl() {
+        try {
+            if (window.Nova && typeof window.Nova.config === 'function') {
+                var u = window.Nova.config('frontendPublicUrl');
+                if (u != null && String(u).trim() !== '') {
+                    return String(u).trim();
+                }
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    function isLogoAnchor(a) {
+        if (!a || a.tagName !== 'A' || !a.getAttribute('href')) {
+            return false;
+        }
+        if ((a.getAttribute('href') || '').indexOf('nova.laravel.com/licenses') !== -1) {
+            return false;
+        }
+        var col = document.querySelector('#nova header > div[class*="lg:w-60"]');
+        if (col && col.querySelector('a') === a) {
+            return true;
+        }
+        var drawer = a.closest('div.lg\\:hidden.w-60');
+        var row = a.closest('div.border-b');
+        if (drawer && row && row.querySelector('a') === a) {
+            return true;
+        }
+        return false;
+    }
+
+    function onLogoClickCapture(e) {
+        var u = frontendUrl();
+        if (!u) {
+            return;
+        }
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+            return;
+        }
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!isLogoAnchor(a)) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        window.open(u, '_blank', 'noopener,noreferrer');
+    }
+
+    document.addEventListener('click', onLogoClickCapture, true);
+
+    function syncLogoHref() {
+        var url = frontendUrl();
+        if (!url) {
+            return;
+        }
+        var col = document.querySelector('#nova header > div[class*="lg:w-60"]');
+        if (col) {
+            var la = col.querySelector('a');
+            if (la && (la.getAttribute('href') || '').indexOf('nova.laravel.com/licenses') === -1) {
+                la.setAttribute('href', url);
+                la.target = '_blank';
+                la.rel = 'noopener noreferrer';
+            }
+        }
+        document.querySelectorAll('body > div.lg\\:hidden.w-60 div.border-b > a[href]').forEach(function (la) {
+            if ((la.getAttribute('href') || '').indexOf('nova.laravel.com/licenses') === -1) {
+                la.setAttribute('href', url);
+                la.target = '_blank';
+                la.rel = 'noopener noreferrer';
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', syncLogoHref);
+    document.addEventListener('inertia:finish', syncLogoHref);
+    setTimeout(syncLogoHref, 0);
+    setTimeout(syncLogoHref, 400);
+}());
+
 (function () {
     function topLevelRoot(el, menu) {
         if (!el || !menu.contains(el)) {
@@ -71,60 +154,4 @@
     }
 
     document.addEventListener('click', onSidebarClickCapture, true);
-}());
-
-/**
- * Ссылка «Перейти на сайт» в колонке логотипа (Nova.config.frontendPublicUrl).
- * Предупреждение о лицензии скрыто в nova-sidebar-menu.css.
- */
-(function () {
-    var DATA = 'data-ins-public-site-link';
-
-    function frontendUrl() {
-        try {
-            if (window.Nova && typeof window.Nova.config === 'function') {
-                var u = window.Nova.config('frontendPublicUrl');
-                if (u != null && String(u).trim() !== '') {
-                    return String(u).trim();
-                }
-            }
-        } catch (e) {}
-        return null;
-    }
-
-    function logoColumn() {
-        return document.querySelector('#nova header > div[class*="lg:w-60"]');
-    }
-
-    function ensurePublicSiteLink() {
-        var url = frontendUrl();
-        if (!url) {
-            return;
-        }
-        var col = logoColumn();
-        if (!col) {
-            return;
-        }
-        var existing = col.querySelector('a[' + DATA + '="1"]');
-        if (existing) {
-            if (existing.getAttribute('href') !== url) {
-                existing.setAttribute('href', url);
-            }
-            return;
-        }
-        var a = document.createElement('a');
-        a.setAttribute(DATA, '1');
-        a.href = url;
-        a.textContent = 'Перейти на сайт';
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.className =
-            'nova-ins-site-link text-gray-400 dark:text-gray-400 hover:text-white dark:hover:text-gray-200 text-xs font-semibold text-center';
-        col.appendChild(a);
-    }
-
-    document.addEventListener('DOMContentLoaded', ensurePublicSiteLink);
-    document.addEventListener('inertia:finish', ensurePublicSiteLink);
-    setTimeout(ensurePublicSiteLink, 0);
-    setTimeout(ensurePublicSiteLink, 400);
 }());

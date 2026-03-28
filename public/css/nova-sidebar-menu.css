@@ -1,5 +1,5 @@
 /**
- * Nova: навигация — фон оболочки, шапка (логотип, лицензия / «Перейти на сайт», бургер),
+ * Nova: навигация — фон оболочки, шапка (логотип → публичный сайт через JS, бургер),
  * левый сайдбар, выезжающее меню на мобильных. JS: public/js/nova-sidebar-menu.js
  */
 
@@ -17,19 +17,15 @@ div[id="app"] > div[id="nova"] > div > header > div.hidden {
     border-bottom: 1px solid #2b2b2b !important;
 }
 
-/* Скрываем предупреждение Nova о лицензии — вместо него ссылка «Перейти на сайт» (nova-sidebar-menu.js) */
+/* Скрываем предупреждение Nova о лицензии; на сайт ведёт ссылка логотипа (nova-sidebar-menu.js) */
 div[id="app"] > div[id="nova"] > div > header a[href*="nova.laravel.com/licenses"] {
     display: none !important;
 }
 
-/* Логотип по центру колонки, «Перейти на сайт» с новой строки (высота шапки — h-14) */
+/* Логотип по центру колонки шапки */
 div[id="app"] > div[id="nova"] > div > header > div.hidden.lg\:w-60 {
-    flex-direction: column !important;
-    align-items: center !important;
     justify-content: center !important;
-    gap: 0;
-    padding-top: 0;
-    padding-bottom: 0;
+    align-items: center !important;
 }
 
 div[id="app"] > div[id="nova"] > div > header > div.hidden.lg\:w-60 > a:first-of-type {
@@ -41,15 +37,6 @@ div[id="app"] > div[id="nova"] > div > header > div.hidden.lg\:w-60 > a:first-of
     min-height: 0 !important;
     height: auto !important;
     padding: 0 0.5rem !important;
-}
-
-div[id="app"] > div[id="nova"] > div > header > div.hidden.lg\:w-60 > a.nova-ins-site-link {
-    display: block !important;
-    width: 100%;
-    margin-top: 0.25rem !important;
-    line-height: 1.2 !important;
-    font-weight: 600;
-    text-transform: none;
 }
 
 div[id="app"] > div[id="nova"] > div > header > div:last-child {
