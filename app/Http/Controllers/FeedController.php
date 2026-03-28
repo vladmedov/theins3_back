@@ -137,14 +137,11 @@ class FeedController extends Controller
 
     private function feedPath(string $lang, string $suffix): string
     {
-        $lang = $lang ?: 'ru';
         $defaultLang = substr((string) config('app.locale'), 0, 2);
         $lang = $lang ?: $defaultLang;
 
-        if ($lang === $defaultLang) {
-            return '/feed' . $suffix;
-        }
-
-        return "/{$lang}/feed" . $suffix;
+        return $lang === $defaultLang
+            ? '/feed' . $suffix
+            : "/{$lang}/feed" . $suffix;
     }
 }
