@@ -289,6 +289,39 @@ div.remove-last-margin-bottom:has(#nova-info-bar) {
     font-variant-numeric: tabular-nums;
 }
 
+.nova-post-edit-lock__line--locked-until {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+button.nova-post-edit-lock__exit {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    text-decoration: underline;
+    text-decoration-color: rgba(148, 163, 184, 0.55);
+    text-underline-offset: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0.72;
+}
+
+button.nova-post-edit-lock__exit:hover {
+    color: #64748b;
+    text-decoration-color: rgba(100, 116, 139, 0.7);
+    opacity: 1;
+}
+
+.nova-post-edit-lock__line--locked-until button.nova-post-edit-lock__exit {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
 /* Rail: блокировка + кнопки (единый фон, свой padding) */
 .nova-form-action-bar__rail {
     display: flex;

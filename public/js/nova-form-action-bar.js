@@ -2152,6 +2152,7 @@
                 publication_freed_line1: root.getAttribute('data-pe-msg-publication-freed-line1') || '',
                 publication_freed_as_of_label: root.getAttribute('data-pe-msg-publication-freed-as-of-label') || '',
                 reload_to_edit_button: root.getAttribute('data-pe-msg-reload-to-edit') || '',
+                exit_edit: root.getAttribute('data-pe-msg-exit-edit') || '',
             };
         }
         var raw = root.getAttribute('data-post-edit-lock-i18n') || '';
@@ -2262,14 +2263,19 @@
             var untilLine = '';
             var ul = (i18n.locked_until_label || '').trim();
             if (ul && data.lock_expires_at) {
+                var exitLbl = (i18n.exit_edit || '').trim();
                 untilLine =
-                    '<div class="nova-post-edit-lock__line">' +
+                    '<div class="nova-post-edit-lock__line nova-post-edit-lock__line--locked-until">' +
                     '<span class="nova-post-edit-lock__label">' +
                     esc(ul) +
                     '</span>' +
                     '<span class="nova-post-edit-lock__value nova-post-edit-lock__time">' +
                     esc(formatLocalTime(data.lock_expires_at)) +
-                    '</span></div>';
+                    '</span>' +
+                    (exitLbl
+                        ? '<button type="button" class="nova-post-edit-lock__exit">' + esc(exitLbl) + '</button>'
+                        : '') +
+                    '</div>';
             }
 
             var last = '';
@@ -2484,6 +2490,61 @@
             if (reloadBtn) {
                 e.preventDefault();
                 window.location.reload();
+                return;
+            }
+
+            var exitBtn =
+                e.target && e.target.closest && e.target.closest('.nova-post-edit-lock__exit');
+            if (exitBtn) {
+                e.preventDefault();
+                var lockRootExit = exitBtn.closest('[data-post-edit-lock]');
+                if (!lockRootExit) {
+                    return;
+                }
+                var releaseUrl = lockRootExit.getAttribute('data-release-url') || '';
+                var postKeyExit = lockRootExit.getAttribute('data-post-key') || '';
+                if (!releaseUrl || !postKeyExit) {
+                    window.alert('Post edit lock: missing release URL or post key. Reload the page.');
+                    return;
+                }
+                exitBtn.disabled = true;
+                fetch(releaseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ post_key: postKeyExit }),
+                })
+                    .then(function (r) {
+                        if (r.status === 419) {
+                            window.alert('Session expired. Reload the page and try again.');
+                            exitBtn.disabled = false;
+                            return;
+                        }
+                        return r.json().then(function (body) {
+                            if (!r.ok) {
+                                window.alert(
+                                    (body && body.message) ||
+                                        'Could not release editing lock (HTTP ' + r.status + ').'
+                                );
+                                exitBtn.disabled = false;
+                                return;
+                            }
+                            if (body && body.redirect) {
+                                window.location.href = body.redirect;
+                                return;
+                            }
+                            exitBtn.disabled = false;
+                        });
+                    })
+                    .catch(function () {
+                        exitBtn.disabled = false;
+                        window.alert('Network error while releasing the edit lock.');
+                    });
                 return;
             }
 

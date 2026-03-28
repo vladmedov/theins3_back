@@ -3,6 +3,52 @@
  * Логотип: document capture + stopPropagation, чтобы Inertia Link не перехватывал клик.
  */
 
+/* После смены языка (/set-locale → редирект с ?nova_reset_sidebar_menu=1) — состояние раскрытия
+   как у свежей загрузки: «Аналитика» открыта, остальные группы свёрнуты.
+   Ключи = persistCollapseKey в App\Support\Nova\SidebarMenuGroup (NovaServiceProvider). */
+(function () {
+    var NOVA_NAV_KEYS = [
+        ['nova.navigation.analytics.collapsed', 'false'],
+        ['nova.navigation.posts.collapsed', 'true'],
+        ['nova.navigation.main-page.collapsed', 'true'],
+        ['nova.navigation.taxonomy.collapsed', 'true'],
+        ['nova.navigation.users.collapsed', 'true'],
+    ];
+
+    function resetNovaSidebarMenuCollapseState() {
+        for (var i = 0; i < NOVA_NAV_KEYS.length; i++) {
+            try {
+                localStorage.setItem(NOVA_NAV_KEYS[i][0], NOVA_NAV_KEYS[i][1]);
+            } catch (e) {}
+        }
+    }
+
+    try {
+        var u = new URL(window.location.href);
+        if (u.searchParams.get('nova_reset_sidebar_menu') === '1') {
+            resetNovaSidebarMenuCollapseState();
+            u.searchParams.delete('nova_reset_sidebar_menu');
+            var q = u.searchParams.toString();
+            window.history.replaceState(null, '', u.pathname + (q ? '?' + q : '') + u.hash);
+        }
+    } catch (e) {}
+
+    document.addEventListener(
+        'click',
+        function (e) {
+            if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+                return;
+            }
+            var a = e.target.closest && e.target.closest('a[href*="/set-locale/"]');
+            if (!a || !a.getAttribute('href')) {
+                return;
+            }
+            resetNovaSidebarMenuCollapseState();
+        },
+        true
+    );
+})();
+
 (function () {
     function frontendUrl() {
         try {

@@ -18,6 +18,8 @@ return [
     'publication_freed_line1' => 'The publication is free again.',
     'publication_freed_as_of_label' => 'As of',
     'reload_to_edit_button' => 'Continue editing',
+    'exit_edit' => 'Exit',
+    'cannot_release_not_holder' => 'Cannot release the lock: another user is editing this post.',
     'index_column' => 'Edit lock',
     'index_lock_free' => 'Free',
     'index_lock_you' => 'You',

@@ -10,24 +10,25 @@ use App\Nova\_Taxonomy\Category;
 use App\Nova\_Taxonomy\InvestigationTheme;
 use App\Nova\_Taxonomy\Tag;
 use App\Nova\_Users\User;
+use App\Nova\Fields\ImageCropperDnd as ImageCropper;
 use App\Nova\Metrics\PostsPerDay;
 use App\Nova\Resource;
 use App\Services\ImageService;
 use App\Services\Nova\PostEditLockService;
 use App\Services\PostPreviewTokenService;
 use App\Support\Nova\FormActionBar;
-use App\Support\Nova\PanelWithoutHeader;
 use App\Support\Nova\PageTitle;
+use App\Support\Nova\PanelWithoutHeader;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Laravel\Nova\Actions\Action;
 // use Spatie\MediaLibrary\MediaCollections\Models\Media;
 // use Ebess\AdvancedNovaMediaLibrary\Fields\Files;
 // use Ebess\AdvancedNovaMediaLibrary\Fields\Images;
 
+use Laravel\Nova\Actions\Action;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\FormData;
@@ -49,7 +50,6 @@ use Medov\ImageGallery\ImageGallery;
 use Medov\InsertionCode\InsertionCode;
 use Medov\PostHistory\PostHistory;
 use Mostafaznv\NovaCkEditor\CkEditor;
-use App\Nova\Fields\ImageCropperDnd as ImageCropper;
 use Outl1ne\MultiselectField\Multiselect as EntityMultiselect;
 use Whitecube\NovaFlexibleContent\Flexible;
 
@@ -385,7 +385,7 @@ abstract class Post extends Resource
 
             Text::make(__('Views'), 'views_count')
                 ->sortable()
-                ->hideFromDetail(),            
+                ->hideFromDetail(),
         ];
 
         if (static::getPostType() == PostTypes::NEWS) {
@@ -656,7 +656,7 @@ abstract class Post extends Resource
         ]);
 
         // Render
-            
+
         $postEditTitleRow = PageTitle::make($this, 'PostEditTitleRow', [
             Hidden::make(__('Language'), 'language_code')->default($locale),
             Hidden::make(__('Type'), 'type')->default(static::getPostType()),
@@ -694,7 +694,7 @@ abstract class Post extends Resource
                 }),
                 Text::make(__('Image file'), 'image')->resolveUsing(function () {
                     return $this->image
-                        ? '<img src="' . e(\Storage::disk('public')->url($this->image)) . '" style="max-width: 512px; height: auto; display:block;" />'
+                        ? '<img src="'.e(\Storage::disk('public')->url($this->image)).'" style="max-width: 512px; height: auto; display:block;" />'
                         : null;
                 })->asHtml(),
             ]),
@@ -765,9 +765,10 @@ abstract class Post extends Resource
             }
 
             $lockContentHtml = '<div class="nova-post-edit-lock nova-post-edit-lock--editor">'
-                .'<div class="nova-post-edit-lock__line">'
+                .'<div class="nova-post-edit-lock__line nova-post-edit-lock__line--locked-until">'
                 .'<span class="nova-post-edit-lock__label">'.e(__('post_edit_lock.locked_until_label')).'</span>'
                 .'<span class="nova-post-edit-lock__value nova-post-edit-lock__time">'.e($timeStr).'</span>'
+                .'<button type="button" class="nova-post-edit-lock__exit">'.e(__('post_edit_lock.exit_edit')).'</button>'
                 .'</div>'
                 .$lastSavedLine
                 .'</div>';
@@ -823,6 +824,7 @@ abstract class Post extends Resource
             'lock-version' => (string) $lockVersion,
             'heartbeat-url' => route('nova.post-edit-lock.heartbeat'),
             'takeover-url' => route('nova.post-edit-lock.takeover'),
+            'release-url' => route('nova.post-edit-lock.release'),
             'pe-msg-editing' => __('post_edit_lock.editing_locked_with_expiry', ['time' => ':time']),
             'pe-msg-locked-until-label' => __('post_edit_lock.locked_until_label'),
             'pe-msg-readonly-label' => __('post_edit_lock.readonly_label'),
@@ -847,6 +849,7 @@ abstract class Post extends Resource
             'pe-msg-publication-freed-line1' => __('post_edit_lock.publication_freed_line1'),
             'pe-msg-publication-freed-as-of-label' => __('post_edit_lock.publication_freed_as_of_label'),
             'pe-msg-reload-to-edit' => __('post_edit_lock.reload_to_edit_button'),
+            'pe-msg-exit-edit' => __('post_edit_lock.exit_edit'),
         ];
 
         return [
@@ -920,7 +923,7 @@ abstract class Post extends Resource
 
     protected static function formatPublishedAtForUser($publishedAt): ?string
     {
-        if (!$publishedAt) {
+        if (! $publishedAt) {
             return null;
         }
 

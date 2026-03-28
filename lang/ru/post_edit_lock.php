@@ -18,6 +18,8 @@ return [
     'publication_freed_line1' => 'Публикация освободилась.',
     'publication_freed_as_of_label' => 'Актуально на',
     'reload_to_edit_button' => 'Перейти к управлению',
+    'exit_edit' => 'Выйти',
+    'cannot_release_not_holder' => 'Нельзя снять блокировку: запись редактирует другой пользователь.',
     'index_column' => 'Редактирование',
     'index_lock_free' => 'Свободно',
     'index_lock_you' => 'Вы',

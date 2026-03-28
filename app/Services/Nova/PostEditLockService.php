@@ -131,6 +131,25 @@ class PostEditLockService
      *
      * @return array<string, mixed>
      */
+    /**
+     * Снять блокировку, если её держит текущий пользователь. Если ключа нет — успех (уже свободно).
+     */
+    public function releaseIfHeldByCurrentUser(string $postKey, Authenticatable $user): bool
+    {
+        $lock = $this->getLock($postKey);
+        if ($lock === null) {
+            return true;
+        }
+
+        if ((int) ($lock['editor_user_id'] ?? 0) !== (int) $user->getAuthIdentifier()) {
+            return false;
+        }
+
+        Redis::del($this->redisKey($postKey));
+
+        return true;
+    }
+
     public function takeover(string $postKey, Authenticatable $user): array
     {
         $old = $this->getLock($postKey);

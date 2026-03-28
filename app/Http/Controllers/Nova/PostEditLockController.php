@@ -6,6 +6,7 @@ use App\Services\Nova\PostEditLockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Laravel\Nova\Nova;
 
 class PostEditLockController extends Controller
 {
@@ -45,6 +46,32 @@ class PostEditLockController extends Controller
         return response()->json([
             'ok' => true,
             'lock' => $lock,
+        ]);
+    }
+
+    public function release(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'post_key' => ['required', 'string', 'max:512'],
+        ]);
+
+        $postKey = $validated['post_key'];
+        $parts = explode(':', $postKey, 2);
+        $resourceUri = $parts[0] ?? '';
+        if ($resourceUri === '' || ! isset($parts[1]) || $parts[1] === '') {
+            abort(422, 'Invalid post key');
+        }
+
+        if (! $this->postEditLockService->releaseIfHeldByCurrentUser($postKey, $request->user())) {
+            return response()->json([
+                'ok' => false,
+                'message' => __('post_edit_lock.cannot_release_not_holder'),
+            ], 403);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'redirect' => Nova::url('/resources/'.$resourceUri),
         ]);
     }
 }
