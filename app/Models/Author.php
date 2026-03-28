@@ -120,7 +120,7 @@ class Author extends Model {
     public function posts() {
         return $this
             ->belongsToMany(Post::class, 'post_authors', 'author_id', 'post_id')
-            ->where('language_code', $this->qualifyColumn('language_code'))
+            ->where('language_code', $this->language_code)
             ->where('status', Post::STATUS_PUBLISHED);
     }
 
