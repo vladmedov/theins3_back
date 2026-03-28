@@ -5,5 +5,7 @@
     "Queued for auto-publication": "Queued for auto-publication",
     "When the publication time arrives, status becomes Published and this option is cleared automatically.": "When the publication time arrives, status becomes Published and this option is cleared automatically.",
     "Auto-queue": "Auto-queue",
-    "Auto-queue marker": "A"
+    "Auto-queue marker": "A",
+    "Publication form new": "New publication",
+    "Publication form no title": "Untitled"
 }

@@ -1,3 +1,19 @@
+/* Дашборд: заголовок как у News calendar (.news-calendar-title в Tool.vue) */
+html:has(#nova) [dusk^='dashboard-'] h1[dusk='heading'] {
+    margin: 0 0 18px !important;
+    font-size: 1.875rem !important;
+    line-height: 1.25 !important;
+    font-weight: 700 !important;
+    font-style: normal !important;
+    color: #e54839 !important;
+    font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
 /* ЦВЕТ ГРАФИКА В СТАТИСТИКЕ */
 
 .ct-chart > svg {
@@ -12,89 +28,89 @@ form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-e
     display: none !important;
 }
 
-/* СТИЛЬ МЕНЮ */
-
-body {
-    background-color: #1a1a1a !important;
-}
-
-div[id="app"] > div[id="nova"] > div > header {
-    background-color: #1a1a1a !important;
-}
-
-div[id="app"] > div[id="nova"] > div > header > div.hidden {
-    height: 100%;
-    background-color: #1a1a1a !important;
-    border-bottom: 1px solid #2b2b2b !important; /* d6d6d6 */
-}
-
-div[id="app"] > div[id="nova"] > div > header > div:last-child {
-    height: 100%;
-    background-color: #fff !important;
-    border-bottom: 1px solid #d6d6d6; /* d6d6d6 */
-}
-
-div[id="app"] > div[id="nova"] > div > header span {
-    color: #000;
-}
-
-div[id="app"] {
-    background-color: #1a1a1a;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] {
-    background-color: #1a1a1a;
-}
+/* Шапка, сайдбар, мобильное меню: public/css/nova-sidebar-menu.css */
 
 div[id="app"] > div[id="nova"] > [dusk="content"] > div:last-child {
     background-color: #f4f4f4;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child {
-    background-color: #1a1a1a;
-    padding: 0px;
+/*
+ * Заголовок формы публикации: одна строка «ТИП: заголовок».
+ * Снять белую «плашку» Nova Card (bg-white rounded-lg shadow) в панели с заголовком.
+ */
+form[data-form-unique-id] [dusk$="-panel"]:has(.nova-post-edit-page-title) > h1 + div,
+form[data-form-unique-id] [dusk$="-panel"]:has(.nova-post-edit-page-title) div[class*="divide-y"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div {
-    padding: 15px 0;
-    margin: 0px;
-    border-bottom: 1px solid #2b2b2b;
-    border-right: 1px solid #2b2b2b;
+html.dark form[data-form-unique-id] [dusk$="-panel"]:has(.nova-post-edit-page-title) > h1 + div,
+html.dark form[data-form-unique-id] [dusk$="-panel"]:has(.nova-post-edit-page-title) div[class*="divide-y"] {
+    background-color: transparent !important;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4 > span {
-    color: #fff;
+form[data-form-unique-id] [dusk$="-panel"]:has(.nova-post-edit-page-title) div[class*="divide-y"] > * {
+    border-top-color: transparent !important;
+    border-bottom-color: transparent !important;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4 > span:last-child {
-    filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(100%) hue-rotate(346deg) brightness(100%) contrast(100%);
-    padding-right: 20px;
+/*
+ * Снять обёртку Nova HeadingField (py-4 px-8) и строку divide-y у строки поля.
+ */
+form[data-form-unique-id] .divide-y > *:has(.nova-post-edit-page-title),
+form[data-form-unique-id] .divide-y > *:has(.nova-post-edit-page-title) .flex.flex-col,
+form[data-form-unique-id] div:has(> .nova-post-edit-page-title) {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4:hover {
-    background-color: #1a1a1a;
+form[data-form-unique-id] .divide-y > *:has(.nova-post-edit-page-title) {
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > div > div > a {
-    color: #fff;
-    padding: 10px 0;
-    padding-left: 20px;
+/* Меньше расстояние до следующей панели (FormActionBar): Nova даёт space-y-4 между панелями */
+form[data-form-unique-id] [dusk$="-panel"]:has(.nova-post-edit-page-title) + * {
+    margin-top: 0.375rem !important;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > div > div > a:hover {
-    color: #fff;
-    background-color: #222;
-    padding: 10px 0;
-    padding-left: 20px;
+.nova-post-edit-page-title {
+    display: block;
+    margin: 0 0 0.375rem;
+    max-width: 100%;
+    box-sizing: border-box;
+    font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    font-size: 1.875rem !important;
+    font-weight: 700 !important;
+    font-style: normal;
+    line-height: 1.25 !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > a {
-    color: #fff;
+.nova-post-edit-page-title__type {
+    color: #e54839;
+    letter-spacing: normal;
+    text-transform: uppercase;
 }
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > a:hover {
-    color: #fff;
-    background-color: #222;
+.nova-post-edit-page-title__sep {
+    color: #e54839;
+}
+
+.nova-post-edit-page-title__headline {
+    color: #171717;
+    letter-spacing: normal;
+    text-transform: none;
 }
 
 /* ТАБЫ */

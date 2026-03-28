@@ -57,6 +57,6 @@ class ContentDashboard extends Dashboard
 
     public function name(): string
     {
-        return 'Content dashboard';
+        return 'Statistics';
     }
 }

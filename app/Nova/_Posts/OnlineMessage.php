@@ -3,6 +3,8 @@
 namespace App\Nova\_Posts;
 
 use App\Support\Nova\FormActionBar;
+use App\Support\Nova\PanelWithoutHeader;
+use App\Support\Nova\PageTitle;
 use App\Nova\Resource;
 use Laravel\Nova\Resource as NovaResource;
 
@@ -49,9 +51,11 @@ class OnlineMessage extends Resource
                 ->rules('required'),
         ];
 
-        return [
+        $postEditTitleRow = PageTitle::makeForRelationTitle($this, 'OnlineMessageEditTitleRow', 'online', fields: [
             Hidden::make(__('Language'), 'language_code')->default($locale),
+        ]);
 
+        $formActionBar = PanelWithoutHeader::make([
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
                     'items' => [
@@ -68,7 +72,12 @@ class OnlineMessage extends Resource
                 'saveAction' => [
                     'label' => $this->exists ? __('Save') : __('Create'),
                 ],
-            ]),
+            ], '_form_action_bar_top'),
+        ], 'FormActionBarTop');
+
+        return [
+            $postEditTitleRow,
+            $formActionBar,
 
             Panel::make(__('General'), $generalFields),
 

@@ -17,6 +17,7 @@ use App\Services\Nova\PostEditLockService;
 use App\Services\PostPreviewTokenService;
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\PanelWithoutHeader;
+use App\Support\Nova\PageTitle;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -381,6 +382,10 @@ abstract class Post extends Resource
                 ->hideFromIndex()
                 ->hideFromDetail()
                 ->rules('nullable'),
+
+            Text::make(__('Views'), 'views_count')
+                ->sortable()
+                ->hideFromDetail(),            
         ];
 
         if (static::getPostType() == PostTypes::NEWS) {
@@ -651,9 +656,14 @@ abstract class Post extends Resource
         ]);
 
         // Render
-        return [
+            
+        $postEditTitleRow = PageTitle::make($this, 'PostEditTitleRow', [
             Hidden::make(__('Language'), 'language_code')->default($locale),
             Hidden::make(__('Type'), 'type')->default(static::getPostType()),
+        ]);
+
+        return [
+            $postEditTitleRow,
             $FormActionBarTop,
             $expandPublicationTabs ? $publicationGroup : $publicationFields,
             $FormActionBarBottom,

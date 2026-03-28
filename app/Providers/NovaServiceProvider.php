@@ -41,13 +41,24 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
     {
         parent::boot();
 
+        // Только в ServingNova: иначе первый provideToScript в boot() инициализирует jsonVariables
+        // с userId = null и меню навсегда пустое (см. Nova::provideToScript при empty $jsonVariables).
+        Nova::serving(function () {
+            Nova::provideToScript([
+                'frontendPublicUrl' => fn () => rtrim((string) config('app.frontend_url'), '/'),
+            ]);
+        });
+
         Nova::withoutThemeSwitcher('light');
         Nova::withoutGlobalSearch();
         Nova::initialPath('/dashboards/content-dashboard');
 
+        Nova::style('nova-rfdewi', asset('css/nova-rfdewi.css'));
         Nova::style('custom-nova', asset('css/custom-nova.css'));
+        Nova::style('nova-sidebar-menu', asset('css/nova-sidebar-menu.css'));
         Nova::style('nova-app-widgets', asset('css/nova-app-widgets.css'));
         Nova::script('custom-nova-scripts', asset('js/nova-custom.js'));
+        Nova::script('nova-sidebar-menu', asset('js/nova-sidebar-menu.js'));
         Nova::style('nova-form-action-bar', asset('css/nova-form-action-bar.css'));
         Nova::script('nova-form-action-bar', asset('js/nova-form-action-bar.js'));
 
