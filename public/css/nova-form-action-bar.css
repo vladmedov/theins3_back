@@ -137,6 +137,10 @@ div.remove-last-margin-bottom:has(#nova-info-bar) {
     gap: 12px;
 }
 
+.nova-form-action-bar__main--post-edit-lock.nova-form-action-bar__segment--main {
+    padding-left: 22px;
+}
+
 .nova-form-action-bar--post-edit-lock .nova-form-action-bar__url-col--with-lock {
     justify-content: center;
 }
@@ -263,8 +267,8 @@ div.remove-last-margin-bottom:has(#nova-info-bar) {
 
 .nova-post-edit-lock__label {
     flex-shrink: 0;
-    font-size: 11px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     color: #64748b;
 }
 
@@ -285,6 +289,11 @@ div.remove-last-margin-bottom:has(#nova-info-bar) {
     color: #64748b;
 }
 
+.nova-post-edit-lock--readonly .nova-post-edit-lock__value .nova-post-edit-lock__muted {
+    color: #0f172a;
+    font-weight: 600;
+}
+
 .nova-post-edit-lock__time {
     font-variant-numeric: tabular-nums;
 }
@@ -299,9 +308,10 @@ button.nova-post-edit-lock__exit {
     padding: 0;
     border: none;
     background: none;
-    font: inherit;
-    font-size: 11px;
-    font-weight: 500;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: inherit;
     color: #94a3b8;
     text-decoration: underline;
     text-decoration-color: rgba(148, 163, 184, 0.55);
@@ -329,7 +339,7 @@ button.nova-post-edit-lock__exit:hover {
     align-items: flex-end;
     gap: 8px;
     flex-shrink: 0;
-    min-width: 0;
+    min-width: min(100%, 340px);
     max-width: min(100%, 520px);
     padding: 14px 18px;
     background: rgba(100, 116, 139, 0.08);
@@ -591,6 +601,7 @@ button.nova-post-edit-lock__exit:hover {
         margin-left: 0;
         width: 100%;
         max-width: 100%;
+        min-width: 0;
     }
 
     .nova-form-action-bar__rail-status-row {

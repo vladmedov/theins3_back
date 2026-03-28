@@ -7,7 +7,7 @@ return [
     'locked_until_label' => 'Занято вами до',
     'readonly_label' => 'Редактирует',
     'readonly_intro' => 'Эту запись редактирует :name :email',
-    'last_edited_label' => 'Последнее сохранение',
+    'last_edited_label' => 'Сохранено',
     'last_seen_online_label' => 'Был онлайн',
     'takeover' => 'Перехватить управление',
     'takeover_confirm' => 'Вы уверены? Пользователь может потерять свои изменения.',

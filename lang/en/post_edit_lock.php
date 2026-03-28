@@ -7,7 +7,7 @@ return [
     'locked_until_label' => 'Held by you until',
     'readonly_label' => 'Editing',
     'readonly_intro' => 'This post is being edited by :name :email',
-    'last_edited_label' => 'Last saved',
+    'last_edited_label' => 'Saved',
     'last_seen_online_label' => 'Last online',
     'takeover' => 'Take over editing',
     'takeover_confirm' => 'Are you sure? The other user may lose unsaved changes.',

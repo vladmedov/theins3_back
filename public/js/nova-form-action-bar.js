@@ -643,7 +643,7 @@
         return day + '.' + month + '.' + year;
     }
 
-    /** Как в PHP: d.m.Y H:i:s (локальное время браузера) — блок «Последнее сохранение» в Form Action Bar */
+    /** Как в PHP: d.m.Y H:i:s (локальное время браузера) — блок «Сохранено» в Form Action Bar */
     function formatLockLastSavedDisplay(date) {
         if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
             return '';
@@ -2191,7 +2191,7 @@
         return h + ':' + m + ':' + s;
     }
 
-    /** d.m.Y H:i:s в локальной таймзоне (как на сервере для readonly «Последнее сохранение») */
+    /** d.m.Y H:i:s в локальной таймзоне (как на сервере для readonly «Сохранено») */
     function formatLastEditedAtLocal(iso) {
         if (!iso) {
             return '';
@@ -2251,7 +2251,7 @@
 
         var html = '';
         if (data.can_edit) {
-            /* Как у readonly / перехвата: две строки «Закреплено до» + «Последнее сохранение» (heartbeat раньше затирал вторую). */
+            /* Как у readonly / перехвата: две строки «Закреплено до» + «Сохранено» (heartbeat раньше затирал вторую). */
             var prevLastSaved = '';
             els.forEach(function (el) {
                 var n = el.querySelector('[data-lock-last-saved="1"]');
