@@ -66,10 +66,6 @@ class Author extends Resource
                 })
                 ->prunable()
                 ->onlyOnForms(),
-
-            Text::make(__('Posts count'), 'posts_count')
-                ->onlyOnIndex()
-                ->sortable(),
         ];
 
         return array_merge([
@@ -203,8 +199,7 @@ class Author extends Resource
     public static function indexQuery(NovaRequest $request, Builder $query): Builder
     {
         return $query
-            ->where('language_code', static::resolveResourceLanguageCodeForRequest($request))
-            ->withCount('posts');
+            ->where('language_code', static::resolveResourceLanguageCodeForRequest($request));
     }
 
     public static function relatableQuery(NovaRequest $request, Builder $query): Builder
