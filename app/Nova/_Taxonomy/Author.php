@@ -3,6 +3,8 @@
 namespace App\Nova\_Taxonomy;
 
 use App\Support\Nova\FormActionBar;
+use App\Support\Nova\PageTitle;
+use App\Support\Nova\PanelWithoutHeader;
 use App\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -68,10 +70,19 @@ class Author extends Resource
                 ->onlyOnForms(),
         ];
 
-        return array_merge([
+        $pageTitleRow = PageTitle::make($this, static::uriKey().'EditTitleRow', [
             Hidden::make(__('Language code'), 'language_code')
                 ->default($locale),
+        ], function ($r) {
+            if (! $r->exists) {
+                return __('Publication form new');
+            }
+            $headline = trim((string) ($r->resource->full_name ?? ''));
 
+            return $headline !== '' ? $headline : __('Publication form no title');
+        });
+
+        $formActionBar = PanelWithoutHeader::make([
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
                     'items' => [
@@ -88,7 +99,12 @@ class Author extends Resource
                 'saveAction' => [
                     'label' => $this->exists ? __('Save') : __('Create'),
                 ],
-            ]),
+            ], '_form_action_bar_top'),
+        ], 'FormActionBarTop');
+
+        return array_merge([
+            $pageTitleRow,
+            $formActionBar,
 
             Avatar::make(__('Photo'), 'avatar')
                 ->disk('public')

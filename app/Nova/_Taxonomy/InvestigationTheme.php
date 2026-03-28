@@ -3,6 +3,8 @@
 namespace App\Nova\_Taxonomy;
 
 use App\Support\Nova\FormActionBar;
+use App\Support\Nova\PageTitle;
+use App\Support\Nova\PanelWithoutHeader;
 use App\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -83,10 +85,12 @@ class InvestigationTheme extends Resource
             }),
         ];
 
-        return [
+        $pageTitleRow = PageTitle::make($this, static::uriKey().'EditTitleRow', [
             Hidden::make(__('Language code'), 'language_code')
                 ->default($locale),
+        ]);
 
+        $formActionBar = PanelWithoutHeader::make([
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
                     'items' => [
@@ -103,7 +107,12 @@ class InvestigationTheme extends Resource
                 'saveAction' => [
                     'label' => $this->exists ? __('Save') : __('Create'),
                 ],
-            ]),
+            ], '_form_action_bar_top'),
+        ], 'FormActionBarTop');
+
+        return [
+            $pageTitleRow,
+            $formActionBar,
 
             Panel::make(__('General'), $generalFields),
         ];

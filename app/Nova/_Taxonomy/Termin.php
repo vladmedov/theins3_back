@@ -3,6 +3,8 @@
 namespace App\Nova\_Taxonomy;
 
 use App\Support\Nova\FormActionBar;
+use App\Support\Nova\PageTitle;
+use App\Support\Nova\PanelWithoutHeader;
 use App\Support\Nova\RelatedPostsPanel;
 use App\Nova\Resource;
 
@@ -102,10 +104,19 @@ class Termin extends Resource
             }),
         ];
 
-        return [
+        $pageTitleRow = PageTitle::make($this, static::uriKey().'EditTitleRow', [
             Hidden::make(__('Language code'), 'language_code')
                 ->default($locale),
+        ], function ($r) {
+            if (! $r->exists) {
+                return __('Publication form new');
+            }
+            $headline = trim((string) ($r->resource->termin ?? ''));
 
+            return $headline !== '' ? $headline : __('Publication form no title');
+        });
+
+        $formActionBar = PanelWithoutHeader::make([
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
                     'items' => [
@@ -122,7 +133,12 @@ class Termin extends Resource
                 'saveAction' => [
                     'label' => $this->exists ? __('Save') : __('Create'),
                 ],
-            ]),
+            ], '_form_action_bar_top'),
+        ], 'FormActionBarTop');
+
+        return [
+            $pageTitleRow,
+            $formActionBar,
 
             Panel::make(__('General'), $formFields),
 

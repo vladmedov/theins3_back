@@ -3,6 +3,8 @@
 namespace App\Nova\_Collections;
 
 use App\Support\Nova\FormActionBar;
+use App\Support\Nova\PageTitle;
+use App\Support\Nova\PanelWithoutHeader;
 use App\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -122,10 +124,12 @@ class Collection extends Resource
             })->asHtml(),
         ];
 
-        return [
+        $pageTitleRow = PageTitle::makeForRelationTitle($this, static::uriKey().'EditTitleRow', 'post', fields: [
             Hidden::make(__('Language code'), 'language_code')->default($locale),
             Hidden::make('collection_code')->default(static::getCollectionType()),
+        ]);
 
+        $formActionBar = PanelWithoutHeader::make([
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
                     'items' => [
@@ -142,7 +146,12 @@ class Collection extends Resource
                 'saveAction' => [
                     'label' => $this->exists ? __('Save') : __('Create'),
                 ],
-            ]),
+            ], '_form_action_bar_top'),
+        ], 'FormActionBarTop');
+
+        return [
+            $pageTitleRow,
+            $formActionBar,
 
             Panel::make(__('General'), $generalFields),
         ];

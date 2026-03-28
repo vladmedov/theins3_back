@@ -71,7 +71,7 @@
   "Feature": "Фичер",
   "Feature record": "Фичер публикация",
   "Popular": "Популярное",
-  "Popular record": "Популярную публикацию",
+  "Popular record": "Популярная публикация",
   "Opinions on main": "Мнения на главной",
   "Opinion record on main": "Мнение на главной",
 
@@ -89,7 +89,9 @@
   "Users": "Пользователи",
   "User": "Пользователь",
   "Admins": "Администраторы",
+  "Admin": "Администратор",
   "Editors": "Редакторы",
+  "Editor": "Редактор",
   "Authors": "Авторы",
   "News writers": "Новостники",
   "Columnists": "Колумнисты",

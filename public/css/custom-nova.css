@@ -1,5 +1,6 @@
-/* Дашборд: заголовок как у News calendar (.news-calendar-title в Tool.vue) */
-html:has(#nova) [dusk^='dashboard-'] h1[dusk='heading'] {
+/* Дашборд и списки ресурсов: заголовок как у News calendar (.news-calendar-title в Tool.vue) */
+html:has(#nova) [dusk^='dashboard-'] h1[dusk='heading'],
+html:has(#nova) h1[dusk='index-heading'] {
     margin: 0 0 18px !important;
     font-size: 1.875rem !important;
     line-height: 1.25 !important;
@@ -12,6 +13,11 @@ html:has(#nova) [dusk^='dashboard-'] h1[dusk='heading'] {
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: normal;
     text-transform: none;
+}
+
+/* Заголовок списка под сеткой метрик Nova (график Chartist): зазор сверху */
+html:has(#nova) [dusk='content']:has(.ct-chart) h1[dusk='index-heading'] {
+    margin-top: 1rem !important;
 }
 
 /* ЦВЕТ ГРАФИКА В СТАТИСТИКЕ */

@@ -3,6 +3,8 @@
 namespace App\Nova\_Users;
 
 use App\Support\Nova\FormActionBar;
+use App\Support\Nova\PageTitle;
+use App\Support\Nova\PanelWithoutHeader;
 use App\Support\Nova\RelatedPostsPanel;
 use Laravel\Nova\Resource;
 
@@ -160,7 +162,16 @@ class User extends Resource
                 ->help(__('Select your local timezone')),
         ];
 
-        return array_merge([
+        $pageTitleRow = PageTitle::make($this, static::uriKey().'EditTitleRow', [], function ($r) {
+            if (! $r->exists) {
+                return __('Publication form new');
+            }
+            $headline = trim((string) ($r->resource->name ?? ''));
+
+            return $headline !== '' ? $headline : __('Publication form no title');
+        });
+
+        $formActionBar = PanelWithoutHeader::make([
             FormActionBar::make([
                 'metaBlock' => $this->resource?->exists ? [
                     'items' => [
@@ -177,7 +188,12 @@ class User extends Resource
                 'saveAction' => [
                     'label' => $this->exists ? __('Save') : __('Create'),
                 ],
-            ]),
+            ], '_form_action_bar_top'),
+        ], 'FormActionBarTop');
+
+        return array_merge([
+            $pageTitleRow,
+            $formActionBar,
 
             Panel::make(__('General'), $generalFields),
 
