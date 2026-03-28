@@ -78,14 +78,14 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                     MenuItem::resource(\App\Nova\_Posts\PostOpinion::class),
                     MenuItem::resource(\App\Nova\_Posts\PostOnline::class),
                     MenuItem::resource(\App\Nova\_Posts\OnlineMessage::class),
-                ])->collapsable(),
+                ])->collapsable()->collapsedByDefault(),
 
                 MenuGroup::make(__('Main page'), [
                     MenuItem::resource(\App\Nova\_Collections\CollectionFeature::class),
                     MenuItem::resource(\App\Nova\_Collections\CollectionPopular::class),
                     MenuItem::resource(\App\Nova\_Collections\CollectionTopNews::class),
                     MenuItem::resource(\App\Nova\_Collections\CollectionMainOpinions::class),
-                ])->collapsable()->collapsedByDefault(),//->icon('users'),
+                ])->collapsable()->collapsedByDefault(),
 
                 MenuGroup::make(__('Taxonomy'), [
                     MenuItem::resource(\App\Nova\_Taxonomy\Category::class),
@@ -93,14 +93,14 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
                     MenuItem::resource(\App\Nova\_Taxonomy\Tag::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Termin::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Author::class),
-                ])->collapsable(),
+                ])->collapsable()->collapsedByDefault(),
 
                 MenuGroup::make(__('Users'), [
                     MenuItem::resource(\App\Nova\_Users\User::class),
                     MenuItem::resource(\App\Nova\_Users\UserAdmin::class),
                     MenuItem::resource(\App\Nova\_Users\UserEditor::class),
                     MenuItem::resource(\App\Nova\_Users\UserJournalist::class),
-                ])->collapsable(),
+                ])->collapsable()->collapsedByDefault(),
 
             ];
 
