@@ -152,15 +152,15 @@ div[id="app"] > div[id="nova"] > div > header span {
         background-color: #222;
     }
 
-    /* Переключатель языка: красная кнопка (перебивает прямой > div > a) */
+    /* Переключатель языка: тёмно-серая кнопка (перебивает прямой > div > a) */
     body > div.lg\:hidden.w-60 .sidebar-menu > div > a[href*="/set-locale/"],
     body > div.lg\:hidden.w-60 .sidebar-menu > div > a[href*="/set-locale/"]:focus-visible {
-        background-color: #e54839 !important;
+        background-color: #2a2a2a !important;
         color: #fff !important;
     }
 
     body > div.lg\:hidden.w-60 .sidebar-menu > div > a[href*="/set-locale/"]:hover {
-        background-color: #d63d2e !important;
+        background-color: #3a3a3a !important;
         color: #fff !important;
     }
 
@@ -327,21 +327,23 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
     padding-bottom: 0 !important;
 }
 
-/* Смена языка — компактная красная кнопка, стрелка справа (::after) */
+/* Смена языка — компактная тёмно-серая кнопка, стрелка справа (::after) */
 [dusk="sidebar-menu"] a[href*="/set-locale/"] {
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
     flex-wrap: nowrap !important;
     box-sizing: border-box !important;
-    width: calc(100% - 12px) !important;
+    width: calc(100% - 10px) !important;
     max-width: 100% !important;
-    margin: 4px 6px !important;
-    padding: 4px 6px !important;
+    margin: 4px 5px !important;
+    padding: 8px 9px !important;
+    padding-right: 1.75rem !important;
     min-height: 0 !important;
+    position: relative !important;
     border-radius: 0 !important;
     border: none !important;
-    background-color: #e54839 !important;
+    background-color: #2a2a2a !important;
     color: #fff !important;
     font-weight: 600 !important;
     font-size: 0.8125rem !important;
@@ -351,8 +353,12 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 
 [dusk="sidebar-menu"] a[href*="/set-locale/"]::after {
     content: "\2192";
-    margin-left: auto !important;
-    padding-left: 6px !important;
+    position: absolute !important;
+    right: 9px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
     flex-shrink: 0 !important;
     font-size: 1em !important;
     font-weight: 400 !important;
@@ -362,7 +368,7 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 
 [dusk="sidebar-menu"] a[href*="/set-locale/"]:hover,
 [dusk="sidebar-menu"] a[href*="/set-locale/"]:focus-visible {
-    background-color: #d63d2e !important;
+    background-color: #3a3a3a !important;
     color: #fff !important;
 }
 
@@ -373,12 +379,13 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .si
 }
 
 [dusk="sidebar-menu"] a[href*="/set-locale/"] > span.flex-1 {
-    justify-content: flex-start !important;
-    text-align: left !important;
+    justify-content: center !important;
+    text-align: center !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
     flex: 1 1 auto !important;
     min-width: 0 !important;
+    width: 100% !important;
     color: #fff !important;
 }
 
