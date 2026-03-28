@@ -8,7 +8,10 @@ Route::get('/set-locale/{locale}', function (Request $request, string $locale) {
     $request->session()->put('locale', $locale);
     App::setLocale($locale);
 
-    return redirect(config('nova.path'));
+    $path = rtrim((string) config('nova.path'), '/');
+    $url = $path === '' ? '/' : $path;
+
+    return redirect($url.'?'.http_build_query(['nova_reset_sidebar_menu' => '1']));
 })->where('locale', 'ru|en');
 
 Route::middleware(['auth', 'throttle:nova-post-edit-lock'])
