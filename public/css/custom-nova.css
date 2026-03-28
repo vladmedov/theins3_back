@@ -34,6 +34,19 @@ div[id="app"] > div[id="nova"] > [dusk="content"] > div:last-child {
     background-color: #f4f4f4;
 }
 
+/* Новостной календарь: основная колонка без max-height / вертикального overflow (скролл — у окна) */
+div[id="app"] > div[id="nova"] > [dusk="content"] > div:last-child:has(.news-calendar-container) {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    max-height: none !important;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div:last-child:has(.news-calendar-container) .overflow-y-auto,
+div[id="app"] > div[id="nova"] > [dusk="content"] > div:last-child:has(.news-calendar-container) .overflow-auto {
+    overflow-y: visible !important;
+    max-height: none !important;
+}
+
 /*
  * Заголовок формы публикации: одна строка «ТИП: заголовок».
  * Снять белую «плашку» Nova Card (bg-white rounded-lg shadow) в панели с заголовком.

@@ -13,14 +13,14 @@
                 class="news-cal-nav__btn"
                 :aria-label="__('Previous')"
                 @click="calendarPrev"
-              >‹</button>
+              ><span class="news-cal-nav__chev" aria-hidden="true">‹</span></button>
               <span class="news-cal-nav__title">{{ calendarViewTitle }}</span>
               <button
                 type="button"
                 class="news-cal-nav__btn"
                 :aria-label="__('Next')"
                 @click="calendarNext"
-              >›</button>
+              ><span class="news-cal-nav__chev" aria-hidden="true">›</span></button>
             </div>
             <button type="button" class="news-cal-nav__today" @click="calendarToday">
               {{ __('News calendar to current month') }}
@@ -160,20 +160,34 @@
           <div ref="calendar" class="news-calendar-fc-root"></div>
           <div
             v-show="eventsLoading"
-            class="news-cal-calendar-loading"
-            role="status"
-            aria-live="polite"
-            :aria-busy="eventsLoading"
-          >
+            class="news-cal-calendar-loading-backdrop"
+            aria-hidden="true"
+          ></div>
+          <div
+            v-show="showCalendarEmpty"
+            class="news-cal-calendar-empty-backdrop"
+            aria-hidden="true"
+          ></div>
+        </div>
+        <div
+          v-show="eventsLoading"
+          class="news-cal-calendar-loading"
+          role="status"
+          aria-live="polite"
+          :aria-busy="eventsLoading"
+        >
+          <div class="news-cal-calendar-loading__cluster">
             <span class="news-cal-calendar-loading__spinner" aria-hidden="true"></span>
             <span class="news-cal-calendar-loading__text">{{ __('News calendar loading') }}</span>
           </div>
-          <div
-            v-show="showCalendarEmpty"
-            class="news-cal-calendar-empty"
-            role="status"
-            aria-live="polite"
-          >
+        </div>
+        <div
+          v-show="showCalendarEmpty"
+          class="news-cal-calendar-empty"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="news-cal-calendar-empty__cluster">
             <span class="news-cal-calendar-empty__icon" aria-hidden="true"></span>
             <span class="news-cal-calendar-empty__text">{{ __('News calendar empty') }}</span>
           </div>
@@ -281,6 +295,14 @@ export default {
     },
 
     /** Для ячейки дня: меньше 1000 — точное число, иначе floor(n/1000) + К/K */
+    escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    },
+
     formatCompactThousands(value) {
       const n = Math.floor(Number(value));
       if (!Number.isFinite(n) || n < 0) {
@@ -385,6 +407,16 @@ export default {
       const end = endDate || this.currentEnd;
 
       this.eventsLoading = true;
+      this.events = [];
+      this.rebuildDayAggregates();
+      if (this.calendar) {
+        this.calendar.removeAllEvents();
+      }
+      this.$nextTick(() => {
+        if (this.calendar) {
+          this.calendar.render();
+        }
+      });
       axios.get('/nova-vendor/news-calendar/events', {
         params: {
           resource: this.selectedResource,
@@ -449,6 +481,11 @@ export default {
         const statsClass = n === 0 && v === 0 ? ' news-calendar-day-stats--zero' : '';
         const statsLabel = this.__('Day cell stats label');
         const viewsStr = this.formatCompactThousands(v);
+        /* По умолчанию — заглушка; при n > 0 после загрузки остаётся только блок событий FC */
+        const showEmptyStub = n === 0;
+        const emptyStubHtml = showEmptyStub
+          ? `<div class="news-calendar-day-empty-stub">${this.escapeHtml(this.__('News calendar day no publications'))}</div>`
+          : '';
         /* FC сам оборачивает это во внешний <a class="fc-daygrid-day-number"> — внутри нельзя вкладывать второй <a> */
         return {
           html: `<div class="news-calendar-day-top-row">
@@ -458,7 +495,7 @@ export default {
               <span class="news-calendar-day-stat-sep" aria-hidden="true">•</span>
               <span class="news-calendar-day-stat-line">${viewsStr}</span>
             </span>
-          </div>`
+          </div>${emptyStubHtml}`
         };
       },
 
@@ -803,11 +840,18 @@ export default {
   background: #171717;
   color: #fff;
   font-size: 1.25rem;
-  line-height: 1;
+  line-height: 0;
   font-weight: 600;
   cursor: pointer;
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+/* Глифы ‹ › визуально сидят ниже центра круга */
+.news-cal-nav__chev {
+  display: block;
+  line-height: 1;
+  transform: translateY(-0.07em);
 }
 
 .news-cal-nav__btn:hover {
@@ -879,12 +923,16 @@ export default {
   overflow: visible;
 }
 
-/* Тонкий скролл как в PostHistory; ползунок — фирменный красный, дорожка серая */
+/*
+ * Только горизонтальный скролл: при overflow-x: auto значение overflow-y: visible
+ * по спецификации трактуется как auto — появляется вертикальная полоса и обрезается сетка.
+ */
 .news-cal-calendar-scroll {
+  position: relative;
   box-sizing: border-box;
   max-width: 100%;
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: auto;
   scrollbar-color: var(--news-cal-brand) #e5e7eb;
@@ -917,8 +965,31 @@ export default {
   position: relative;
   min-width: calc(7 * var(--news-cal-day-col-min, 180px));
   box-sizing: border-box;
+  overflow-y: visible;
+  max-height: none;
 }
 
+/* Размытие + матовый слой на всю ширину сетки (включая гориз. прокрутку) */
+.news-cal-calendar-loading-backdrop,
+.news-cal-calendar-empty-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.news-cal-calendar-empty-backdrop {
+  z-index: 6;
+}
+
+.news-cal-calendar-loading-backdrop {
+  z-index: 7;
+}
+
+/* Только контент: центр по видимой ширине скроллпорта, без своего фона */
 .news-cal-calendar-loading {
   position: absolute;
   inset: 0;
@@ -926,12 +997,17 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(2px);
+  justify-content: flex-start;
+  padding: 7rem 1.5rem 1.5rem;
   box-sizing: border-box;
+  pointer-events: none;
+}
+
+.news-cal-calendar-loading__cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   pointer-events: auto;
 }
 
@@ -957,12 +1033,17 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(2px);
+  justify-content: flex-start;
+  padding: 7rem 1.5rem 1.5rem;
   box-sizing: border-box;
+  pointer-events: none;
+}
+
+.news-cal-calendar-empty__cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   pointer-events: auto;
 }
 
@@ -1048,6 +1129,8 @@ export default {
 .news-calendar-fc-root {
   width: 100%;
   box-sizing: border-box;
+  overflow-y: visible;
+  max-height: none;
 }
 
 /* Селекторы: плоский вид, тонкие границы (как на референсе) */
@@ -1244,6 +1327,9 @@ export default {
   --news-cal-brand-active: #a82f24;
   --news-cal-ink: #171717;
   --news-cal-day-col-min: 180px;
+  --news-cal-empty-day-frame-min-h: 172px;
+  /* Лёгкий сдвиг вниз от flex-центра: ~⅓ бывшего 1rem, под визуальный зазор сетки */
+  --news-cal-empty-stub-nudge: 5px;
 }
 
 /* Тулбар FC отключён (headerToolbar: false) — на всякий случай */
@@ -1256,7 +1342,13 @@ export default {
   border: none !important;
 }
 
-/* Без внутреннего скролла: месяц растягивается по содержимому */
+/* Без вертикального скролла внутри FC: сетка целиком по высоте контента */
+.news-cal-calendar-wrap .fc {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
 .news-cal-calendar-wrap .fc .fc-scroller-harness,
 .news-cal-calendar-wrap .fc .fc-scroller-harness-liquid {
   height: auto !important;
@@ -1268,8 +1360,38 @@ export default {
   height: auto !important;
 }
 
+.news-cal-calendar-wrap .fc .fc-scroller-liquid,
+.news-cal-calendar-wrap .fc .fc-scroller-harness-liquid {
+  height: auto !important;
+}
+
 .news-cal-calendar-wrap .fc .fc-view-harness,
 .news-cal-calendar-wrap .fc .fc-view-harness-active {
+  flex-grow: 0 !important;
+  height: auto !important;
+  overflow: visible !important;
+  min-height: 0 !important;
+}
+
+/* Иначе .fc-view absolute top/bottom:0 режет месяц и даёт внутренний скролл */
+.news-cal-calendar-wrap .fc .fc-view-harness-active > .fc-view {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.news-cal-calendar-wrap .fc .fc-scrollgrid,
+.news-cal-calendar-wrap .fc .fc-scrollgrid-liquid {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.news-cal-calendar-wrap .fc .fc-scrollgrid-section-liquid > td {
   height: auto !important;
 }
 
@@ -1387,6 +1509,66 @@ export default {
 .news-calendar-container .news-calendar-day-stats--zero {
   font-weight: 500;
   color: rgba(255, 255, 255, 0.78) !important;
+}
+
+/* День без публикаций: выше ячейка, текст по центру по вертикали под плашкой */
+.news-calendar-container .fc-daygrid-day:has(.news-calendar-day-empty-stub) .fc-daygrid-day-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--news-cal-empty-day-frame-min-h, 172px);
+}
+
+.news-calendar-container .fc-daygrid-day:has(.news-calendar-day-empty-stub) .fc-daygrid-day-top {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.news-calendar-container .fc-daygrid-day:has(.news-calendar-day-empty-stub) .fc-daygrid-day-top > a.fc-daygrid-day-number {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.news-calendar-container .fc-daygrid-day:has(.news-calendar-day-empty-stub) .news-calendar-day-top-row {
+  flex: 0 0 auto;
+}
+
+.news-calendar-container .fc-daygrid-day:has(.news-calendar-day-empty-stub) .fc-daygrid-day-events {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  flex: 0 0 auto;
+  min-height: 0 !important;
+  margin-top: 0;
+  /* FC natural: ~1em снизу у пустого блока событий — уводит оптический центр */
+  margin-bottom: 0 !important;
+}
+
+.news-calendar-container .fc-daygrid-day-top > a.fc-daygrid-day-number .news-calendar-day-empty-stub {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 6px 8px;
+  min-height: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #9ca3af;
+  text-align: center;
+  background: transparent;
+  box-sizing: border-box;
+  transform: translateY(var(--news-cal-empty-stub-nudge, 5px));
+}
+
+.news-calendar-container .fc-day-today .news-calendar-day-empty-stub {
+  color: #6b7280;
 }
 
 /* Заголовки в списке событий — чёрные (обёртка a.fc-event в Nova часто синяя) */
