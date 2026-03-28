@@ -1,3 +1,9 @@
+/* Верхняя полоска загрузки Nova (NProgress) при запросах и поиске в полях */
+#nprogress .bar {
+    background: #e54839 !important;
+    box-shadow: 0 0 10px #e54839, 0 0 5px #e54839 !important;
+}
+
 /* Дашборд и списки ресурсов: заголовок как у News calendar (.news-calendar-title в Tool.vue) */
 html:has(#nova) [dusk^='dashboard-'] h1[dusk='heading'],
 html:has(#nova) h1[dusk='index-heading'] {
