@@ -2,6 +2,15 @@
 
 /* БЛОК URL + КНОПКИ */
 
+/*
+ * Ширина колонки контента зависит от сайдбара Nova (раскрыт ≈ −240px к полезной ширине).
+ * Container query — перенос «URL + rail» на 2 ряда по фактической ширине формы, а не по viewport.
+ */
+form[data-form-unique-id] {
+    container-type: inline-size;
+    container-name: nova-form-fab;
+}
+
 .overflow-hidden:has(#nova-form-action-bar),
 .overflow-hidden:has(#nova-info-bar) {
     background: #f8f8f8 !important;
@@ -95,12 +104,12 @@ div.remove-last-margin-bottom:has(#nova-info-bar) {
     position: relative;
     flex-shrink: 0;
     align-self: stretch;
-    width: 28px;
-    min-width: 28px;
+    width: 40px;
+    min-width: 40px;
     min-height: 44px;
-    padding: 10px 8px;
+    padding: 10px 10px;
     border: 1px solid #e2e8f0;
-    border-right: none;
+    border-right: 1px solid #ccc;
     border-radius: 6px 0 0 6px;
     background: rgba(100, 116, 139, 0.08);
     color: #64748b;
@@ -522,8 +531,135 @@ button.nova-post-edit-lock__exit:hover {
     flex-shrink: 0;
 }
 
+/*
+ * Публикация + стрелка: при узкой колонке формы — 2 ряда справа (URL, затем rail), стрелка слева на всю высоту.
+ * Порог по ширине формы: при открытом сайдбаре чаще ниже порога; при схлопнутом — выше, одна линия flex.
+ */
+/* ~ширина колонки с открытым Nova sidebar (w-60) на типичном десктопе; при схлопнутом меню обычно выше порога — одна линия flex */
+@container nova-form-fab (max-width: 1220px) {
+    .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: stretch;
+        column-gap: 0;
+        row-gap: 12px;
+    }
+
+    .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__segment--scroll {
+        grid-column: 1;
+        grid-row: 1 / -1;
+        width: 40px;
+        min-width: 40px;
+        max-width: 40px;
+        align-self: stretch;
+    }
+
+    .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__segment--main {
+        grid-column: 2;
+        grid-row: 1;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail {
+        grid-column: 2;
+        grid-row: 2;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin-left: 0;
+    }
+
+    .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__url-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 6px !important;
+    }
+
+    .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__url-chip {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__url-link {
+        white-space: normal !important;
+        word-break: break-all;
+        max-width: 100%;
+    }
+
+    .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail-status-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+}
+
+/* Нет container queries — грубый fallback по viewport */
+@supports not (container-type: inline-size) {
+    @media (max-width: 1024px) {
+        .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock {
+            display: grid;
+            grid-template-columns: 40px minmax(0, 1fr);
+            grid-template-rows: auto auto;
+            align-items: stretch;
+            column-gap: 0;
+            row-gap: 12px;
+        }
+
+        .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__segment--scroll {
+            grid-column: 1;
+            grid-row: 1 / -1;
+            width: 40px;
+            min-width: 40px;
+            max-width: 40px;
+            align-self: stretch;
+        }
+
+        .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__segment--main {
+            grid-column: 2;
+            grid-row: 1;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail {
+            grid-column: 2;
+            grid-row: 2;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            margin-left: 0;
+        }
+
+        .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__url-row {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 6px !important;
+        }
+
+        .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__url-chip {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__url-link {
+            white-space: normal !important;
+            word-break: break-all;
+            max-width: 100%;
+        }
+
+        .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock .nova-form-action-bar__rail-status-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+    }
+}
+
 @media (max-width: 768px) {
-    .nova-form-action-bar {
+    .nova-form-action-bar:not(.nova-form-action-bar--with-scroll),
+    .nova-form-action-bar--with-scroll:not(.nova-form-action-bar--post-edit-lock) {
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
@@ -539,7 +675,8 @@ button.nova-post-edit-lock__exit:hover {
         width: 100%;
     }
 
-    .nova-form-action-bar__segment--scroll {
+    .nova-form-action-bar:not(.nova-form-action-bar--post-edit-lock) .nova-form-action-bar__segment--scroll,
+    .nova-form-action-bar--post-edit-lock:not(.nova-form-action-bar--with-scroll) .nova-form-action-bar__segment--scroll {
         align-self: stretch;
         width: 100%;
         min-width: 0;

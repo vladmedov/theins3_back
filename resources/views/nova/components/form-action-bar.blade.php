@@ -44,15 +44,19 @@
             onclick="window.scrollTo({ top: this.dataset.scrollNav === 'up' ? 0 : (document.documentElement.scrollHeight || document.body.scrollHeight || 0), behavior: 'smooth' })"
         >
             @if ($scrollNav['direction'] === 'up')
-                <svg aria-hidden="true" viewBox="0 0 16 100" preserveAspectRatio="none" fill="none">
-                    <line x1="8" x2="8" y1="90" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-                    <polyline points="4,18 8,10 12,18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline>
-                </svg>
+                <span class="nova-form-action-bar__scroll-inner nova-form-action-bar__scroll-inner--up" aria-hidden="true">
+                    <svg class="nova-form-action-bar__scroll-chevron" viewBox="0 0 16 10" width="16" height="10" fill="none" aria-hidden="true">
+                        <polyline points="4,8 8,2 12,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                    </svg>
+                    <span class="nova-form-action-bar__scroll-stem"></span>
+                </span>
             @else
-                <svg aria-hidden="true" viewBox="0 0 16 100" preserveAspectRatio="none" fill="none">
-                    <line x1="8" x2="8" y1="10" y2="90" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
-                    <polyline points="4,82 8,90 12,82" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></polyline>
-                </svg>
+                <span class="nova-form-action-bar__scroll-inner nova-form-action-bar__scroll-inner--down" aria-hidden="true">
+                    <span class="nova-form-action-bar__scroll-stem"></span>
+                    <svg class="nova-form-action-bar__scroll-chevron" viewBox="0 0 16 10" width="16" height="10" fill="none" aria-hidden="true">
+                        <polyline points="4,2 8,8 12,2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                    </svg>
+                </span>
             @endif
         </button>
     @endif
