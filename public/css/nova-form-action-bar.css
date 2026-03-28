@@ -533,10 +533,9 @@ button.nova-post-edit-lock__exit:hover {
 
 /*
  * Публикация + стрелка: при узкой колонке формы — 2 ряда справа (URL, затем rail), стрелка слева на всю высоту.
- * Порог по ширине формы: при открытом сайдбаре чаще ниже порога; при схлопнутом — выше, одна линия flex.
+ * Меньше max-width → дольше одна линия (схлопывание только при уже более узкой форме).
  */
-/* ~ширина колонки с открытым Nova sidebar (w-60) на типичном десктопе; при схлопнутом меню обычно выше порога — одна линия flex */
-@container nova-form-fab (max-width: 1220px) {
+@container nova-form-fab (max-width: 800px) {
     .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock {
         display: grid;
         grid-template-columns: 40px minmax(0, 1fr);
@@ -595,9 +594,9 @@ button.nova-post-edit-lock__exit:hover {
     }
 }
 
-/* Нет container queries — грубый fallback по viewport */
+/* Нет container queries — грубый fallback по viewport (число как у @container, но это ширина окна, не формы) */
 @supports not (container-type: inline-size) {
-    @media (max-width: 1024px) {
+    @media (max-width: 800px) {
         .nova-form-action-bar--with-scroll.nova-form-action-bar--post-edit-lock {
             display: grid;
             grid-template-columns: 40px minmax(0, 1fr);
