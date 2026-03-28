@@ -4,7 +4,7 @@
 
   "Analytics": "Аналитика",
 
-  "Content dashboard": "Контент дашбоард",
+  "Statistics": "Статистика",
   "Articles count": "Количество статей",
   "News count": "Количество новостей",
   "Opinions count": "Количество мнений",
@@ -45,6 +45,8 @@
 
   "News calendar": "Новостной календарь",
   "News calendar to current month": "К текущему месяцу",
+  "News calendar loading": "Загрузка…",
+  "News calendar empty": "Публикаций за выбранный период нет.",
   "All publications": "Все публикации",
   "All users": "Все пользователи",
   "Publications count": "Количество публикаций:",

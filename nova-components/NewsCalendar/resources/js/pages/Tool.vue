@@ -6,24 +6,26 @@
     <div class="news-cal-toolbar">
       <div class="news-cal-toolbar__inner">
         <div class="news-cal-toolbar__month" role="group" :aria-label="__('News calendar')">
-          <div class="news-cal-nav__field">
-            <button
-              type="button"
-              class="news-cal-nav__btn"
-              :aria-label="__('Previous')"
-              @click="calendarPrev"
-            >‹</button>
-            <span class="news-cal-nav__title">{{ calendarViewTitle }}</span>
-            <button
-              type="button"
-              class="news-cal-nav__btn"
-              :aria-label="__('Next')"
-              @click="calendarNext"
-            >›</button>
+          <div class="news-cal-nav-cluster">
+            <div class="news-cal-nav__field">
+              <button
+                type="button"
+                class="news-cal-nav__btn"
+                :aria-label="__('Previous')"
+                @click="calendarPrev"
+              >‹</button>
+              <span class="news-cal-nav__title">{{ calendarViewTitle }}</span>
+              <button
+                type="button"
+                class="news-cal-nav__btn"
+                :aria-label="__('Next')"
+                @click="calendarNext"
+              >›</button>
+            </div>
+            <button type="button" class="news-cal-nav__today" @click="calendarToday">
+              {{ __('News calendar to current month') }}
+            </button>
           </div>
-          <button type="button" class="news-cal-nav__today" @click="calendarToday">
-            {{ __('News calendar to current month') }}
-          </button>
         </div>
 
         <div class="news-cal-toolbar__filters">
@@ -153,7 +155,30 @@
           </span>
         </div>
       </div>
-      <div ref="calendar" class="news-calendar-fc-root"></div>
+      <div class="news-cal-calendar-scroll">
+        <div class="news-cal-calendar-body">
+          <div ref="calendar" class="news-calendar-fc-root"></div>
+          <div
+            v-show="eventsLoading"
+            class="news-cal-calendar-loading"
+            role="status"
+            aria-live="polite"
+            :aria-busy="eventsLoading"
+          >
+            <span class="news-cal-calendar-loading__spinner" aria-hidden="true"></span>
+            <span class="news-cal-calendar-loading__text">{{ __('News calendar loading') }}</span>
+          </div>
+          <div
+            v-show="showCalendarEmpty"
+            class="news-cal-calendar-empty"
+            role="status"
+            aria-live="polite"
+          >
+            <span class="news-cal-calendar-empty__icon" aria-hidden="true"></span>
+            <span class="news-cal-calendar-empty__text">{{ __('News calendar empty') }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -213,11 +238,22 @@ export default {
       /** YYYY-MM-DD → сумма просмотров за день */
       dayViewsTotals: {},
       /** Заголовок текущего месяца из FullCalendar */
-      calendarViewTitle: ''
+      calendarViewTitle: '',
+      /** Загрузка событий календаря с API */
+      eventsLoading: false,
+      /** После первого завершённого запроса (чтобы не мигало «пусто» до загрузки) */
+      eventsFetchCompletedOnce: false
     };
   },
 
   computed: {
+    showCalendarEmpty() {
+      return (
+        this.eventsFetchCompletedOnce &&
+        !this.eventsLoading &&
+        this.totalEvents === 0
+      );
+    },
     filteredAuthors() {
       const q = this.authorSearchQuery.toLowerCase();
       const list = q
@@ -348,6 +384,7 @@ export default {
       const start = startDate || this.currentStart;
       const end = endDate || this.currentEnd;
 
+      this.eventsLoading = true;
       axios.get('/nova-vendor/news-calendar/events', {
         params: {
           resource: this.selectedResource,
@@ -359,8 +396,10 @@ export default {
       }).then(response => {
         this.events = response.data.events;
         this.rebuildDayAggregates();
-        this.calendar.removeAllEvents();
-        this.calendar.addEventSource(this.events);
+        if (this.calendar) {
+          this.calendar.removeAllEvents();
+          this.calendar.addEventSource(this.events);
+        }
 
         this.totalEvents = response.data.totalEvents;
         this.totalViews = response.data.totalViews;
@@ -370,6 +409,9 @@ export default {
             this.calendar.render();
           }
         });
+      }).finally(() => {
+        this.eventsLoading = false;
+        this.eventsFetchCompletedOnce = true;
       });
     }
   },
@@ -474,6 +516,9 @@ export default {
 <style scoped>
 .news-calendar-container {
   padding: 0px;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .news-calendar-title {
@@ -493,6 +538,9 @@ export default {
   border-radius: 8px;
   box-shadow: none;
   box-sizing: border-box;
+  /* Адаптив от ширины плашки (Nova + сайдбар), а не только viewport */
+  container-type: inline-size;
+  container-name: news-cal-toolbar;
 }
 
 .news-cal-toolbar__inner {
@@ -504,12 +552,23 @@ export default {
 }
 
 .news-cal-toolbar__month {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Месяц + «К текущему месяцу» — одна строка, всегда сгруппированы слева */
+.news-cal-nav-cluster {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px 10px;
-  flex: 0 1 auto;
+  gap: 14px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Предыдущий / следующий месяц + заголовок */
@@ -521,31 +580,214 @@ export default {
   border-radius: 0;
   overflow: visible;
   box-sizing: border-box;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 100%;
 }
 
 .news-cal-toolbar__filters {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-end;
   gap: 10px;
-  flex: 1 1 220px;
+  flex: 1 1 280px;
   min-width: 0;
 }
 
-@media (max-width: 720px) {
+/* Узкая плашка (колонка контента с сайдбаром): колонка + компактные селекты без flex-grow */
+@container news-cal-toolbar (max-width: 900px) {
   .news-cal-toolbar__inner {
     flex-direction: column;
     align-items: stretch;
+    gap: 16px;
   }
 
   .news-cal-toolbar__month {
-    justify-content: center;
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .news-cal-nav-cluster {
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
+    justify-content: flex-start;
+    gap: 10px 12px;
+    width: auto;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
   }
 
   .news-cal-toolbar__filters {
+    flex: 1 1 auto;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
     justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .news-cal-toolbar__filters .searchable-select {
+    flex: 0 0 auto;
+    width: min(100%, 220px);
+    max-width: 220px;
+    min-width: 0;
+  }
+
+  .news-cal-nav__field {
+    flex: 0 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+    width: auto;
+    max-width: none;
+  }
+
+  .news-cal-nav__today {
+    flex-shrink: 0;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
+/* Очень узкая плашка: селекторы столбиком */
+@container news-cal-toolbar (max-width: 480px) {
+  .news-cal-toolbar__filters {
+    flex-direction: column;
+  }
+
+  .news-cal-toolbar__filters .searchable-select {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  .news-cal-nav-cluster {
+    gap: 6px 8px;
+  }
+
+  .news-cal-nav__title {
+    padding: 0 6px;
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+  }
+
+  .news-cal-nav__today {
+    font-size: 11px;
+  }
+}
+
+/* Fallback без container queries: по viewport */
+@supports not (container-type: inline-size) {
+  @media (max-width: 960px) {
+    .news-cal-toolbar__inner {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+    }
+
+    .news-cal-toolbar__month {
+      align-self: stretch;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .news-cal-nav-cluster {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px 12px;
+      width: auto;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+
+    .news-cal-toolbar__filters {
+      flex: 1 1 auto;
+      width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 10px;
+    }
+
+    .news-cal-toolbar__filters .searchable-select {
+      flex: 0 0 auto;
+      width: min(100%, 220px);
+      max-width: 220px;
+      min-width: 0;
+    }
+
+    .news-cal-nav__field {
+      flex: 0 1 auto;
+      min-width: 0;
+      justify-content: flex-start;
+      width: auto;
+      max-width: none;
+    }
+
+    .news-cal-nav__today {
+      flex-shrink: 0;
+      justify-content: flex-start;
+      text-align: left;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .news-cal-toolbar__filters {
+      flex-direction: column;
+    }
+
+    .news-cal-toolbar__filters .searchable-select {
+      flex: 0 0 auto;
+      width: 100%;
+      max-width: none;
+    }
+
+    .news-cal-nav-cluster {
+      gap: 6px 8px;
+    }
+
+    .news-cal-nav__title {
+      padding: 0 6px;
+      font-size: 0.8125rem;
+      letter-spacing: 0.02em;
+    }
+
+    .news-cal-nav__today {
+      font-size: 11px;
+    }
+  }
+}
+
+@media (max-width: 960px) {
+  .news-cal-toolbar {
+    padding: 16px 14px;
+  }
+}
+
+@media (max-width: 520px) {
+  .news-cal-toolbar {
+    padding: 12px 12px;
+  }
+
+  .news-calendar-title {
+    font-size: 1.5rem;
+    margin-bottom: 14px;
+  }
+
+  .news-cal-stats {
+    padding: 10px 12px;
+  }
+
+  .news-cal-stats__row {
+    justify-content: center;
   }
 }
 
@@ -574,12 +816,11 @@ export default {
 }
 
 .news-cal-nav__title {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 9.5rem;
+  display: block;
+  min-width: 0;
+  flex: 1 1 auto;
   max-width: 17rem;
-  padding: 0 16px;
+  padding: 0 10px;
   font-size: 0.9375rem;
   font-weight: 700;
   color: #e54839;
@@ -590,13 +831,17 @@ export default {
   background: #fff;
   border: 0;
   box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .news-cal-nav__today {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin: 0 0 0 28px;
+  flex-shrink: 0;
+  margin: 0;
   padding: 4px 2px;
   min-width: 0;
   border: none;
@@ -612,6 +857,7 @@ export default {
   text-underline-offset: 3px;
   cursor: pointer;
   box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .news-cal-nav__today:hover {
@@ -624,11 +870,130 @@ export default {
   outline-offset: 2px;
 }
 
-/* Обёртка: серая плашка без рамки + календарь с рамкой */
+/* Статистика вне горизонтального скролла; скролл только у сетки календаря */
 .news-cal-calendar-wrap {
   margin: 0;
   border: none;
   box-sizing: border-box;
+  max-width: 100%;
+  overflow: visible;
+}
+
+/* Тонкий скролл как в PostHistory; ползунок — фирменный красный, дорожка серая */
+.news-cal-calendar-scroll {
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: auto;
+  scrollbar-color: var(--news-cal-brand) #e5e7eb;
+}
+
+.news-cal-calendar-scroll::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.news-cal-calendar-scroll::-webkit-scrollbar-track {
+  background: #e5e7eb;
+  border-radius: 0;
+}
+
+.news-cal-calendar-scroll::-webkit-scrollbar-thumb {
+  background: var(--news-cal-brand);
+  border-radius: 0;
+}
+
+.news-cal-calendar-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--news-cal-brand-hover);
+}
+
+.news-cal-calendar-scroll::-webkit-scrollbar-corner {
+  background: #e5e7eb;
+}
+
+.news-cal-calendar-body {
+  position: relative;
+  min-width: calc(7 * var(--news-cal-day-col-min, 180px));
+  box-sizing: border-box;
+}
+
+.news-cal-calendar-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(2px);
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.news-cal-calendar-loading__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e8e8ea;
+  border-top-color: #e54839;
+  border-radius: 50%;
+  animation: news-cal-spin 0.75s linear infinite;
+}
+
+.news-cal-calendar-loading__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #171717;
+}
+
+.news-cal-calendar-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(2px);
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.news-cal-calendar-empty__icon {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e8e8ea;
+  border-radius: 50%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.news-cal-calendar-empty__icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 3px;
+  margin: -1.5px 0 0 -9px;
+  background: #e54839;
+  border-radius: 1px;
+}
+
+.news-cal-calendar-empty__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #171717;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.4;
 }
 
 /* Строка статистики над сеткой */
@@ -682,18 +1047,24 @@ export default {
 
 .news-calendar-fc-root {
   width: 100%;
+  box-sizing: border-box;
 }
 
 /* Селекторы: плоский вид, тонкие границы (как на референсе) */
 .searchable-select {
   position: relative;
-  min-width: 200px;
+  box-sizing: border-box;
+  min-width: 0;
+  width: min(100%, 220px);
+  max-width: 220px;
+  flex: 0 0 auto;
 }
 
 .searchable-select__input-wrap {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 5px 10px;
   border: 1px solid #d4d4d4;
   border-radius: 2px;
@@ -719,6 +1090,11 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.02em;
   font-size: 12px;
+}
+
+/* Только подпись в поле (не пункты списка): выбранное значение — фирменный красный */
+.searchable-select__value:not(.is-all) {
+  color: #e54839;
 }
 
 /* Шеврон вниз (линии 2px — лучше читается, чем символ ▾) */
@@ -758,7 +1134,7 @@ export default {
   border-radius: 2px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   min-width: 100%;
-  max-width: 320px;
+  max-width: 220px;
   box-sizing: border-box;
 }
 
@@ -867,6 +1243,7 @@ export default {
   --news-cal-brand-hover: #c93a2e;
   --news-cal-brand-active: #a82f24;
   --news-cal-ink: #171717;
+  --news-cal-day-col-min: 180px;
 }
 
 /* Тулбар FC отключён (headerToolbar: false) — на всякий случай */
@@ -894,6 +1271,16 @@ export default {
 .news-cal-calendar-wrap .fc .fc-view-harness,
 .news-cal-calendar-wrap .fc .fc-view-harness-active {
   height: auto !important;
+}
+
+/* Минимум 180px на столбец дня (месяц), таблица не уже 7 столбцов */
+.news-cal-calendar-wrap .fc .fc-scrollgrid-sync-table {
+  min-width: calc(7 * var(--news-cal-day-col-min, 180px));
+}
+
+.news-cal-calendar-wrap .fc th.fc-col-header-cell,
+.news-cal-calendar-wrap .fc td.fc-daygrid-day {
+  min-width: var(--news-cal-day-col-min, 180px) !important;
 }
 
 /* Кнопки, события: фирменный красный у UI; плашки событий — светлые с чёрным текстом */
@@ -1011,5 +1398,11 @@ export default {
 .news-calendar-container a.fc-event strong {
   color: inherit !important;
   font-weight: 700;
+}
+
+@keyframes news-cal-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
