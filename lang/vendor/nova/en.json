@@ -542,5 +542,15 @@
   "Crop area": "Crop area",
   "Selected crop area": "Selected crop area",
   "Could not delete the image. Please try again.": "Could not delete the image. Please try again.",
-  "Choose image": "Choose image"
+  "Choose image": "Choose image",
+  "News calendar": "News calendar",
+  "News calendar to current month": "To current month",
+  "All publications": "All publications",
+  "All users": "All users",
+  "All columnists": "All columnists",
+  "Publications count": "Publications:",
+  "Publication views count": "Publication views:",
+  "Day publications total": "Total:",
+  "Day cell stats label": "Info:",
+  "News calendar stats caption": "Statistics for the selected month, with filters applied."
 }

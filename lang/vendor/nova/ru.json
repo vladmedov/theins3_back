@@ -44,10 +44,14 @@
   "Top News record": "Запись топ новостей",
 
   "News calendar": "Новостной календарь",
+  "News calendar to current month": "К текущему месяцу",
   "All publications": "Все публикации",
   "All users": "Все пользователи",
-  "Publications count": "Количество публикаций",
-  "Publication views count": "Количество просмотров",
+  "Publications count": "Количество публикаций:",
+  "Publication views count": "Количество просмотров:",
+  "Day publications total": "Всего:",
+  "Day cell stats label": "Инфо:",
+  "News calendar stats caption": "Статистика за выбранный месяц с учётом фильтров.",
 
   "Posts": "Публикации",
   "Articles": "Статьи",
