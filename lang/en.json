@@ -1,4 +1,7 @@
 {
+    "Admin sidebar: Switch to English": "Switch to English",
+    "Admin sidebar: Switch to Russian": "Switch to Russian",
+    "Admin sidebar: Switch to language": "Switch to :locale",
     "To refresh the token, reload the page.": "To refresh the token, reload the page.",
     "Time is shown in your device timezone.": "Time is shown in your device timezone.",
     "Autosave is disabled for this field.": "Autosave is disabled for this field.",

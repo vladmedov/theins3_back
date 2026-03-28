@@ -2,35 +2,22 @@
 
 namespace App\Providers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\File;
-
-use Laravel\Fortify\Features;
-use Laravel\Nova\Nova;
-use Laravel\Nova\NovaApplicationServiceProvider;
-
-use Laravel\Nova\Menu\Dashboards\Dashboard;
-use Laravel\Nova\Menu\Menu;
-use Laravel\Nova\Menu\MenuGroup;
-use Laravel\Nova\Menu\MenuItem;
-use Laravel\Nova\Menu\MenuSection;
-
-use Medov\NewsCalendar\NewsCalendar;
-use Medov\PostHistory\PostHistory;
-
-use App\Nova\Filters\CategoryFilter;
-use App\Nova\_Posts\PostArticle;
-
-use App\Models\User;
-
 use App\Http\Controllers\Nova\AttachedResourceUpdateController as AppAttachedResourceUpdateController;
 use App\Http\Controllers\Nova\ResourceUpdateController as AppResourceUpdateController;
+use App\Models\User;
+use App\Support\Nova\SidebarMenuGroup;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Gate;
+use Laravel\Fortify\Features;
 use Laravel\Nova\Http\Controllers\AttachedResourceUpdateController as NovaAttachedResourceUpdateController;
 use Laravel\Nova\Http\Controllers\ResourceUpdateController as NovaResourceUpdateController;
+use Laravel\Nova\Menu\MenuItem;
+use Laravel\Nova\Nova;
+use Laravel\Nova\NovaApplicationServiceProvider;
+use Medov\NewsCalendar\NewsCalendar;
+use Medov\PostHistory\PostHistory;
 
 class NovaServiceProvider extends NovaApplicationServiceProvider
 {
@@ -63,51 +50,56 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
         Nova::script('nova-form-action-bar', asset('js/nova-form-action-bar.js'));
 
         Nova::mainMenu(function ($request) {
-            
+
             $menu = [
-                
-                MenuGroup::make(__('Analytics'), [
+
+                SidebarMenuGroup::make(__('Analytics'), [
                     MenuItem::dashboard(\App\Nova\Dashboards\ContentDashboard::class),
                     MenuItem::link(__('News calendar'), '/news-calendar')
-                        ->canSee(fn ($request) => !$request->user()?->isJournalist()),
-                ])->collapsable(),
+                        ->canSee(fn ($request) => ! $request->user()?->isJournalist()),
+                ])->collapsable()->persistCollapseKey('analytics'),
 
-                MenuGroup::make(__('Posts'), [
+                SidebarMenuGroup::make(__('Posts'), [
                     MenuItem::resource(\App\Nova\_Posts\PostArticle::class),
                     MenuItem::resource(\App\Nova\_Posts\PostNews::class),
                     MenuItem::resource(\App\Nova\_Posts\PostOpinion::class),
                     MenuItem::resource(\App\Nova\_Posts\PostOnline::class),
                     MenuItem::resource(\App\Nova\_Posts\OnlineMessage::class),
-                ])->collapsable()->collapsedByDefault(),
+                ])->collapsable()->collapsedByDefault()->persistCollapseKey('posts'),
 
-                MenuGroup::make(__('Main page'), [
+                SidebarMenuGroup::make(__('Main page'), [
                     MenuItem::resource(\App\Nova\_Collections\CollectionFeature::class),
                     MenuItem::resource(\App\Nova\_Collections\CollectionPopular::class),
                     MenuItem::resource(\App\Nova\_Collections\CollectionTopNews::class),
                     MenuItem::resource(\App\Nova\_Collections\CollectionMainOpinions::class),
-                ])->collapsable()->collapsedByDefault(),
+                ])->collapsable()->collapsedByDefault()->persistCollapseKey('main-page'),
 
-                MenuGroup::make(__('Taxonomy'), [
+                SidebarMenuGroup::make(__('Taxonomy'), [
                     MenuItem::resource(\App\Nova\_Taxonomy\Category::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\InvestigationTheme::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Tag::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Termin::class),
                     MenuItem::resource(\App\Nova\_Taxonomy\Author::class),
-                ])->collapsable()->collapsedByDefault(),
+                ])->collapsable()->collapsedByDefault()->persistCollapseKey('taxonomy'),
 
-                MenuGroup::make(__('Users'), [
+                SidebarMenuGroup::make(__('Users'), [
                     MenuItem::resource(\App\Nova\_Users\User::class),
                     MenuItem::resource(\App\Nova\_Users\UserAdmin::class),
                     MenuItem::resource(\App\Nova\_Users\UserEditor::class),
                     MenuItem::resource(\App\Nova\_Users\UserJournalist::class),
-                ])->collapsable()->collapsedByDefault(),
+                ])->collapsable()->collapsedByDefault()->persistCollapseKey('users'),
 
             ];
 
             foreach (auth()->user()?->available_languages ?? [] as $language => $active) {
-                if ($active == true && !app()->isLocale($language)) {
+                if ($active == true && ! app()->isLocale($language)) {
+                    $localeSwitchLabel = match ($language) {
+                        'en' => __('Admin sidebar: Switch to English'),
+                        'ru' => __('Admin sidebar: Switch to Russian'),
+                        default => __('Admin sidebar: Switch to language', ['locale' => strtoupper($language)]),
+                    };
                     $menu = array_merge([
-                        MenuItem::externalLink(strtoupper($language), '/set-locale/' . $language),
+                        MenuItem::externalLink($localeSwitchLabel, '/set-locale/'.$language),
                     ], $menu);
                 }
             }
