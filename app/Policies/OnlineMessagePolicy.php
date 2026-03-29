@@ -15,7 +15,7 @@ class OnlineMessagePolicy
      */
     protected function userHasAccessToParentOnline(User $user, OnlineMessage $onlineMessage): bool
     {
-        if ($request->user()->canViewAll()) {
+        if ($user->canViewAll()) {
             return true;
         }
 

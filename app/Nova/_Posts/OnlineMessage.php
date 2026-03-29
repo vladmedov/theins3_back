@@ -47,8 +47,33 @@ class OnlineMessage extends Resource
                 ->onlyOnForms(),
 
             DateTimeSplit::make(__('Publication date'), 'published_at')
+                ->onlyOnForms()
                 ->default(now())
+                ->help(__('Time is shown in your device timezone.'))
                 ->rules('required'),
+
+            Text::make(__('Date/time'), 'published_at')
+                ->exceptOnForms()
+                ->sortable()
+                ->rules('required', 'max:255')
+                ->displayUsing(function ($date, $resource) use ($request) {
+                    $url = config('nova.path').static::redirectAfterUpdate($request, $this);
+                    $formatted = static::formatPublishedAtForUser($date);
+
+                    if (! $formatted) {
+                        return '';
+                    }
+
+                    [$d, $t] = explode(' ', $formatted, 2) + [null, null];
+                    $today = now()->format('d.m.Y');
+                    $inner = $d === $today
+                        ? '<span class="font-bold">'.$t.'</span>'
+                        : '<span class="font-bold">'.$d.'</span>'.
+                          ($t ? '<br><span>'.$t.'</span>' : '');
+
+                    return '<a href="'.$url.'" class="text-inherit no-underline hover:underline">'.$inner.'</a>';
+                })
+                ->asHtml(),
         ];
 
         $postEditTitleRow = PageTitle::makeForRelationTitle($this, 'OnlineMessageEditTitleRow', 'online', fields: [
@@ -283,5 +308,20 @@ class OnlineMessage extends Resource
     public static function updateButtonLabel(): string
     {
         return __('Save');
+    }
+
+    protected static function formatPublishedAtForUser($publishedAt): ?string
+    {
+        if (! $publishedAt) {
+            return null;
+        }
+
+        $userTz = auth()->user()->timezone ?? config('app.timezone');
+
+        if ($userTz && in_array($userTz, timezone_identifiers_list(), true)) {
+            $publishedAt = $publishedAt->copy()->setTimezone($userTz);
+        }
+
+        return $publishedAt->format('d.m.Y H:i:s');
     }
 }

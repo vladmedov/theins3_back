@@ -95,6 +95,13 @@ html:has(#nova) .font-bold, b, strong {
     font-weight: 300 !important;
 }
 
+html:has(#nova) .help-text {
+    font-size: 0.8rem !important;
+    color: rgba(var(--colors-gray-400)) !important;
+    font-weight: 200 !important;
+    font-style: normal !important;
+}
+
 /*
  * Поля форм и выпадающие списки: часть разметки в <teleport to="body"> (вне #nova);
  * у input/select часто свой UA-шрифт без наследования от body.

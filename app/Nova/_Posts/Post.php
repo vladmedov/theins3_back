@@ -322,6 +322,16 @@ abstract class Post extends Resource
                     ->hideFromDetail()
                     ->searchable()
                     ->withSubtitles()
+                    ->display(function ($authorResource) {
+                        $request = app(NovaRequest::class);
+                        if ($request->isResourceIndexRequest()) {
+                            $name = trim((string) ($authorResource->resource->full_name ?? ''));
+
+                            return $name !== '' ? $name : $authorResource->title();
+                        }
+
+                        return $authorResource->title();
+                    })
                     ->default(function (NovaRequest $request) use ($locale) {
                         $author = static::firstLinkedAuthorForCurrentUser($request->user(), $locale);
 
@@ -407,7 +417,7 @@ abstract class Post extends Resource
                 ->onlyOnForms()
                 ->sortable()
                 ->rules('boolean')
-                ->help(__('The news headline will be displayed in bold.'));
+                ->help(__('posts.super_news_help'));
         }
 
         $general[] = Boolean::make(__('Ignore image dimension requirements'), 'ignore_image_dimension_requirements')
@@ -554,6 +564,10 @@ abstract class Post extends Resource
                 ->hideFromDetail()
                 ->hideFromIndex(function () {
                     return static::getPostType() == PostTypes::OPINION;
+                })
+                ->displayUsing(function ($value, $resource) use ($request) {
+                    $url = config('nova.path').static::redirectAfterUpdate($request, $this);
+                    return "<a href=\"{$url}\" class=\"text-inherit no-underline hover:underline\">{$value}</a>";
                 }),
 
             Text::make(__('Views'), 'views_count')
@@ -567,11 +581,14 @@ abstract class Post extends Resource
                 ->onlyOnIndex()
                 ->sortable(false)
                 ->asHtml()
-                ->displayUsing(function ($value, $resource) {
+                ->displayUsing(function ($value, $resource) use ($request) {
                     $postKey = PostEditLockService::makePostKey(static::uriKey(), (string) $resource->getKey());
                     $uid = auth()->id();
+                    
+                    $url = config('nova.path').static::redirectAfterUpdate($request, $this);
+                    $inner = app(PostEditLockService::class)->indexLockColumnHtml($postKey, $uid !== null ? (int) $uid : null);
 
-                    return app(PostEditLockService::class)->indexLockColumnHtml($postKey, $uid !== null ? (int) $uid : null);
+                    return "<a href=\"{$url}\" class=\"text-inherit no-underline hover:underline inline-flex flex-col items-start\">{$inner}</a>";
                 }),
 
             BelongsTo::make(__('Translation'), 'translation', PostCollection::class)
