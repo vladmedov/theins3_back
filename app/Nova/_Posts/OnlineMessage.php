@@ -103,17 +103,20 @@ class OnlineMessage extends Resource
                 Badge::make(__('Enable'), 'is_key_event')->types([
                         false => 'font-medium text-gray-600',
                         true => ['font-bold', 'text-red-600'],
-                    ])->label(function ($value) {
+                    ])
+                    ->label(function ($value) {
                         if ($value) {
                             return __('Key event');
                         } else {
                             return __('General event');
                         }
-                    }),
+                    })
+                    ->hideFromIndex(),
 
                 Text::make(__('Outline'), 'outline')
                     ->fullWidth()
                     ->stacked()
+                    ->hideFromIndex()
                     ->hide()
                     ->dependsOn(
                         ['is_key_event'],
@@ -130,7 +133,21 @@ class OnlineMessage extends Resource
             Panel::make(__('Text'), [
                 CkEditor::make(__('Text'), 'text')
                     ->fullWidth()
-                    ->stacked(),
+                    ->stacked()
+                    ->hideFromIndex(),
+                
+                Text::make(__('Text'), function () {
+                    $crop = fn($s, $len) => mb_strlen($s = strip_tags($s ?? '')) > $len ? mb_substr($s, 0, $len) . '...' : $s;
+                    $o = $crop($this->outline, 80);
+                    $t = $crop($this->text, 80);
+                    $html = ($o ? "<div class='font-bold mb-2'>" . e($o) . "</div>" : '') . ($t ? "<div>" . e($t) . "</div>" : '');
+                    return $html ?: null;
+                })
+                ->onlyOnIndex()
+                ->asHtml()
+                ->hideFromDetail()
+                ->hideWhenCreating()
+                ->hideWhenUpdating(),
             ]),
 
             Panel::make(__('Images'), [
@@ -246,11 +263,14 @@ class OnlineMessage extends Resource
     {
         $query->where('language_code', static::resolveResourceLanguageCodeForRequest($request));
 
-        // if (!$request->user()->canViewAll()) {
-        //     $query->whereHas('owners', function($q) {
-        //         $q->where('user_id', auth()->user()->id);
-        //     });
-        // }
+        $user = $request->user();
+        if ($user && !$request->user()->canViewAll()) {
+            $query->whereHas('online', function ($q) use ($user) {
+                $q->whereHas('owners', function ($q2) use ($user) {
+                    $q2->where('user_id', $user->id);
+                });
+            });
+        }
 
         return $query;
     }

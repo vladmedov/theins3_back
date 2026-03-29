@@ -1,7 +1,35 @@
-/* Верхняя полоска загрузки Nova (NProgress) при запросах и поиске в полях */
+/* Верхняя полоска загрузки Nova (NProgress) при запросах и поиске — красный акцент */
+html:has(#nova) body {
+    margin-top: 0 !important;
+}
+
+html:has(#nova) #nprogress {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 99999 !important;
+}
+
 #nprogress .bar {
+    top: 0 !important;
+    margin: 0 !important;
+    height: 3px !important;
     background: #e54839 !important;
-    box-shadow: 0 0 10px #e54839, 0 0 5px #e54839 !important;
+}
+
+#nprogress .peg {
+    box-shadow:
+        0 0 10px #e54839,
+        0 0 5px #e54839 !important;
+}
+
+#nprogress .spinner-icon {
+    border-top-color: #e54839 !important;
+    border-left-color: #e54839 !important;
 }
 
 /* Дашборд и списки ресурсов: заголовок как у News calendar (.news-calendar-title в Tool.vue) */
@@ -326,11 +354,11 @@ a.nova-post-index-date-link .nova-post-index-date {
  * (gray-50 / gray-100 — как hover и sortable-drag в whitecube/nova-flexible-content).
  */
 table[dusk="resource-table"] tr.group:has(.nova-post-index-draft) td {
-    background-color: #f6e9e9 !important;
+    background-color: #FAF4F2 !important;
 }
 
 table[dusk="resource-table"] tr.group:has(.nova-post-index-draft):hover td {
-    background-color: #f1d5d5 !important;
+    background-color: #F6EAE7 !important;
 }
 
 /*
@@ -421,4 +449,48 @@ deletebutton > span {
     margin: 0 !important;
 }
 
+/**
+ * Стили для выезжающего меню Nova на мелких экранах (drawer/mobile).
+ */
 
+/* Nova drawer: полоса с логотипом (2-й ребёнок панели max-w-xxs) — по центру */
+div.lg\:hidden > div:first-child > div:nth-child(2) > div:nth-child(2) {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+}
+
+div.lg\:hidden > div:first-child > div:nth-child(2) > div:nth-child(2) > a {
+    justify-content: center !important;
+    width: 100% !important;
+    cursor: default !important;
+}
+
+/* Секция меню (3-й ребёнок панели max-w-xxs) */
+div.lg\:hidden > div:first-child > div:nth-child(2) > div:nth-child(3) {
+    padding: 0 !important;
+}
+div.lg\:hidden > div:first-child > div:nth-child(2) > div:nth-child(3) > div:first-child {
+    padding: 0 !important;
+}
+
+/*
+ * Подбор поста (BelongsTo → PostCollection): превью в строке поиска и в выпадающем списке —
+ * квадрат 32×32 с обрезкой (Nova по умолчанию рисует круг .rounded-full).
+ */
+html:has(#nova) [dusk^='post-collections-search-input'] img.w-8.h-8.rounded-full {
+    border-radius: 0.25rem !important;
+    object-fit: cover !important;
+    aspect-ratio: 1 / 1 !important;
+}
+
+/*
+ * Тема расследования (BelongsTo → InvestigationTheme): квадратное превью обложки в поиске.
+ */
+html:has(#nova) [dusk^='investigation-themes-search-input'] img.w-8.h-8.rounded-full {
+    border-radius: 0.25rem !important;
+    object-fit: cover !important;
+    aspect-ratio: 1 / 1 !important;
+}

@@ -106,6 +106,7 @@
 <script>
 import { FormField, HandlesValidationErrors } from "laravel-nova";
 import axios from "axios";
+import debounce from "lodash/debounce";
 
 export default {
   mixins: [FormField, HandlesValidationErrors],
@@ -118,6 +119,8 @@ export default {
       draggedIndex: null, // Индекс перетаскиваемого элемента
       isDraggingOverDropzone: false,
       uploadingCount: 0,
+      /** Не триггерить автосохранение при setInitialValue / подстановке с сервера */
+      galleryAutosaveWatchPaused: true,
     };
   },
 
@@ -127,12 +130,23 @@ export default {
     },
   },
 
+  created() {
+    this.scheduleGalleryAutosave = debounce(this.runGalleryAutosave.bind(this), 400);
+  },
+
   mounted() {
-    console.log("🚀 Компонент загружен, value:", this.value);
     this.setInitialValue();
   },
 
   watch: {
+    value: {
+      deep: true,
+      handler() {
+        if (this.scheduleGalleryAutosave) {
+          this.scheduleGalleryAutosave();
+        }
+      },
+    },
     field: {
       immediate: true,
       deep: true,
@@ -145,6 +159,16 @@ export default {
   },
 
   methods: {
+    runGalleryAutosave() {
+      if (this.galleryAutosaveWatchPaused) {
+        return;
+      }
+      if (typeof this.emitFieldValueChange === "function") {
+        this.emitFieldValueChange(this.fieldAttribute, this.value);
+      }
+      this.notifyAutosaveChange("image-gallery");
+    },
+
     notifyAutosaveChange(source) {
       if (typeof document === "undefined") return;
 
@@ -157,6 +181,7 @@ export default {
     },
 
     setInitialValue() {
+      this.galleryAutosaveWatchPaused = true;
       if (this.field.value) {
         if (typeof this.field.value === 'object') {
           this.value = this.field.value;
@@ -169,6 +194,9 @@ export default {
           }
         }
       }
+      this.$nextTick(() => {
+        this.galleryAutosaveWatchPaused = false;
+      });
     },
 
     triggerFileInput() {
@@ -247,7 +275,6 @@ export default {
               author: "",
               description: "",
             });
-            this.notifyAutosaveChange("image-gallery-upload");
           } catch (error) {
             console.error("Ошибка загрузки файла:", error);
           } finally {
@@ -266,7 +293,6 @@ export default {
 
     removeImage(index) {
       this.value.splice(index, 1);
-      this.notifyAutosaveChange("image-gallery-remove");
     },
 
     dragStart(index, event) {
@@ -281,7 +307,6 @@ export default {
       this.value.splice(index, 0, movedItem);
 
       this.draggedIndex = null;
-      this.notifyAutosaveChange("image-gallery-reorder");
     },
 
     fill(formData) {

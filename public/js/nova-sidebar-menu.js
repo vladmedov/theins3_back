@@ -1,6 +1,6 @@
 /**
- * Nova: навигация — логотип → внешний сайт (новое окно), аккордеон сайдбара.
- * Логотип: document capture + stopPropagation, чтобы Inertia Link не перехватывал клик.
+ * Nova: навигация — логотип в шапке → внешний сайт (новое окно); логотип в выезжающем меню — без действия.
+ * Логотип шапки: capture + stopPropagation, чтобы Inertia Link не перехватывал клик.
  */
 
 /* После смены языка (/set-locale → редирект с ?nova_reset_sidebar_menu=1) — состояние раскрытия
@@ -62,7 +62,7 @@
         return null;
     }
 
-    function isLogoAnchor(a) {
+    function isHeaderLogoAnchor(a) {
         if (!a || a.tagName !== 'A' || !a.getAttribute('href')) {
             return false;
         }
@@ -70,27 +70,42 @@
             return false;
         }
         var col = document.querySelector('#nova header > div[class*="lg:w-60"]');
-        if (col && col.querySelector('a') === a) {
-            return true;
+        return !!(col && col.querySelector('a') === a);
+    }
+
+    /** Логотип в выезжающем меню (mobile drawer) — отдельно от шапки */
+    function isDrawerLogoAnchor(a) {
+        if (!a || a.tagName !== 'A' || !a.getAttribute('href')) {
+            return false;
+        }
+        if ((a.getAttribute('href') || '').indexOf('nova.laravel.com/licenses') !== -1) {
+            return false;
         }
         var drawer = a.closest('div.lg\\:hidden.w-60');
         var row = a.closest('div.border-b');
-        if (drawer && row && row.querySelector('a') === a) {
-            return true;
-        }
-        return false;
+        return !!(drawer && row && row.querySelector('a') === a);
     }
 
     function onLogoClickCapture(e) {
-        var u = frontendUrl();
-        if (!u) {
-            return;
-        }
         if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
             return;
         }
         var a = e.target.closest && e.target.closest('a[href]');
-        if (!isLogoAnchor(a)) {
+        if (!a) {
+            return;
+        }
+        /* Выезжающее меню: клик по логотипу ничего не делает (ни Inertia, ни внешний сайт) */
+        if (isDrawerLogoAnchor(a)) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return;
+        }
+        var u = frontendUrl();
+        if (!u) {
+            return;
+        }
+        if (!isHeaderLogoAnchor(a)) {
             return;
         }
         e.preventDefault();
@@ -115,13 +130,7 @@
                 la.rel = 'noopener noreferrer';
             }
         }
-        document.querySelectorAll('body > div.lg\\:hidden.w-60 div.border-b > a[href]').forEach(function (la) {
-            if ((la.getAttribute('href') || '').indexOf('nova.laravel.com/licenses') === -1) {
-                la.setAttribute('href', url);
-                la.target = '_blank';
-                la.rel = 'noopener noreferrer';
-            }
-        });
+        /* Логотип в drawer не подменяем — остаётся ссылка Nova; клик глушится в onLogoClickCapture */
     }
 
     document.addEventListener('DOMContentLoaded', syncLogoHref);

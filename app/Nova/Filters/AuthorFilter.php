@@ -22,12 +22,13 @@ class AuthorFilter extends Filter
 
     public function options(NovaRequest $request)
     {
-        return Author::select('id', 'first_name', 'last_name')
+        return Author::select('id', 'first_name', 'last_name', 'slug')
             ->where('language_code', app()->getLocale())
             ->orderBy('last_name')
             ->get()
             ->mapWithKeys(function ($author) {
-                return [trim($author->first_name . ' ' . $author->last_name) => $author->id];
+                $fullName = trim($author->first_name . ($author->last_name ? ' ' . $author->last_name : ''));
+                return [$fullName . ' (' . $author->slug . ')' => $author->id];
             })
             ->toArray();
     }

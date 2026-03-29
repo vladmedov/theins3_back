@@ -4,11 +4,15 @@
     "Admin sidebar: Switch to language": "Switch to :locale",
     "To refresh the token, reload the page.": "To refresh the token, reload the page.",
     "Time is shown in your device timezone.": "Time is shown in your device timezone.",
-    "Autosave is disabled for this field.": "Autosave is disabled for this field.",
+    "Autosave is enabled for this field.": "Autosave is enabled for this field.",
     "Queued for auto-publication": "Queued for auto-publication",
     "When the publication time arrives, status becomes Published and this option is cleared automatically.": "When the publication time arrives, status becomes Published and this option is cleared automatically.",
     "Auto-queue": "Auto-queue",
     "Auto-queue marker": "A",
-    "Publication form new": "New publication",
-    "Publication form no title": "Untitled"
+    "Publication form new": "Creation",
+    "Publication form no title": "Untitled",
+    "User role: Administrator": "Administrator",
+    "User role: Editor": "Editor",
+    "User role: Journalist": "Journalist",
+    "Date/time": "Date/time"
 }

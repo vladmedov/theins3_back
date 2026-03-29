@@ -25,7 +25,7 @@ class AuthorResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'path' => $this->getPath(),
+            'path' => ($this->is_author_page_hidden ?? false) ? null : $this->getPath(),
             'fullname' => $this->fullname,
             'avatar' => $this->avatar_url ?? "",
             'description' => $this->description ?? "",

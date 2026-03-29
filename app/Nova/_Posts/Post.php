@@ -239,44 +239,57 @@ abstract class Post extends Resource
                 ])
                 ->default('draft')
                 ->displayUsingLabels()
-                ->onlyOnForms()
-                ->help(__('Autosave is disabled for this field.')),
+                ->onlyOnForms(),
 
             DateTimeSplit::make(__('Publication date'), 'published_at')
                 ->onlyOnForms()
                 ->default(now())
-                ->help(__('Time is shown in your device timezone.').' '.__('Autosave is disabled for this field.'))
+                ->help(__('Time is shown in your device timezone.'))
                 ->rules('required'),
 
-            Text::make(__('Publication date'), 'published_at')
+            Text::make(__('Date/time'), 'published_at')
                 ->exceptOnForms()
                 ->sortable()
                 ->rules('required', 'max:255')
                 ->displayUsing(function ($date, $resource) use ($request) {
-                    $url = config('nova.path').static::redirectAfterUpdate($request, $this);
-                    $formattedDate = static::formatPublishedAtForUser($date);
-                    if ($resource->status == 'published') {
-                        $dateHtml = "<a href='{$url}' class=\"nova-post-index-date-link nova-post-index-date-published shrink-0\"><span class=\"nova-post-index-date font-bold\">{$formattedDate}</span></a>";
-                    } elseif (! empty($resource->auto_publish_pending)) {
-                        $dateHtml = "<a href='{$url}' class=\"nova-post-index-date-link nova-post-index-date-draft-auto shrink-0\"><span class=\"nova-post-index-date nova-post-index-draft font-bold\">{$formattedDate}</span></a>";
-                    } else {
-                        $dateHtml = "<a href='{$url}' class=\"nova-post-index-date-link nova-post-index-date-draft shrink-0\"><span class=\"nova-post-index-date nova-post-index-draft font-bold\">{$formattedDate}</span></a>";
+                    $url = config('nova.path') . static::redirectAfterUpdate($request, $this);
+                    $formatted = static::formatPublishedAtForUser($date);
+
+                    if (!$formatted) {
+                        return '';
                     }
 
-                    $autoQueue = '';
-                    if (! empty($resource->auto_publish_pending)) {
-                        $title = e(__('Auto-queue'));
-                        $marker = e(__('Auto-queue marker'));
-                        $autoQueue = '<span class="nova-post-auto-queue ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center self-center rounded-full text-[10px] font-semibold leading-none" title="'.$title.'">'.$marker.'</span>';
-                    }
+                    [$d, $t] = explode(' ', $formatted, 2) + [null, null];
+                    $today = now()->format('d.m.Y');
+                    $dateHtml = $d === $today
+                        ? "<span class=\"nova-post-index-time font-bold\">{$t}</span>"
+                        : "<span class=\"nova-post-index-date font-bold\">{$d}</span>" .
+                          ($t ? "<br><span class=\"nova-post-index-time\">{$t}</span>" : '');
 
-                    return '<span class="inline-flex max-w-full flex-nowrap items-center gap-1 whitespace-nowrap">'.$dateHtml.$autoQueue.'</span>';
+                    $classes = match (true) {
+                        $resource->status == 'published' => 'nova-post-index-date-link nova-post-index-date-published shrink-0',
+                        !empty($resource->auto_publish_pending) => 'nova-post-index-date-link nova-post-index-date-draft-auto shrink-0',
+                        default => 'nova-post-index-date-link nova-post-index-date-draft nova-post-index-draft shrink-0'
+                    };
+
+                    $dateHtml = "<a href=\"{$url}\" class=\"{$classes}\">{$dateHtml}</a>";
+
+                    $autoQueue = !empty($resource->auto_publish_pending)
+                        ? '<span class="nova-post-auto-queue ml-1 inline-flex h-4 w-4 shrink-0 items-center justify-center self-center rounded-full text-[10px] font-semibold leading-none" title="' .
+                            e(__('Auto-queue')) . '">' . e(__('Auto-queue marker')) . '</span>' : '';
+
+                    return '<span class="inline-flex max-w-full flex-nowrap items-center gap-1 whitespace-nowrap">' . $dateHtml . $autoQueue . '</span>';
                 })
                 ->asHtml(),
 
             Text::make(__('Title'), 'title')
                 ->rules('required', 'max:140')
-                ->withMeta(['extraAttributes' => ['data-char-counter' => 'title', 'maxlength' => '140']])
+                ->help(__('Autosave is enabled for this field.'))
+                ->withMeta(['extraAttributes' => [
+                    'data-char-counter' => 'title',
+                    'maxlength' => '140',
+                    'data-post-autosave-field' => '1',
+                ]])
                 ->displayUsing(function ($title, $resource) use ($request) {
                     $url = config('nova.path').static::redirectAfterUpdate($request, $this);
 
@@ -320,7 +333,7 @@ abstract class Post extends Resource
                 : EntityMultiselect::make(__('Authors'), 'authors')
                     ->onlyOnForms()
                     ->belongsToMany(Author::class, false)
-                    ->options(\App\Models\Author::getAuthorsByPostType($locale, [$this->type]))
+                    //->options(\App\Models\Author::getAuthorsByPostType($locale, [$this->type]))
                     ->reorderable()
                     ->optionsLimit(5)
                     ->default(function (NovaRequest $request) use ($locale) {
@@ -345,16 +358,17 @@ abstract class Post extends Resource
                 ->disk('public')
                 ->croppable(3 / 2)
                 ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=640,min_height=100')
-                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.'))
+                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.').' '.__('Autosave is enabled for this field.'))
                 ->dependsOn(
                     ['ignore_image_dimension_requirements'],
                     function (ImageCropper $field, NovaRequest $request, FormData $formData) {
+                        $autosaveHint = ' '.__('Autosave is enabled for this field.');
                         if ($formData->ignore_image_dimension_requirements) {
                             $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480')
-                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.'));
+                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.').$autosaveHint);
                         } else {
                             $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=640,min_height=100')
-                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.'));
+                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.').$autosaveHint);
                         }
                     }
                 )
@@ -371,7 +385,9 @@ abstract class Post extends Resource
                 ->hideFromDetail()
                 ->hideFromIndex()
                 ->sortable()
-                ->rules('max:255'),
+                ->rules('max:255')
+                ->help(__('Autosave is enabled for this field.'))
+                ->withMeta(['extraAttributes' => ['data-post-autosave-field' => '1']]),
 
             // Textarea::make(__('Lead text'), 'lead')
             //     ->hideFromDetail()
@@ -381,11 +397,9 @@ abstract class Post extends Resource
                 ->toolbar('toolbar-theins-small')
                 ->hideFromIndex()
                 ->hideFromDetail()
-                ->rules('nullable'),
-
-            Text::make(__('Views'), 'views_count')
-                ->sortable()
-                ->hideFromDetail(),
+                ->rules('nullable')
+                ->help(__('Autosave is enabled for this field.'))
+                ->withMeta(['extraAttributes' => ['data-post-autosave-field' => '1']]),
         ];
 
         if (static::getPostType() == PostTypes::NEWS) {
@@ -420,6 +434,7 @@ abstract class Post extends Resource
                 ->hideFromDetail()
                 ->menu('custom-flexible-menu')
                 ->fullWidth()
+                ->withMeta(['extraAttributes' => ['data-post-autosave-content' => '1']])
 
                 ->addLayout(__('Text'), 'text', [
                     CkEditor::make(__('Text'), 'text')
@@ -541,6 +556,13 @@ abstract class Post extends Resource
                     return static::getPostType() == PostTypes::OPINION;
                 }),
 
+            Text::make(__('Views'), 'views_count')
+                ->sortable()
+                ->onlyOnIndex()
+                ->hideFromDetail()
+                ->hideWhenCreating()
+                ->hideWhenUpdating(),
+
             Text::make(__('post_edit_lock.index_column'), 'id')
                 ->onlyOnIndex()
                 ->sortable(false)
@@ -595,7 +617,11 @@ abstract class Post extends Resource
                 ->sortable()
                 ->fullWidth()
                 ->rules('max:140')
-                ->withMeta(['extraAttributes' => ['data-post-seo-title' => '1']]),
+                ->help(__('Autosave is enabled for this field.'))
+                ->withMeta(['extraAttributes' => [
+                    'data-post-seo-title' => '1',
+                    'data-post-autosave-field' => '1',
+                ]]),
 
             Text::make(__('Page description'), 'seo_description')
                 ->hideFromIndex()
@@ -603,14 +629,20 @@ abstract class Post extends Resource
                 ->sortable()
                 ->fullWidth()
                 ->rules('max:255')
-                ->withMeta(['extraAttributes' => ['data-post-seo-description' => '1']]),
+                ->help(__('Autosave is enabled for this field.'))
+                ->withMeta(['extraAttributes' => [
+                    'data-post-seo-description' => '1',
+                    'data-post-autosave-field' => '1',
+                ]]),
 
             Text::make(__('Page keywords'), 'seo_keywords')
                 ->hideFromIndex()
                 ->hideFromDetail()
                 ->sortable()
                 ->fullWidth()
-                ->rules('max:255'),
+                ->rules('max:255')
+                ->help(__('Autosave is enabled for this field.'))
+                ->withMeta(['extraAttributes' => ['data-post-autosave-field' => '1']]),
         ];
 
         // Create: без табов — одна форма. Edit: вкладки Общее / Контент / Настройки.
@@ -645,14 +677,48 @@ abstract class Post extends Resource
                 ->nullable()
                 ->preload()
                 ->withSubtitles()
-                ->resolveUsing(function ($value, $model) {
-                    if (! $model->exists) {
-                        return $value ?: [['display' => auth()->user()->name, 'value' => auth()->user()->id]];
+                ->resolveUsing(function ($value, $resource) {
+                    $user = auth()->user();
+                    if ($user === null) {
+                        return $value;
+                    }
+
+                    if (! $resource->exists) {
+                        return $value ?: [
+                            ['display' => $user->name, 'value' => $user->id],
+                        ];
+                    }
+
+                    $ids = collect($value ?? [])->pluck('value')->map(fn ($id) => (int) $id)->all();
+
+                    if (! in_array((int) $user->id, $ids, true)) {
+                        return array_merge($value ?? [], [
+                            ['display' => $user->name, 'value' => $user->id],
+                        ]);
                     }
 
                     return $value;
                 })
-                ->immutable(fn ($request) => $this->exists && ! $this->authorizedToDelete($request)),
+                ->fillUsing(function (NovaRequest $request, $model, $attribute, $requestAttribute) {
+                    return function () use ($request, $model, $attribute, $requestAttribute) {
+                        $ids = [];
+                        if ($request->filled($requestAttribute)) {
+                            $decoded = json_decode($request[$requestAttribute], true);
+                            if (is_array($decoded)) {
+                                $ids = collect($decoded)
+                                    ->pluck('value')
+                                    ->filter()
+                                    ->map(fn ($id) => (int) $id)
+                                    ->all();
+                            }
+                        }
+                        $userId = auth()->id();
+                        if ($userId !== null && ! in_array((int) $userId, $ids, true)) {
+                            $ids[] = (int) $userId;
+                        }
+                        $model->{$attribute}()->sync($ids);
+                    };
+                }),
         ]);
 
         // Render
@@ -960,6 +1026,6 @@ abstract class Post extends Resource
             });
         }
 
-        return $query;
+        return $query->with('category');
     }
 }

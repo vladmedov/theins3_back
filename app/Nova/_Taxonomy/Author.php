@@ -202,6 +202,18 @@ class Author extends Resource
         return __('Author');
     }
 
+    public function title()
+    {
+        $name = trim((string) parent::title());
+        $slug = trim((string) ($this->resource?->slug ?? ''));
+
+        if ($slug === '') {
+            return $name;
+        }
+
+        return "{$name} ({$slug})";
+    }
+
     public static function redirectAfterCreate(NovaRequest $request, NovaResource $resource)
     {
         return '/resources/'.static::uriKey().'/'.$resource->getKey().'/edit';

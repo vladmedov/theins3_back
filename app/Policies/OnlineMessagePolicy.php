@@ -3,13 +3,26 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\PostTypes\PostOnline;
 use App\Models\PostTypes\OnlineMessage;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class OnlineMessagePolicy
 {
     use HandlesAuthorization;
+
+    /**
+     * Доступ к сообщению онлайна: админ и редактор — ко всем; журналист — только если есть доступ к родительскому онлайну (владелец).
+     */
+    protected function userHasAccessToParentOnline(User $user, OnlineMessage $onlineMessage): bool
+    {
+        if ($request->user()->canViewAll()) {
+            return true;
+        }
+
+        $post = $onlineMessage->online;
+
+        return $post && $post->isOwner($user->id);
+    }
 
     public function create(User $user)
     {
@@ -18,12 +31,12 @@ class OnlineMessagePolicy
 
     public function update(User $user, OnlineMessage $onlineMessage)
     {
-        return true;
+        return $this->userHasAccessToParentOnline($user, $onlineMessage);
     }
 
     public function delete(User $user, OnlineMessage $onlineMessage)
     {
-        return true;
+        return $this->userHasAccessToParentOnline($user, $onlineMessage);
     }
 
     public function restore()

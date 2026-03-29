@@ -29,6 +29,35 @@
         </div>
 
         <div class="news-cal-toolbar__filters">
+          <!-- Тип публикации (первым) -->
+          <div
+            class="searchable-select searchable-select--resource"
+            v-click-outside="() => resourceDropdownOpen = false"
+          >
+            <div class="searchable-select__input-wrap" @click="resourceDropdownOpen = !resourceDropdownOpen">
+              <span class="searchable-select__value" :class="{ 'is-all': !selectedResource }">
+                {{ selectedResourceLabel || __('All publications') }}
+              </span>
+              <span class="searchable-select__arrow" aria-hidden="true"></span>
+            </div>
+            <div v-if="resourceDropdownOpen" class="searchable-select__dropdown">
+              <div class="searchable-select__options">
+                <div
+                  class="searchable-select__option searchable-select__option--all"
+                  :class="{ 'is-selected': selectedResource === '' }"
+                  @click="selectResource('', '')"
+                >{{ __('All publications') }}</div>
+                <div
+                  v-for="resource in resources.post_types"
+                  :key="resource.value"
+                  class="searchable-select__option"
+                  :class="{ 'is-selected': selectedResource === resource.value }"
+                  @click="selectResource(resource.value, resource.label)"
+                >{{ resource.label }}</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Автор (для всех, кроме opinion) -->
           <div
             v-if="selectedResource !== 'opinion'"
@@ -105,35 +134,6 @@
                 <div v-if="filteredColumnists.length === 0" class="searchable-select__empty">
                   {{ __('No results') }}
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Тип публикации -->
-          <div
-            class="searchable-select searchable-select--resource"
-            v-click-outside="() => resourceDropdownOpen = false"
-          >
-            <div class="searchable-select__input-wrap" @click="resourceDropdownOpen = !resourceDropdownOpen">
-              <span class="searchable-select__value" :class="{ 'is-all': !selectedResource }">
-                {{ selectedResourceLabel || __('All publications') }}
-              </span>
-              <span class="searchable-select__arrow" aria-hidden="true"></span>
-            </div>
-            <div v-if="resourceDropdownOpen" class="searchable-select__dropdown">
-              <div class="searchable-select__options">
-                <div
-                  class="searchable-select__option searchable-select__option--all"
-                  :class="{ 'is-selected': selectedResource === '' }"
-                  @click="selectResource('', '')"
-                >{{ __('All publications') }}</div>
-                <div
-                  v-for="resource in resources.post_types"
-                  :key="resource.value"
-                  class="searchable-select__option"
-                  :class="{ 'is-selected': selectedResource === resource.value }"
-                  @click="selectResource(resource.value, resource.label)"
-                >{{ resource.label }}</div>
               </div>
             </div>
           </div>
@@ -556,6 +556,7 @@ export default {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  font-weight: 200;
 }
 
 .news-calendar-title {
@@ -841,17 +842,17 @@ export default {
   color: #fff;
   font-size: 1.25rem;
   line-height: 0;
-  font-weight: 600;
+  font-weight: 300;
   cursor: pointer;
   box-sizing: border-box;
   flex-shrink: 0;
 }
 
-/* Глифы ‹ › визуально сидят ниже центра круга */
+/* Глифы ‹ › — лёгкая подстройка по вертикали в круге */
 .news-cal-nav__chev {
   display: block;
   line-height: 1;
-  transform: translateY(-0.07em);
+  transform: translateY(-0.12em);
 }
 
 .news-cal-nav__btn:hover {
@@ -866,7 +867,7 @@ export default {
   max-width: 17rem;
   padding: 0 10px;
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 300;
   color: #e54839;
   text-align: center;
   line-height: 1.2;
@@ -892,7 +893,7 @@ export default {
   border-radius: 0;
   background: transparent;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 300;
   text-transform: none;
   letter-spacing: normal;
   color: #171717;
@@ -1022,7 +1023,7 @@ export default {
 
 .news-cal-calendar-loading__text {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 300;
   color: #171717;
 }
 
@@ -1070,7 +1071,7 @@ export default {
 
 .news-cal-calendar-empty__text {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 300;
   color: #171717;
   text-align: center;
   max-width: 280px;
@@ -1092,7 +1093,7 @@ export default {
   gap: 6px 4px;
   font-size: 13px;
   line-height: 1.35;
-  font-weight: 600;
+  font-weight: 300;
   color: #171717;
 }
 
@@ -1104,7 +1105,7 @@ export default {
 
 .news-cal-stats__label {
   font-size: inherit;
-  font-weight: 600;
+  font-weight: 300;
   line-height: inherit;
   color: inherit;
   font-variant-numeric: tabular-nums;
@@ -1112,7 +1113,7 @@ export default {
 
 .news-cal-stats__value {
   font-size: inherit;
-  font-weight: 700;
+  font-weight: 300;
   line-height: inherit;
   color: inherit;
   font-variant-numeric: tabular-nums;
@@ -1120,7 +1121,7 @@ export default {
 
 .news-cal-stats__sep {
   color: #9ca3af;
-  font-weight: 400;
+  font-weight: 200;
   padding: 0 4px;
   user-select: none;
   font-size: inherit;
@@ -1168,7 +1169,7 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 700;
+  font-weight: 300;
   color: #171717;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -1252,7 +1253,7 @@ export default {
   white-space: nowrap;
   border-bottom: 1px solid #ececec;
   color: #171717;
-  font-weight: 600;
+  font-weight: 300;
 }
 
 .searchable-select__options .searchable-select__option:last-child {
@@ -1265,7 +1266,7 @@ export default {
 
 .searchable-select__option.is-selected {
   background: #f0f0f0;
-  font-weight: 700;
+  font-weight: 300;
 }
 
 .searchable-select__empty {
@@ -1277,11 +1278,11 @@ export default {
 }
 
 .searchable-select__option--all {
-  font-weight: 700;
+  font-weight: 300;
 }
 
 .searchable-select__value.is-all {
-  font-weight: 700;
+  font-weight: 300;
 }
 
 /* Только тип публикации: пункты списка капсом как на макете */
@@ -1294,7 +1295,7 @@ export default {
 /* Авторы / колумнисты: имена в обычном регистре; «все пользователи» — как ALL PUBLICATIONS */
 .searchable-select--people .searchable-select__value {
   text-transform: none;
-  font-weight: 600;
+  font-weight: 300;
   font-size: 13px;
   letter-spacing: normal;
 }
@@ -1303,18 +1304,18 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.02em;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 300;
 }
 
 .searchable-select--people .searchable-select__option {
-  font-weight: 500;
+  font-weight: 200;
 }
 
 .searchable-select--people .searchable-select__option--all {
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: 0.02em;
-  font-weight: 700;
+  font-weight: 300;
 }
 </style>
 
@@ -1426,7 +1427,7 @@ export default {
 }
 
 .news-calendar-container .fc-col-header-cell-cushion {
-  font-weight: 700;
+  font-weight: 300;
   padding: 10px 12px;
 }
 
@@ -1474,7 +1475,7 @@ export default {
   flex: 0 0 auto;
   text-align: left;
   color: #fff !important;
-  font-weight: 700;
+  font-weight: 300;
 }
 
 .news-calendar-container .fc-daygrid-day-top > a.fc-daygrid-day-number:hover .news-calendar-day-top-row {
@@ -1487,7 +1488,7 @@ export default {
   align-items: center;
   justify-content: flex-end;
   gap: 3px 5px;
-  font-weight: 600;
+  font-weight: 300;
   color: #fff !important;
   font-size: 0.72em;
   line-height: 1.25;
@@ -1501,13 +1502,13 @@ export default {
 }
 
 .news-calendar-container .news-calendar-day-stat-sep {
-  font-weight: 400;
+  font-weight: 200;
   opacity: 0.85;
   user-select: none;
 }
 
 .news-calendar-container .news-calendar-day-stats--zero {
-  font-weight: 500;
+  font-weight: 200;
   color: rgba(255, 255, 255, 0.78) !important;
 }
 
@@ -1558,7 +1559,7 @@ export default {
   padding: 6px 8px;
   min-height: 0;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 300;
   line-height: 1.35;
   color: #9ca3af;
   text-align: center;
@@ -1579,7 +1580,11 @@ export default {
 
 .news-calendar-container a.fc-event strong {
   color: inherit !important;
-  font-weight: 700;
+  font-weight: 300;
+}
+
+.news-calendar-container a.fc-event small {
+  font-weight: 200;
 }
 
 @keyframes news-cal-spin {

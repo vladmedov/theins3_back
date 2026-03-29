@@ -120,6 +120,7 @@ class User extends Resource
 
             Select::make(__('Role'), 'role_code')
                 ->options(UserRoles::all())
+                ->displayUsingLabels()
                 ->rules('required'),
 
             BooleanGroup::make(__('Available languages'), 'available_languages')

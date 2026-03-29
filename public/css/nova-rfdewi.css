@@ -1,10 +1,11 @@
-/* RF Dewi: файлы в public/fonts/ (RFDewi-*.woff2 / .woff); при других именах — поправьте src. */
+/* RF Dewi — файлы в public/fonts/<Имя>/<Имя>.woff2 (см. также .woff). */
 @font-face {
     font-family: 'RF Dewi';
     font-style: normal;
     font-weight: 200;
     font-display: swap;
-    src: url('/fonts/RFDewi-Ultralight.woff2') format('woff2'), url('/fonts/RFDewi-Ultralight.woff') format('woff');
+    src: url('/fonts/RFDewi-Regular/RFDewi-Regular.woff2') format('woff2'),
+        url('/fonts/RFDewi-Regular/RFDewi-Regular.woff') format('woff');
 }
 
 @font-face {
@@ -12,7 +13,8 @@
     font-style: normal;
     font-weight: 300;
     font-display: swap;
-    src: url('/fonts/RFDewi-Light.woff2') format('woff2'), url('/fonts/RFDewi-Light.woff') format('woff');
+    src: url('/fonts/RFDewi-Bold/RFDewi-Bold.woff2') format('woff2'),
+        url('/fonts/RFDewi-Bold/RFDewi-Bold.woff') format('woff');
 }
 
 @font-face {
@@ -20,15 +22,8 @@
     font-style: normal;
     font-weight: 400;
     font-display: swap;
-    src: url('/fonts/RFDewi-Regular.woff2') format('woff2'), url('/fonts/RFDewi-Regular.woff') format('woff');
-}
-
-@font-face {
-    font-family: 'RF Dewi';
-    font-style: italic;
-    font-weight: 400;
-    font-display: swap;
-    src: url('/fonts/RFDewi-Italic.woff2') format('woff2'), url('/fonts/RFDewi-Italic.woff') format('woff');
+    src: url('/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff2') format('woff2'),
+        url('/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff') format('woff');
 }
 
 @font-face {
@@ -36,7 +31,8 @@
     font-style: normal;
     font-weight: 500;
     font-display: swap;
-    src: url('/fonts/RFDewi-Medium.woff2') format('woff2'), url('/fonts/RFDewi-Medium.woff') format('woff');
+    src: url('/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff2') format('woff2'),
+        url('/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff') format('woff');
 }
 
 @font-face {
@@ -44,7 +40,8 @@
     font-style: normal;
     font-weight: 600;
     font-display: swap;
-    src: url('/fonts/RFDewi-Semibold.woff2') format('woff2'), url('/fonts/RFDewi-Semibold.woff') format('woff');
+    src: url('/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff2') format('woff2'),
+        url('/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff') format('woff');
 }
 
 @font-face {
@@ -52,23 +49,8 @@
     font-style: normal;
     font-weight: 700;
     font-display: swap;
-    src: url('/fonts/RFDewi-Bold.woff2') format('woff2'), url('/fonts/RFDewi-Bold.woff') format('woff');
-}
-
-@font-face {
-    font-family: 'RF Dewi';
-    font-style: italic;
-    font-weight: 700;
-    font-display: swap;
-    src: url('/fonts/RFDewi-BoldItalic.woff2') format('woff2'), url('/fonts/RFDewi-BoldItalic.woff') format('woff');
-}
-
-@font-face {
-    font-family: 'RF Dewi';
-    font-style: normal;
-    font-weight: 800;
-    font-display: swap;
-    src: url('/fonts/RFDewi-Ultrabold.woff2') format('woff2'), url('/fonts/RFDewi-Ultrabold.woff') format('woff');
+    src: url('/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff2') format('woff2'),
+        url('/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff') format('woff');
 }
 
 @font-face {
@@ -76,16 +58,51 @@
     font-style: normal;
     font-weight: 900;
     font-display: swap;
-    src: url('/fonts/RFDewi-Black.woff2') format('woff2'), url('/fonts/RFDewi-Black.woff') format('woff');
+    src: url('/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff2') format('woff2'),
+        url('/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff') format('woff');
 }
 
-/* Вся админка Nova (корень layout — html с #nova внутри #app) */
+/* Вся админка Nova */
 html:has(#nova),
 html:has(#nova) body {
     font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif !important;
 }
 
 html:has(#nova) .font-sans {
+    font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* Читаемость: после смены шрифта Tailwind text-sm — чуть крупнее и вес 200; «жирный» = 300 (RFDewi-Bold). */
+html:has(#nova) .text-sm {
+    font-size: 0.9rem !important;
+    font-weight: 200 !important;
+    line-height: 1.25rem !important;
+}
+
+html:has(#nova) .text-xs {
+    font-size: 0.8rem !important;
+    font-weight: 200 !important;
+    line-height: 1.25rem !important;
+}
+
+html:has(#nova) .text-xxs {
+    font-size: 0.7rem !important;
+    font-weight: 200 !important;
+    line-height: 1.25rem !important;
+}
+
+html:has(#nova) .font-bold, b, strong {
+    font-weight: 300 !important;
+}
+
+/*
+ * Поля форм и выпадающие списки: часть разметки в <teleport to="body"> (вне #nova);
+ * у input/select часто свой UA-шрифт без наследования от body.
+ */
+html:has(#nova) input,
+html:has(#nova) select,
+html:has(#nova) textarea,
+html:has(#nova) button {
     font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif !important;
 }
 

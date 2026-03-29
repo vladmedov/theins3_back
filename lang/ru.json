@@ -4,7 +4,7 @@
     "Admin sidebar: Switch to language": "Переключить на :locale",
     "To refresh the token, reload the page.": "Для обновления токена — обновите страницу.",
     "Time is shown in your device timezone.": "Время указано в часовом поясе вашего устройства.",
-    "Autosave is disabled for this field.": "Автосохранение для поля выключено.",
+    "Autosave is enabled for this field.": "Включено автосохранение поля.",
     "Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.": "Допустимые форматы: jpeg, jpg, png, webp. Максимальный размер: 20 МБ. Минимальные размеры: 640x100 px.",
     "Ignore image dimension requirements": "Игнорировать требования к размерам изображения",
     "If enabled, minimum image dimensions (640x100) will not be validated.": "Если включено, минимальные размеры изображения (640x100) не проверяются.",
@@ -20,6 +20,10 @@
     "Post types with hidden author name": "Типы публикаций со скрытым именем автора",
     "Types of publications where this author can be selected as the author of the content.": "Типы публикаций, в которых можно выбрать этого автора как автора материала.",
     "Types of publications where the author name is hidden unless the publication is configured to show all authors.": "Типы публикаций, в которых имя автора будет скрыто (если в настройках публикации не указано показать всех авторов публикации).",
-    "Publication form new": "Новая публикация",
-    "Publication form no title": "Без названия"
+    "Publication form new": "Создание",
+    "Publication form no title": "Без названия",
+    "User role: Administrator": "Администратор",
+    "User role: Editor": "Редактор",
+    "User role: Journalist": "Журналист",
+    "Date/time": "Дата/время"
 }

@@ -21,6 +21,7 @@ class PostHistoryController extends Controller
         return response()->json([
             'post' => $post->title,
             'type_label' => PostTypesEnum::get($post->type) ?: ($post->type ?: '-'),
+            'empty_post_title_label' => __('Publication form no title'),
             'changes' => $changes
         ]);
     }

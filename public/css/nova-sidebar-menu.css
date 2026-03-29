@@ -49,6 +49,242 @@ div[id="app"] > div[id="nova"] > div > header span {
     color: #000;
 }
 
+
+
+div[id="app"] {
+    background-color: #1a1a1a;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] {
+    background-color: #1a1a1a;
+}
+
+/* Десктоп: колонка сайдбара */
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child {
+    background-color: #1a1a1a;
+    padding: 0px;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div {
+    padding: 15px 0;
+    margin: 0px;
+    border-bottom: 1px solid #2b2b2b;
+}
+
+/* Меньше отступ слева: ужать Nova px-1 / w-6 / px-3 у заголовков групп */
+[dusk="sidebar-menu"] > div > h4 {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+}
+
+[dusk="sidebar-menu"] > div > h4 > span.inline-block.shrink-0.w-6:first-child {
+    width: 1rem !important;
+    min-width: 1rem !important;
+    max-width: 1rem !important;
+    height: 1rem !important;
+}
+
+[dusk="sidebar-menu"] > div > h4 > span.flex-1 {
+    padding-left: 0.375rem !important;
+    padding-right: 0.375rem !important;
+}
+
+/* Пункты подменю: уже ссылка + внутренние span */
+[dusk="sidebar-menu"] > div > div > div > a.min-h-8 {
+    padding-left: 17px !important;
+    padding-right: 2px !important;
+}
+
+[dusk="sidebar-menu"] > div > div > div > a.min-h-8 > span.inline-block.shrink-0.w-6:first-child {
+    width: 1rem !important;
+    min-width: 1rem !important;
+    max-width: 1rem !important;
+}
+
+[dusk="sidebar-menu"] > div > div > div > a.min-h-8 > span.flex-1 {
+    padding-left: 0.375rem !important;
+    padding-right: 0.375rem !important;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4 > span {
+    color: #fff;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4 > span:last-child {
+    filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(100%) hue-rotate(346deg) brightness(100%) contrast(100%);
+    padding-right: 20px;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4:hover {
+    background-color: #1a1a1a;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > div > div > a {
+    color: #fff;
+    padding: 10px 0;
+    padding-left: 20px;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > div > div > a:hover {
+    color: #fff;
+    background-color: #222;
+    padding: 10px 0;
+    padding-left: 20px;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > a {
+    color: #fff;
+}
+
+div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > a:hover {
+    color: #fff;
+    background-color: #222;
+}
+
+
+
+
+
+
+
+
+
+
+/* Убрать обводку фокуса по клику (Chrome) и Nova/Tailwind focus:ring */
+[dusk="sidebar-menu"] a {
+    --tw-ring-offset-width: 0 !important;
+    --tw-ring-width: 0 !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+}
+
+[dusk="sidebar-menu"] a:focus,
+[dusk="sidebar-menu"] a:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+[dusk="sidebar-menu"] h4:focus,
+[dusk="sidebar-menu"] h4:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+[dusk="sidebar-menu"] button:focus,
+[dusk="sidebar-menu"] button:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Секция с переключателем языка: без лишнего padding — отступы задаёт только margin у ссылки */
+[dusk="sidebar-menu"] > div:first-child:has(> a[href*="/set-locale/"]) {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+
+
+
+
+
+
+/* Смена языка — компактная тёмно-серая кнопка, стрелка справа (::after) */
+[dusk="sidebar-menu"] a[href*="/set-locale/"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+    box-sizing: border-box !important;
+    width: calc(100% - 10px) !important;
+    max-width: 100% !important;
+    margin: 4px 5px !important;
+    padding: 8px 9px !important;
+    padding-right: 1.75rem !important;
+    min-height: 0 !important;
+    position: relative !important;
+    border-radius: 0 !important;
+    border: none !important;
+    background-color: #2a2a2a !important;
+    text-decoration: none !important;
+    line-height: 1.25 !important;
+}
+
+[dusk="sidebar-menu"] a[href*="/set-locale/"]::after {
+    content: "\2192";
+    position: absolute !important;
+    right: 9px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    flex-shrink: 0 !important;
+    line-height: 1 !important;
+    opacity: 0.95 !important;
+}
+
+[dusk="sidebar-menu"] a[href*="/set-locale/"]:hover,
+[dusk="sidebar-menu"] a[href*="/set-locale/"]:focus-visible {
+    background-color: #3a3a3a !important;
+    color: #fff !important;
+}
+
+[dusk="sidebar-menu"] a[href*="/set-locale/"] > span.inline-block.shrink-0.w-6:first-child {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+}
+
+[dusk="sidebar-menu"] a[href*="/set-locale/"] > span.flex-1 {
+    justify-content: center !important;
+    text-align: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    font-weight: 200 !important;
+    font-size: 0.9rem !important;
+    color: #fff !important;
+}
+
+[dusk="sidebar-menu"] a[href*="/set-locale/"] > span.inline-block.h-6.shrink-0:last-of-type {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+}
+
+
+
+
+
+/* Заголовки групп (верхний уровень): чуть крупнее Nova text-xs — десктоп и [dusk] в drawer */
+[dusk="sidebar-menu"] > div > h4,
+[dusk="sidebar-menu"] > div > h4 span {
+    font-size: 0.9rem !important;
+    font-weight: 300 !important;
+}
+
+/*
+ * Вложенные пункты меню: обычный 200 / активный 300.
+ * Нужен префикс html:has(#nova) — иначе html:has(#nova) .text-sm из nova-rfdewi.css (тот же !important,
+ * но с #nova) перебивает эти правила у пунктов с классом text-sm.
+ */
+html:has(#nova) [dusk="sidebar-menu"] > div > div > div > a > span[class*="flex-1"] {
+    font-size: 0.9rem !important;
+    font-weight: 200 !important;
+}
+html:has(#nova) [dusk="sidebar-menu"] > div > div > div > a[data-active-link="true"] > span[class*="flex-1"] {
+    font-weight: 300 !important;
+}
+html:has(#nova) [dusk="sidebar-menu"] > div > div > div:first-child {
+    margin-top: 1rem !important;
+}
+html:has(#nova) [dusk="sidebar-menu"] > div > div > div > a[data-active-link="true"] {
+    background-color: #151515 !important;
+    border-right: 3px solid #e54839 !important;
+    border-radius: 0 !important;
+}
+
 /* Мобильная шапка: белая полоса; бургер — красный, белая иконка, на всю высоту */
 @media (max-width: 1023px) {
     div[id="app"] > div[id="nova"] > div > header {
@@ -127,11 +363,12 @@ div[id="app"] > div[id="nova"] > div > header span {
         color: #fff !important;
         padding: 10px 0;
         padding-left: 21px;
-        font-weight: 400 !important;
+        font-size: 0.9rem !important;
+        font-weight: 200 !important;
     }
 
     body > div.lg\:hidden.w-60 .sidebar-menu > div > div > div > a[data-active-link="true"] {
-        font-weight: 800 !important;
+        font-weight: 300 !important;
     }
 
     body > div.lg\:hidden.w-60 .sidebar-menu > div > div > div > a[data-active-link="true"] span {
@@ -182,215 +419,4 @@ div[id="app"] > div[id="nova"] > div > header span {
     body > div.lg\:hidden.w-60 .max-w-xxs nav button:hover {
         color: #fff !important;
     }
-}
-
-div[id="app"] {
-    background-color: #1a1a1a;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] {
-    background-color: #1a1a1a;
-}
-
-/* Десктоп: колонка сайдбара */
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child {
-    background-color: #1a1a1a;
-    padding: 0px;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div {
-    padding: 15px 0;
-    margin: 0px;
-    border-bottom: 1px solid #2b2b2b;
-}
-
-/* Заголовки групп (верхний уровень): чуть крупнее Nova text-xs — десктоп и [dusk] в drawer */
-[dusk="sidebar-menu"] > div > h4,
-[dusk="sidebar-menu"] > div > h4 span {
-    font-size: 0.8rem !important;
-    font-weight: 700 !important;
-}
-
-/* Меньше отступ слева: ужать Nova px-1 / w-6 / px-3 у заголовков групп */
-[dusk="sidebar-menu"] > div > h4 {
-    padding-left: 2px !important;
-    padding-right: 2px !important;
-}
-
-[dusk="sidebar-menu"] > div > h4 > span.inline-block.shrink-0.w-6:first-child {
-    width: 1rem !important;
-    min-width: 1rem !important;
-    max-width: 1rem !important;
-    height: 1rem !important;
-}
-
-[dusk="sidebar-menu"] > div > h4 > span.flex-1 {
-    padding-left: 0.375rem !important;
-    padding-right: 0.375rem !important;
-}
-
-/* Пункты подменю: уже ссылка + внутренние span */
-[dusk="sidebar-menu"] > div > div > div > a.min-h-8 {
-    padding-left: 17px !important;
-    padding-right: 2px !important;
-}
-
-[dusk="sidebar-menu"] > div > div > div > a.min-h-8 > span.inline-block.shrink-0.w-6:first-child {
-    width: 1rem !important;
-    min-width: 1rem !important;
-    max-width: 1rem !important;
-}
-
-[dusk="sidebar-menu"] > div > div > div > a.min-h-8 > span.flex-1 {
-    padding-left: 0.375rem !important;
-    padding-right: 0.375rem !important;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4 > span {
-    color: #fff;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4 > span:last-child {
-    filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(100%) hue-rotate(346deg) brightness(100%) contrast(100%);
-    padding-right: 20px;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > h4:hover {
-    background-color: #1a1a1a;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > div > div > a {
-    color: #fff;
-    padding: 10px 0;
-    padding-left: 20px;
-    font-weight: 400;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > div > div > a:hover {
-    color: #fff;
-    background-color: #222;
-    padding: 10px 0;
-    padding-left: 20px;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > a {
-    color: #fff;
-}
-
-div[id="app"] > div[id="nova"] > [dusk="content"] > div.hidden:first-child > .sidebar-menu > div > a:hover {
-    color: #fff;
-    background-color: #222;
-}
-
-/* Подменю: обычные пункты — regular; активный — extra-bold (десктоп и drawer) */
-[dusk="sidebar-menu"] > div > div > div > a {
-    font-weight: 400 !important;
-}
-
-[dusk="sidebar-menu"] > div > div > div > a[data-active-link="true"] {
-    font-weight: 800 !important;
-}
-
-[dusk="sidebar-menu"] > div > div > div > a[data-active-link="true"] span {
-    font-weight: inherit !important;
-}
-
-/* Убрать обводку фокуса по клику (Chrome) и Nova/Tailwind focus:ring */
-[dusk="sidebar-menu"] a {
-    --tw-ring-offset-width: 0 !important;
-    --tw-ring-width: 0 !important;
-    --tw-ring-offset-shadow: 0 0 #0000 !important;
-    --tw-ring-shadow: 0 0 #0000 !important;
-}
-
-[dusk="sidebar-menu"] a:focus,
-[dusk="sidebar-menu"] a:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-[dusk="sidebar-menu"] h4:focus,
-[dusk="sidebar-menu"] h4:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-[dusk="sidebar-menu"] button:focus,
-[dusk="sidebar-menu"] button:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-/* Секция с переключателем языка: без лишнего padding — отступы задаёт только margin у ссылки */
-[dusk="sidebar-menu"] > div:first-child:has(> a[href*="/set-locale/"]) {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-}
-
-/* Смена языка — компактная тёмно-серая кнопка, стрелка справа (::after) */
-[dusk="sidebar-menu"] a[href*="/set-locale/"] {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex-wrap: nowrap !important;
-    box-sizing: border-box !important;
-    width: calc(100% - 10px) !important;
-    max-width: 100% !important;
-    margin: 4px 5px !important;
-    padding: 8px 9px !important;
-    padding-right: 1.75rem !important;
-    min-height: 0 !important;
-    position: relative !important;
-    border-radius: 0 !important;
-    border: none !important;
-    background-color: #2a2a2a !important;
-    color: #fff !important;
-    font-weight: 600 !important;
-    font-size: 0.8125rem !important;
-    text-decoration: none !important;
-    line-height: 1.25 !important;
-}
-
-[dusk="sidebar-menu"] a[href*="/set-locale/"]::after {
-    content: "\2192";
-    position: absolute !important;
-    right: 9px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-    flex-shrink: 0 !important;
-    font-size: 1em !important;
-    font-weight: 400 !important;
-    line-height: 1 !important;
-    opacity: 0.95 !important;
-}
-
-[dusk="sidebar-menu"] a[href*="/set-locale/"]:hover,
-[dusk="sidebar-menu"] a[href*="/set-locale/"]:focus-visible {
-    background-color: #3a3a3a !important;
-    color: #fff !important;
-}
-
-[dusk="sidebar-menu"] a[href*="/set-locale/"] > span.inline-block.shrink-0.w-6:first-child {
-    display: none !important;
-    width: 0 !important;
-    min-width: 0 !important;
-}
-
-[dusk="sidebar-menu"] a[href*="/set-locale/"] > span.flex-1 {
-    justify-content: center !important;
-    text-align: center !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    width: 100% !important;
-    color: #fff !important;
-}
-
-[dusk="sidebar-menu"] a[href*="/set-locale/"] > span.inline-block.h-6.shrink-0:last-of-type {
-    display: none !important;
-    width: 0 !important;
-    min-width: 0 !important;
 }

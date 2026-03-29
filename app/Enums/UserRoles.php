@@ -9,9 +9,9 @@ class UserRoles {
 
     public static function all() {
         return [
-            self::ADMIN => 'Администратор',
-            self::EDITOR => 'Редактор',
-            self::JOURNALIST => 'Журналист',
+            self::ADMIN => __('User role: Administrator'),
+            self::EDITOR => __('User role: Editor'),
+            self::JOURNALIST => __('User role: Journalist'),
         ];
     }
 }

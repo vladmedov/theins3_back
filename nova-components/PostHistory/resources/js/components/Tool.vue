@@ -1,7 +1,13 @@
 <template>
   <div class="history-viewer">
     <div class="history-top-bar" v-if="currentChange">
-      <h1 class="font-normal text-xl md:text-xl mb-3 history-post-title">{{ getHistoryHeaderTitle() }}</h1>
+      <h1 class="history-post-title">
+        <span class="nova-post-edit-page-title">
+          <span class="nova-post-edit-page-title__type">{{ historyHeaderType }}</span>
+          <span class="nova-post-edit-page-title__sep">: </span>
+          <span class="nova-post-edit-page-title__headline">{{ historyHeaderHeadline }}</span>
+        </span>
+      </h1>
       <div class="history-top-actions">
         <a :href="getEditUrl()" class="history-edit-link">Редактировать пост</a>
       </div>
@@ -194,7 +200,20 @@ export default {
       visualFrameHeights: {},
       copiedBlocks: {},
       selectedDate: '',
+      emptyPostTitleLabel: '—',
     };
+  },
+
+  computed: {
+    historyHeaderType() {
+      const raw =
+        String(this.postTypeLabel ?? '').trim() || String(this.resourceName ?? '').trim() || '-';
+      return raw.toLocaleUpperCase('ru-RU');
+    },
+    historyHeaderHeadline() {
+      const t = String(this.postTitle ?? '').trim();
+      return t || this.emptyPostTitleLabel;
+    },
   },
 
   methods: {
@@ -236,6 +255,9 @@ export default {
       const { data } = await axios.get(`/nova-vendor/post-history/${this.resourceId}`);
       this.postTitle = data.post;
       this.postTypeLabel = data.type_label || '';
+      if (data.empty_post_title_label) {
+        this.emptyPostTitleLabel = data.empty_post_title_label;
+      }
       this.changes = data.changes.map(change => {
         change.changes = this.parseChanges(change.changes);
         return change;
@@ -322,12 +344,6 @@ export default {
 
     getEditUrl() {
       return `/admin/resources/${this.resourceName}/${this.resourceId}/edit`;
-    },
-
-    getHistoryHeaderTitle() {
-      const type = String(this.postTypeLabel ?? '').trim() || String(this.resourceName ?? '').trim() || '-';
-      const title = String(this.postTitle ?? '').trim() || '-';
-      return `[ИСТОРИЯ ИЗМЕНЕНИЙ] ${type} > ${title}`;
     },
 
     parseChanges(changes) {
@@ -1386,7 +1402,7 @@ export default {
     <meta charset="utf-8">
     <style>
       @font-face {
-        font-family: 'RFDewi';
+        font-family: 'RF Dewi';
         src: url('/fonts/RFDewi-Regular/RFDewi-Regular.woff2') format('woff2'),
              url('/fonts/RFDewi-Regular/RFDewi-Regular.woff') format('woff');
         font-weight: 200;
@@ -1394,7 +1410,7 @@ export default {
         font-display: swap;
       }
       @font-face {
-        font-family: 'RFDewi';
+        font-family: 'RF Dewi';
         src: url('/fonts/RFDewi-Bold/RFDewi-Bold.woff2') format('woff2'),
              url('/fonts/RFDewi-Bold/RFDewi-Bold.woff') format('woff');
         font-weight: 300;
@@ -1402,7 +1418,7 @@ export default {
         font-display: swap;
       }
       @font-face {
-        font-family: 'RFDewi';
+        font-family: 'RF Dewi';
         src: url('/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff2') format('woff2'),
              url('/fonts/RFDewiCondensed-Regular/RFDewiCondensed-Regular.woff') format('woff');
         font-weight: 400;
@@ -1410,7 +1426,7 @@ export default {
         font-display: swap;
       }
       @font-face {
-        font-family: 'RFDewi';
+        font-family: 'RF Dewi';
         src: url('/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff2') format('woff2'),
              url('/fonts/RFDewiCondensed-Semibold/RFDewiCondensed-Semibold.woff') format('woff');
         font-weight: 500;
@@ -1418,7 +1434,7 @@ export default {
         font-display: swap;
       }
       @font-face {
-        font-family: 'RFDewi';
+        font-family: 'RF Dewi';
         src: url('/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff2') format('woff2'),
              url('/fonts/RFDewiCondensed-Bold/RFDewiCondensed-Bold.woff') format('woff');
         font-weight: 600;
@@ -1426,7 +1442,7 @@ export default {
         font-display: swap;
       }
       @font-face {
-        font-family: 'RFDewi';
+        font-family: 'RF Dewi';
         src: url('/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff2') format('woff2'),
              url('/fonts/RFDewiCondensed-Ultrabold/RFDewiCondensed-Ultrabold.woff') format('woff');
         font-weight: 700;
@@ -1434,7 +1450,7 @@ export default {
         font-display: swap;
       }
       @font-face {
-        font-family: 'RFDewi';
+        font-family: 'RF Dewi';
         src: url('/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff2') format('woff2'),
              url('/fonts/RFDewiExpanded-Black/RFDewiExpanded-Black.woff') format('woff');
         font-weight: 900;
@@ -1444,20 +1460,23 @@ export default {
       body {
         margin: 0;
         padding: 10px 25px;
-        font-family: 'RFDewi', Arial, Helvetica, sans-serif;
+        font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif;
+        font-size: 0.9rem;
+        font-weight: 200;
+        line-height: 1.25rem;
         -webkit-font-smoothing: antialiased;
         color: #333;
         white-space: pre-wrap;
         word-break: break-word;
       }
       body * {
-        font-family: 'RFDewi', Arial, Helvetica, sans-serif;
+        font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
       }
       p, li, blockquote {
-        font-size: 1.075rem;
+        font-size: 0.9rem;
         font-weight: 200;
-        line-height: 1.625rem;
+        line-height: 1.25rem;
         color: #333;
       }
       p, h1, h2, h3, h4, h5, h6, blockquote, ul, ol, hr {
@@ -1467,29 +1486,29 @@ export default {
         color: #000;
       }
       h3 {
-        font-size: 1.5rem !important;
-        font-weight: 700 !important;
-        line-height: 1.2;
+        font-size: 1.25rem !important;
+        font-weight: 300 !important;
+        line-height: 1.3;
       }
       h3.outline-heading {
         position: relative;
         padding-top: 1.25rem;
         width: fit-content;
         border-top: 0.625rem solid #333;
-        font-weight: 700 !important;
+        font-weight: 300 !important;
         color: #333;
-        font-size: 1.375rem !important;
-        line-height: 1.5rem;
+        font-size: 1.125rem !important;
+        line-height: 1.35rem;
       }
       h4 {
-        font-size: 1.25rem !important;
-        font-weight: 700 !important;
-        line-height: 1.2;
+        font-size: 1.125rem !important;
+        font-weight: 300 !important;
+        line-height: 1.3;
       }
       h5 {
-        font-size: 1.125rem !important;
-        font-weight: 900 !important;
-        line-height: 1.2;
+        font-size: 1rem !important;
+        font-weight: 300 !important;
+        line-height: 1.3;
       }
       b, strong {
         font-weight: 300;
@@ -1543,7 +1562,7 @@ export default {
         left: 0;
         top: 0;
         color: #e54839;
-        font-weight: 400;
+        font-weight: 300;
       }
       .ck-termin-highlight {
         display: inline;
@@ -1582,9 +1601,9 @@ export default {
         padding: 0 1px;
       }
       .is-heading {
-        font-weight: 700;
-        font-size: 1.08em;
-        line-height: 1.45;
+        font-weight: 300;
+        font-size: 1.02em;
+        line-height: 1.35;
       }
       .is-outline-heading {
         display: inline-block;
@@ -1592,10 +1611,10 @@ export default {
         padding-top: 1.25rem;
         width: fit-content;
         border-top: 0.625rem solid #333;
-        font-weight: 700 !important;
+        font-weight: 300 !important;
         color: #333;
-        font-size: 1.375rem !important;
-        line-height: 1.5rem;
+        font-size: 1.125rem !important;
+        line-height: 1.35rem;
       }
       .is-quote {
         display: block;
@@ -1683,6 +1702,16 @@ export default {
 </script>
 
 <style scoped>
+/* Как в остальной Nova: RF Dewi, 0.9rem / 200, акцент 300 */
+.history-viewer {
+  font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 .history-scroll-container {
   padding: 8px 0;
   margin-top: 4px;
@@ -1739,14 +1768,15 @@ export default {
   border-radius: 999px;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
-  font-size: 12px;
-  font-weight: 400;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
 }
 
 .history-item.active {
   background: #e5e7eb;
   border-color: transparent;
-  font-weight: 500;
+  font-weight: 300;
   color: #111827;
 }
 
@@ -1780,7 +1810,7 @@ export default {
 }
 
 .history-post-title {
-  color: rgb(100, 116, 139);
+  margin: 0 0 18px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -1793,7 +1823,9 @@ export default {
 }
 
 .history-edit-link {
-  font-size: 12px;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
   color: #fff;
   text-decoration: none;
   border: 1px solid #111827;
@@ -1825,9 +1857,9 @@ export default {
   display: inline-block;
   border-radius: 999px;
   padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 0.9rem;
+  font-weight: 300;
+  line-height: 1.25rem;
 }
 
 .status-chip--created {
@@ -1849,8 +1881,9 @@ export default {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
 }
 
 .history-meta-row + .history-meta-row {
@@ -1881,9 +1914,11 @@ export default {
 }
 
 .field-title {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1.3;
   margin-bottom: 10px;
+  color: #171717;
 }
 
 .block-separator {
@@ -1916,7 +1951,10 @@ export default {
   color: #374151;
   border-radius: 6px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
+  font-family: inherit;
   cursor: pointer;
 }
 
@@ -1939,16 +1977,19 @@ export default {
   overflow: hidden;
   padding: 10px 25px;
   color: #333;
-  font-family: 'RFDewi', Arial, Helvetica, sans-serif;
+  font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
   -webkit-font-smoothing: antialiased;
 }
 
 .html-preview-render :deep(p),
 .html-preview-render :deep(li),
 .html-preview-render :deep(blockquote) {
-  font-size: 1.075rem;
+  font-size: 0.9rem;
   font-weight: 200;
-  line-height: 1.625rem;
+  line-height: 1.25rem;
   color: #333;
 }
 
@@ -1972,7 +2013,7 @@ export default {
 
 .html-preview-render :deep(strong),
 .html-preview-render :deep(b) {
-  font-weight: 700;
+  font-weight: 300;
   font-size: inherit;
   line-height: inherit;
 }
@@ -2005,10 +2046,10 @@ export default {
   padding-top: 1.25rem;
   width: fit-content;
   border-top: 0.625rem solid #333;
-  font-weight: 700 !important;
+  font-weight: 300 !important;
   color: #333;
-  font-size: 1.375rem !important;
-  line-height: 1.5rem;
+  font-size: 1.125rem !important;
+  line-height: 1.35rem;
 }
 
 .html-preview-render :deep(.is-quote) {
@@ -2024,7 +2065,9 @@ export default {
 }
 
 .debug-html-title {
-  font-size: 12px;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
   color: #6b7280;
   margin: 6px 0 4px;
 }
@@ -2033,8 +2076,10 @@ export default {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
+  font-family: 'RF Dewi', ui-sans-serif, system-ui, sans-serif;
   background: #fff;
   border: 1px solid #d1d5db;
   border-radius: 4px;
@@ -2066,7 +2111,9 @@ export default {
 .plain-diff-value {
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.25rem;
 }
 
 .plain-diff-value :deep(.plain-diff-removed) {
@@ -2122,14 +2169,18 @@ export default {
 
 .old-value-title {
   display: block;
-  font-weight: bold;
+  font-weight: 300;
+  font-size: 0.9rem;
+  line-height: 1.25rem;
   color: #e74c3c;
   margin-bottom: 5px;
 }
 
 .new-value-title {
   display: block;
-  font-weight: bold;
+  font-weight: 300;
+  font-size: 0.9rem;
+  line-height: 1.25rem;
   color: #27ae60;
   margin-bottom: 5px;
 }

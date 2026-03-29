@@ -37,10 +37,10 @@
         fieldValues: {},
         isBootstrapping: true,
         listenersInstalled: false,
-        tagMutationObserverInstalled: false,
         statusChangeLockUntil: 0,
         retryDelayMs: 1000,
         togglePublishUiInstalled: false,
+        postOwnersSelfLockInstalled: false,
         /** Медленная загрузка (VPN): Vue шлёт *-change с задержкой — ждём load + паузу и мин. окно (не слишком долго, иначе быстрые правки теряются) */
         bootstrapPath: null,
         bootstrapPhaseStarted: false,
@@ -295,6 +295,61 @@
         autosaveState.statusChangeLockUntil = 0;
     }
 
+    /** Автосохранение только для заголовка, лида, описания картинки, SEO и блоков контента (атрибуты с __). */
+    const AUTOSAVE_ALLOWED_ROOT_ATTRS = [
+        'title',
+        'image_description',
+        'lead',
+        'seo_title',
+        'seo_description',
+        'seo_keywords',
+    ];
+
+    function isAutosaveAllowedAttributeName(attr) {
+        if (!attr || typeof attr !== 'string') {
+            return false;
+        }
+        if (attr.indexOf('__') !== -1) {
+            return true;
+        }
+        return AUTOSAVE_ALLOWED_ROOT_ATTRS.indexOf(attr) !== -1;
+    }
+
+    function isAutosaveAllowedNovaChangeEventName(eventName) {
+        if (typeof eventName !== 'string' || !eventName.endsWith('-change')) {
+            return false;
+        }
+        const core = eventName.slice(0, -7);
+        for (let i = 0; i < AUTOSAVE_ALLOWED_ROOT_ATTRS.length; i++) {
+            const attr = AUTOSAVE_ALLOWED_ROOT_ATTRS[i];
+            if (core === attr || core.endsWith('-' + attr)) {
+                return true;
+            }
+        }
+        return core.indexOf('__') !== -1;
+    }
+
+    function isAutosaveAllowedNovaAutosaveCustomEvent(e) {
+        const d = e && e.detail;
+        if (!d) {
+            return false;
+        }
+        if (d.source === 'flexible-add-group') {
+            return true;
+        }
+        return isAutosaveAllowedAttributeName(d.attribute);
+    }
+
+    function isAutosaveAllowedDomTarget(target) {
+        if (!target || !target.closest) {
+            return false;
+        }
+        return !!(
+            target.closest('[data-post-autosave-field="1"]')
+            || target.closest('[data-post-autosave-content="1"]')
+        );
+    }
+
     function installNovaFieldChangePatch() {
         if (autosaveState.novaEmitPatched || !window.Nova || typeof window.Nova.$emit !== 'function') {
             return;
@@ -311,6 +366,10 @@
                 if (typeof eventName === 'string' && eventName.endsWith('-change')) {
                     if (isStatusChangeEvent(eventName)) {
                         lockAutosaveForStatusChange();
+                        return result;
+                    }
+
+                    if (!isAutosaveAllowedNovaChangeEventName(eventName)) {
                         return result;
                     }
 
@@ -345,53 +404,88 @@
         autosaveState.novaEmitPatched = true;
     }
 
-    function installTagFieldObserver() {
-        if (autosaveState.tagMutationObserverInstalled) {
-            return;
-        }
-
-        const form = document.querySelector('form[data-form-unique-id]') || document.querySelector('form');
-        if (!form || typeof MutationObserver === 'undefined') {
-            return;
-        }
-
-        new MutationObserver(function (mutations) {
-            if (autosaveState.isBootstrapping || !isAutosaveEnabled()) {
-                return;
-            }
-
-            for (let i = 0; i < mutations.length; i++) {
-                const mutation = mutations[i];
-                const target = mutation.target;
-                const touchesSelectedTags = !!(
-                    (target && target.closest && target.closest('[dusk$="-selected-tags"]'))
-                    || Array.from(mutation.addedNodes || []).some(function (node) {
-                        return node.nodeType === 1
-                            && ((node.matches && node.matches('[dusk$="-selected-tags"]'))
-                                || (node.closest && node.closest('[dusk$="-selected-tags"]'))
-                                || (node.querySelector && node.querySelector('[dusk$="-selected-tags"]')));
-                    })
-                    || Array.from(mutation.removedNodes || []).some(function (node) {
-                        return node.nodeType === 1
-                            && ((node.matches && node.matches('[dusk$="-selected-tags"]'))
-                                || (node.querySelector && node.querySelector('[dusk$="-selected-tags"]')));
-                    })
-                );
-
-                if (touchesSelectedTags) {
-                    if (isStatusChangeLocked()) {
-                        return;
+    /**
+     * Поле «Доступ к управлению» (owners): текущий пользователь не может снять себя с тега;
+     * сервер через fillUsing всё равно добавляет auth()->id() при сохранении.
+     */
+    function findOwnersTagFieldValuePayload(selectedTagsRoot) {
+        let el = selectedTagsRoot;
+        for (var depth = 0; depth < 60 && el; depth++) {
+            var c = el.__vueParentComponent;
+            if (c) {
+                var proxy = c.proxy;
+                if (proxy) {
+                    var fld = proxy.field || proxy.currentField;
+                    if (fld && fld.attribute === 'owners' && Array.isArray(proxy.value)) {
+                        return proxy.value;
                     }
-                    notifyAutosaveChange();
-                    return;
                 }
             }
-        }).observe(form, {
-            childList: true,
-            subtree: true,
-        });
+            el = el.parentElement;
+        }
+        return null;
+    }
 
-        autosaveState.tagMutationObserverInstalled = true;
+    function installPostOwnersSelfLock() {
+        if (autosaveState.postOwnersSelfLockInstalled) {
+            return;
+        }
+        autosaveState.postOwnersSelfLockInstalled = true;
+
+        document.addEventListener(
+            'click',
+            function (e) {
+                var root = e.target.closest('[dusk="owners-selected-tags"]');
+                if (!root) {
+                    return;
+                }
+
+                var nova = window.Nova;
+                if (!nova || typeof nova.config !== 'function') {
+                    return;
+                }
+
+                var lockUid = nova.config('userId');
+                if (lockUid == null || lockUid === '') {
+                    return;
+                }
+
+                var outer = e.target.closest('[dusk="owners-selected-tags"] .flex.flex-wrap > button');
+                if (!outer) {
+                    return;
+                }
+
+                var clickedBtn = e.target.closest('button');
+                if (!clickedBtn || clickedBtn === outer) {
+                    return;
+                }
+
+                var wrap = outer.parentElement;
+                if (!wrap) {
+                    return;
+                }
+                var idx = Array.prototype.indexOf.call(wrap.children, outer);
+                if (idx < 0) {
+                    return;
+                }
+
+                var payload = findOwnersTagFieldValuePayload(root);
+                if (!payload || !payload[idx]) {
+                    return;
+                }
+
+                var tagId = parseInt(payload[idx].value, 10);
+                var uid = parseInt(lockUid, 10);
+                if (isNaN(tagId) || isNaN(uid) || tagId !== uid) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            },
+            true
+        );
     }
 
     function isExistingResource() {
@@ -426,17 +520,21 @@
         return getAutosaveStatusRoots().length > 0;
     }
 
-    function findAutosaveButton() {
-        const bars = getFormActionBars();
-
-        for (let i = 0; i < bars.length; i++) {
-            const button = bars[i].querySelector('button[data-saving-label]');
-            if (button) {
-                return button;
+    /** Все кнопки «Сохранить» с таймером (верхняя и нижняя панели). */
+    function getAllAutosaveStayButtons() {
+        const buttons = [];
+        getFormActionBars().forEach(function (bar) {
+            const btn = bar.querySelector('button[data-saving-label]');
+            if (btn) {
+                buttons.push(btn);
             }
-        }
+        });
+        return buttons;
+    }
 
-        return null;
+    function findAutosaveButton() {
+        const buttons = getAllAutosaveStayButtons();
+        return buttons.length ? buttons[0] : null;
     }
 
     /** Подпись кнопки Stay «Сохранить» без таймера автосохранения */
@@ -452,26 +550,28 @@
     }
 
     function renderAutosaveSaveButtonCountdown(remainingSeconds) {
-        const btn = findAutosaveButton();
-        if (!btn || !btn.dataset) {
-            return;
-        }
-        const def = getAutosaveStayButtonDefaultLabel(btn);
-        if (!def) {
-            return;
-        }
-        btn.textContent = def + ' ' + String(remainingSeconds);
+        getAllAutosaveStayButtons().forEach(function (btn) {
+            if (!btn || !btn.dataset) {
+                return;
+            }
+            const def = getAutosaveStayButtonDefaultLabel(btn);
+            if (!def) {
+                return;
+            }
+            btn.textContent = def + ' ' + String(remainingSeconds);
+        });
     }
 
     function restoreAutosaveSaveButtonLabel() {
-        const btn = findAutosaveButton();
-        if (!btn) {
-            return;
-        }
-        const def = getAutosaveStayButtonDefaultLabel(btn);
-        if (def) {
-            btn.textContent = def;
-        }
+        getAllAutosaveStayButtons().forEach(function (btn) {
+            if (!btn) {
+                return;
+            }
+            const def = getAutosaveStayButtonDefaultLabel(btn);
+            if (def) {
+                btn.textContent = def;
+            }
+        });
     }
 
     function getAutosaveSavingLabel() {
@@ -1610,7 +1710,7 @@
         installLocationPatches();
         patchLocationHrefSetter();
         installNovaFieldChangePatch();
-        installTagFieldObserver();
+        installPostOwnersSelfLock();
         installAutosaveListeners();
         installTogglePublishUi();
         initializeAutosaveStatus();
@@ -1842,6 +1942,10 @@
                 return;
             }
 
+            if (!isAutosaveAllowedDomTarget(target)) {
+                return;
+            }
+
             if (isTextLikeInputChange(event, target)) {
                 return;
             }
@@ -1860,8 +1964,11 @@
 
         document.addEventListener('input', handleDomChange, true);
         document.addEventListener('change', handleDomChange, true);
-        document.addEventListener('nova-autosave:change', function () {
+        document.addEventListener('nova-autosave:change', function (e) {
             if (autosaveState.isBootstrapping) {
+                return;
+            }
+            if (!isAutosaveAllowedNovaAutosaveCustomEvent(e)) {
                 return;
             }
             if (!isAutosaveEnabled()) {
