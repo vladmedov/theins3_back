@@ -456,6 +456,8 @@ export default {
       plugins: [dayGridPlugin, interactionPlugin],
       initialView: 'dayGridMonth',
       showNonCurrentDates: false,
+      /* FC по умолчанию держит 6 недель — лишняя пустая строка внизу для многих месяцев */
+      fixedWeekCount: false,
       headerToolbar: false,
       height: 'auto',
       events: this.events,
