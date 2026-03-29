@@ -33,6 +33,7 @@
         ref="cropper"
         :view-mode="1"
         :aspect-ratio="field.aspectRatio || NaN"
+        :auto-crop-area="1"
         :src="imgSrc"
         @cropend="onCropEnd"
         @ready="onCropReady"
