@@ -362,6 +362,20 @@ table[dusk="resource-table"] tr.group:has(.nova-post-index-draft):hover td {
 }
 
 /*
+ * Индекс публикаций: колонка заголовка не сжимается в «полоску» на узких экранах
+ * (телефон / узкое окно). Таблица уходит в горизонтальный скролл при необходимости.
+ */
+table[dusk="resource-table"] td:has(.nova_view_post_title) {
+    min-width: 14rem;
+}
+
+@media (max-width: 1023px) {
+    table[dusk="resource-table"] td:has(.nova_view_post_title) {
+        min-width: min(100vw - 5rem, 22rem);
+    }
+}
+
+/*
  * one-strive/nova-image-cropper still uses legacy Nova classes (btn/btn-link/dim).
  * Nova 5 does not style them, so Delete/Cancel actions look unstyled.
  */
