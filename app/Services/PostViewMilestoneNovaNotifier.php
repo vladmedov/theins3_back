@@ -15,7 +15,7 @@ use Laravel\Nova\Notifications\NovaNotification;
 class PostViewMilestoneNovaNotifier
 {
     /** @var list<int> */
-    public const MILESTONES = [1000, 5000, 10000, 25000, 50000, 100000];
+    public const MILESTONES = [1000, 2000, 5000, 10000, 25000, 50000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000];
 
     /** @var array<string, class-string> */
     private const TYPE_TO_NOVA_RESOURCE = [

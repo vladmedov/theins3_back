@@ -6,6 +6,42 @@
     var fromLead = false;
     var byForm = {};
 
+    function convertPairedDoubleQuotesToGuillemets(text) {
+        if (text == null || text === '') {
+            return '';
+        }
+        var chars = String(text).split('');
+        var pendingOpenIndex = null;
+        for (var i = 0; i < chars.length; i++) {
+            if (chars[i] !== '"') {
+                continue;
+            }
+            if (pendingOpenIndex === null) {
+                pendingOpenIndex = i;
+            } else {
+                chars[pendingOpenIndex] = '«';
+                chars[i] = '»';
+                pendingOpenIndex = null;
+            }
+        }
+        return chars.join('');
+    }
+
+    function isRussianInterface() {
+        var htmlLang = (document.documentElement && document.documentElement.lang) || '';
+        if (/^ru(?:[-_]|$)/i.test(htmlLang)) {
+            return true;
+        }
+        var bodyLang = (document.body && document.body.getAttribute && document.body.getAttribute('lang')) || '';
+        if (/^ru(?:[-_]|$)/i.test(bodyLang)) {
+            return true;
+        }
+        if (typeof document.cookie === 'string' && /(?:^|;\s*)locale=ru(?:;|$)/.test(document.cookie)) {
+            return true;
+        }
+        return false;
+    }
+
     function fid(f) {
         return (f && f.getAttribute('data-form-unique-id')) || '_default';
     }
@@ -69,6 +105,18 @@
         var t = e.target;
         if (!t.matches || !t.matches('input[data-char-counter="title"]')) {
             return;
+        }
+        if (isRussianInterface()) {
+            var current = t.value;
+            var converted = convertPairedDoubleQuotesToGuillemets(current);
+            if (converted !== current) {
+                var caretStart = t.selectionStart;
+                var caretEnd = t.selectionEnd;
+                t.value = converted;
+                if (typeof caretStart === 'number' && typeof caretEnd === 'number' && t.setSelectionRange) {
+                    t.setSelectionRange(caretStart, caretEnd);
+                }
+            }
         }
         var f = t.closest('form');
         if (f) {
