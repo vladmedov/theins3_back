@@ -18,7 +18,7 @@ class UserPolicy
 
     public function view()
     {
-        return false;
+        return false; 
     }
 
     public function create(User $user)
@@ -26,9 +26,9 @@ class UserPolicy
         return $user->isAdmin();
     }
 
-    public function update(User $user)
+    public function update(User $user, User $model)
     {
-        return $user->isAdmin();
+        return $user->isAdmin() || $user->is($model);
     }
 
     public function delete(User $user)

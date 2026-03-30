@@ -10,9 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
-use Laravel\Fortify\Features;
 use Laravel\Nova\Http\Controllers\AttachedResourceUpdateController as NovaAttachedResourceUpdateController;
 use Laravel\Nova\Http\Controllers\ResourceUpdateController as NovaResourceUpdateController;
+use Laravel\Nova\Menu\Menu;
 use Laravel\Nova\Menu\MenuItem;
 use Laravel\Nova\Nova;
 use Laravel\Nova\NovaApplicationServiceProvider;
@@ -107,6 +107,16 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
             return $menu;
         });
 
+        Nova::userMenu(function (Request $request, Menu $menu) {
+            if (! $request->user()) {
+                return $menu;
+            }
+
+            return $menu->prepend(
+                MenuItem::link(__('User settings'), '/resources/users/'.$request->user()->getKey().'/edit')
+            );
+        });
+
         Nova::footer(function (Request $request) {
             return Blade::render(__('THE INSIDER · REPORTS. ANALYTICS. INVESTIGATIONS.'));
         });
@@ -135,7 +145,7 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
     {
         Nova::fortify()
             ->features([
-                Features::updatePasswords(),
+                // Features::updatePasswords(),
                 // Features::emailVerification(),
                 // Features::twoFactorAuthentication(['confirm' => true, 'confirmPassword' => true]),
             ])

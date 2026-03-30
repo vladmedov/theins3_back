@@ -576,3 +576,17 @@ html:has(#nova) [dusk^='investigation-themes-search-input'] img.w-8.h-8.rounded-
     object-fit: cover !important;
     aspect-ratio: 1 / 1 !important;
 }
+
+/*
+ * Пользовательские настройки: чекбоксы языков в read-only состоянии
+ * делаем визуально "disabled" (серые).
+ */
+html:has(#nova) input[type="checkbox"][disabled] {
+    accent-color: #9ca3af !important;
+    cursor: not-allowed !important;
+}
+
+html:has(#nova) label:has(input[type="checkbox"][disabled]) {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+}

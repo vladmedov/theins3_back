@@ -10,6 +10,7 @@ use Laravel\Nova\Resource;
 
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Hash;
 
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Resource as NovaResource;
@@ -59,6 +60,11 @@ class User extends Resource
     public static $clickAction = 'edit';
     
     public function fields(NovaRequest $request) {
+        $isAdmin = $request->user()?->isAdmin() ?? false;
+        $isOwnProfile = $request->user()?->is($this->resource) ?? false;
+        $canManageAllUserFields = $isAdmin;
+        $canEditOwnSettings = !$isAdmin && $isOwnProfile;
+
         $relatedPostsPageFromReferer = null;
         $refererUrl = $request->headers->get('referer');
         if ($refererUrl) {
@@ -106,24 +112,50 @@ class User extends Resource
             'showHeader' => false,
             'withOuterCard' => false,
         ]);
+        $passwordStructureRule = function ($attribute, $value, $fail) {
+            if (blank($value)) {
+                return;
+            }
+
+            $hasSpecial = preg_match('/[^a-zA-Z0-9]/', $value) === 1;
+
+            if (!$hasSpecial) {
+                $fail(__('Password does not meet requirements.'));
+            }
+        };
+
         $generalFields = [
             ID::make()->onlyOnDetail(),
 
-            Text::make(__('Name (RU)'), 'name')
+            Text::make(__('Name'), 'name')
+                ->canSee(fn () => $canManageAllUserFields || $canEditOwnSettings)
+                ->readonly(fn () => $canEditOwnSettings)
                 ->rules('required', 'max:255'),
 
             Email::make(__('Email'), 'email')
+                ->canSee(fn () => $canManageAllUserFields || $canEditOwnSettings)
+                ->readonly(fn () => $canEditOwnSettings)
+                ->rules('required', 'email')
                 ->sortable(),
-        
-            Password::make(__('Password'), 'password')
-                ->onlyOnForms(),
 
+            Password::make(__('Password'), 'password')
+                ->canSee(fn () => $canManageAllUserFields)
+                ->onlyOnForms()
+                ->creationRules('required', 'min:8', $passwordStructureRule)
+                ->updateRules('nullable', 'min:8', $passwordStructureRule)
+                ->help(__('Password requirements: at least 8 characters and 1 special character.')),
+        
             Select::make(__('Role'), 'role_code')
+                ->canSee(fn () => $canManageAllUserFields || $canEditOwnSettings)
+                ->readonly(fn () => $canEditOwnSettings)
                 ->options(UserRoles::all())
                 ->displayUsingLabels()
                 ->rules('required'),
 
             BooleanGroup::make(__('Available languages'), 'available_languages')
+                ->canSee(fn () => $canManageAllUserFields || $canEditOwnSettings)
+                ->readonly(fn () => $canEditOwnSettings)
+                ->withMeta(['disabled' => $canEditOwnSettings])
                 ->onlyOnForms()
                 ->options([
                     'ru' => __('Russian'),
@@ -134,10 +166,10 @@ class User extends Resource
                     if (!is_array($decodedValue) || !array_filter($decodedValue)) {
                         $fail(__('Choose at least one language.'));
                     }
-                })
-                ->help(__('Choose at least one language.')),
+                }),
 
             Select::make(__('Timezone'), 'timezone')
+                ->canSee(fn () => $canManageAllUserFields || $canEditOwnSettings)
                 ->options(function () {
                     $allTimezones = timezone_identifiers_list();
                     $timezones = array_combine($allTimezones, $allTimezones);
@@ -160,7 +192,57 @@ class User extends Resource
                 ->searchable()
                 ->rules('required')
                 ->default('Europe/Moscow')
-                ->help(__('Select your local timezone')),
+                ->help(__($canEditOwnSettings ? 'Select your local timezone' : 'Select user timezone')),
+        ];
+
+        $securityFields = [
+            Password::make(__('Current Password'), 'current_password')
+                ->canSee(fn () => $canEditOwnSettings)
+                ->onlyOnForms()
+                ->withMeta(['extraAttributes' => ['autocomplete' => 'current-password']])
+                ->rules('nullable', 'required_with:new_password', 'current_password')
+                ->fillUsing(function () {
+                    // This field is used only for validation and should not be persisted.
+                }),
+
+            Password::make(__('New Password'), 'new_password')
+                ->canSee(fn () => $canEditOwnSettings)
+                ->onlyOnForms()
+                ->rules(
+                    'bail',
+                    'nullable',
+                    'required_with:current_password',
+                    'min:8',
+                    function ($attribute, $value, $fail) {
+                        if (blank($value)) {
+                            return;
+                        }
+
+                        $hasSpecial = preg_match('/[^a-zA-Z0-9]/', $value) === 1;
+
+                        if (!$hasSpecial) {
+                            $fail(__('Password does not meet requirements.'));
+                        }
+                    }
+                )
+                ->withMeta(['extraAttributes' => ['autocomplete' => 'new-password']])
+                ->help(__('Password requirements: at least 8 characters and 1 special character.'))
+                ->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
+                    $newPassword = $request->input($requestAttribute);
+                    if (filled($newPassword)) {
+                        $model->password = Hash::make($newPassword);
+                    }
+                }),
+
+            Password::make(__('Confirm New Password'), 'new_password_confirmation')
+                ->canSee(fn () => $canEditOwnSettings)
+                ->onlyOnForms()
+                ->withMeta(['extraAttributes' => ['autocomplete' => 'new-password']])
+                ->rules('same:new_password')
+                ->fillUsing(function () {
+                    // This field is used only for `confirmed` validation.
+                }),
+
         ];
 
         $pageTitleRow = PageTitle::make($this, static::uriKey().'EditTitleRow', [], function ($r) {
@@ -197,13 +279,19 @@ class User extends Resource
             $formActionBar,
 
             Panel::make(__('General'), $generalFields),
+            ...(
+                ($this->resource?->exists && $canEditOwnSettings)
+                    ? [Panel::make(__('Update Password'), $securityFields)]
+                    : []
+            ),
 
             Text::make(__('Posts count'), 'posts_count')
+                ->canSee(fn () => $canManageAllUserFields)
                 ->onlyOnIndex()
                 ->sortable(),
 
             ...(
-                !empty($request->resourceId) && $postsCount > 0
+                ($canEditOwnSettings || $canManageAllUserFields) && !empty($request->resourceId) && $postsCount > 0
                     ? [
                         Panel::make(__('related_posts_panel.heading'), [
                             Heading::make($relatedPostsHtml)
