@@ -22,7 +22,11 @@
                 :snippets="currentField.snippetBrowser"
             />
 
-            <termin-picker-modal :field-key="$options[editorUUID]" />
+            <termin-picker-modal
+                :field-key="$options[editorUUID]"
+                :resource-name="resourceName"
+                :resource-id="resourceId"
+            />
             <termin-tooltip :field-key="$options[editorUUID]" />
         </template>
     </default-field>

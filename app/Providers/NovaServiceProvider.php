@@ -48,6 +48,12 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
         Nova::script('nova-sidebar-menu', asset('js/nova-sidebar-menu.js'));
         Nova::style('nova-form-action-bar', asset('css/nova-form-action-bar.css'));
         Nova::script('nova-form-action-bar', asset('js/nova-form-action-bar.js'));
+        // V2 change engine
+        Nova::style('nova-change-engine-banner-v2', asset('css/change-engine/banner.css'));
+        Nova::script('nova-change-engine-manager-v2', asset('js/change-engine/changes-manager.js'));
+        Nova::script('nova-change-engine-autosave-v2', asset('js/change-engine/autosave-lifecycle.js'));
+        Nova::script('nova-change-engine-banner-v2', asset('js/change-engine/unsaved-banner-view.js'));
+        Nova::script('nova-change-engine-bootstrap-v2', asset('js/change-engine/bootstrap.js'));
 
         Nova::mainMenu(function ($request) {
 

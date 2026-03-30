@@ -17,12 +17,12 @@ class TagPolicy
 
     public function update(User $user)
     {
-        return $user->isAdmin() || $user->isEditor();
+        return $user->canViewAll();
     }
 
     public function delete(User $user)
     {
-        return $user->isAdmin();
+        return $user->canViewAll();
     }
 
     public function restore()

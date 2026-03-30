@@ -1,0 +1,21 @@
+#nova-unsaved-changes-banner-v2.nova-unsaved-changes-banner--v2 {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100000;
+    padding: 10px 16px;
+    margin: 0;
+    background: #e54839;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    box-sizing: border-box;
+}
+
+#nova-unsaved-changes-banner-v2.nova-unsaved-changes-banner--v2[hidden] {
+    display: none !important;
+}

@@ -57,6 +57,14 @@
         </template>
       </div>
 
+      <textarea
+        :name="field.attribute + '__gallery_state'"
+        :value="galleryStateJson"
+        class="image-gallery-state-field"
+        aria-hidden="true"
+        tabindex="-1"
+      ></textarea>
+
       <!-- Список изображений -->
       <div class="image-gallery-list">
         <div
@@ -86,8 +94,8 @@
           <!-- Данные справа -->
           <div class="image-gallery-details">
             <div class="input-container">
-              <input type="text" v-model="image.description" placeholder="Описание" class="image-gallery-input" />
-              <input type="text" v-model="image.author" placeholder="Автор" class="image-gallery-input" />
+              <input type="text" v-model="image.description" :name="field.attribute + '_desc_' + index" placeholder="Описание" class="image-gallery-input" />
+              <input type="text" v-model="image.author" :name="field.attribute + '_author_' + index" placeholder="Автор" class="image-gallery-input" />
             </div>
             <button @click="removeImage(index)" class="image-gallery-btn-danger" title="Удалить">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -127,6 +135,11 @@ export default {
   computed: {
     isUploading() {
       return this.uploadingCount > 0;
+    },
+    galleryStateJson() {
+      return JSON.stringify((this.value || []).map(function (img) {
+        return img.link || '';
+      }));
     },
   },
 
@@ -514,6 +527,18 @@ export default {
 .drag-handle svg {
   width: 24px;
   height: 24px;
+}
+
+.image-gallery-state-field {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  margin: -1px;
 }
 
 @media (max-width: 768px) {

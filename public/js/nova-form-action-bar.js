@@ -27,18 +27,18 @@
         hrefPatched: false,
         navBlockUntil: 0,
         validationScrollLockUntil: 0,
+        simpleSubmitLocked: false,
+        simpleSubmitButton: null,
+        simpleSubmitSafetyTimeoutId: null,
+        simpleSubmitRetrying: false,
+        simpleSubmitLockedAt: 0,
+        simpleSubmitMinUnlockDelayMs: 1000,
     };
     const autosaveState = {
-        debounceMs: 3000,
         timerId: null,
         countdownIntervalId: null,
         deadlineAt: 0,
-        novaEmitPatched: false,
-        fieldValues: {},
         isBootstrapping: true,
-        listenersInstalled: false,
-        statusChangeLockUntil: 0,
-        retryDelayMs: 1000,
         togglePublishUiInstalled: false,
         postOwnersSelfLockInstalled: false,
         /** Медленная загрузка (VPN): Vue шлёт *-change с задержкой — ждём load + паузу и мин. окно (не слишком долго, иначе быстрые правки теряются) */
@@ -91,6 +91,98 @@
 
     function getFormActionBars() {
         return Array.from(document.querySelectorAll('[data-form-action-bar="1"]'));
+    }
+
+    function findNovaResourceSubmitButton() {
+        return document.querySelector('button[dusk=create-button],button[dusk=update-button]');
+    }
+
+    function unlockSimpleSubmitButton() {
+        if (!state.simpleSubmitLocked) return;
+
+        const elapsed = Date.now() - (state.simpleSubmitLockedAt || 0);
+        const remaining = state.simpleSubmitMinUnlockDelayMs - elapsed;
+        if (remaining > 0) {
+            setTimeout(function () {
+                unlockSimpleSubmitButton();
+            }, remaining);
+            return;
+        }
+
+        if (state.simpleSubmitSafetyTimeoutId) {
+            clearTimeout(state.simpleSubmitSafetyTimeoutId);
+            state.simpleSubmitSafetyTimeoutId = null;
+        }
+
+        const button = state.simpleSubmitButton;
+        state.simpleSubmitButton = null;
+        state.simpleSubmitLocked = false;
+        state.simpleSubmitLockedAt = 0;
+
+        if (!button || !button.parentNode) return;
+        button.disabled = false;
+        button.style.opacity = '';
+        button.style.pointerEvents = '';
+    }
+
+    function submitResource(button) {
+        if (state.simpleSubmitLocked || state.simpleSubmitRetrying || state.active) return;
+
+        if (window.NovaCustomSave && window.NovaCustomSave.cancelPendingAutosave) {
+            window.NovaCustomSave.cancelPendingAutosave();
+        }
+
+        ensureInstalled();
+
+        const nativeSubmit = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
+        if (!nativeSubmit) return;
+
+        const startLockedSubmit = function (submitBtn) {
+            state.simpleSubmitLocked = true;
+            state.simpleSubmitLockedAt = Date.now();
+            state.simpleSubmitButton = button || null;
+
+            if (button) {
+                button.disabled = true;
+                button.style.opacity = '0.7';
+                button.style.pointerEvents = 'none';
+            }
+
+            state.simpleSubmitSafetyTimeoutId = setTimeout(function () {
+                unlockSimpleSubmitButton();
+            }, 45000);
+
+            triggerNovaSubmit(submitBtn);
+        };
+
+        if (!nativeSubmit.disabled) {
+            startLockedSubmit(nativeSubmit);
+            return;
+        }
+
+        state.simpleSubmitRetrying = true;
+        let retryAttempts = 0;
+        const maxRetryAttempts = 10; // up to ~1s
+        const retryDelayMs = 100;
+
+        const retryWhenEnabled = function () {
+            const submitBtn = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
+            if (submitBtn && !submitBtn.disabled) {
+                state.simpleSubmitRetrying = false;
+                startLockedSubmit(submitBtn);
+                return;
+            }
+
+            retryAttempts += 1;
+            if (retryAttempts >= maxRetryAttempts) {
+                state.simpleSubmitRetrying = false;
+                return;
+            }
+
+            setTimeout(retryWhenEnabled, retryDelayMs);
+        };
+
+        setTimeout(retryWhenEnabled, retryDelayMs);
     }
 
     function getAutosaveStatusRoots() {
@@ -185,7 +277,6 @@
         if (autosaveState.bootstrapPath !== path) {
             clearAutosaveBootstrapTimers();
             autosaveState.bootstrapPath = path;
-            autosaveState.fieldValues = {};
             autosaveState.isBootstrapping = true;
             autosaveState.bootstrapPhaseStarted = false;
             autosaveState.bootstrapMinReady = false;
@@ -260,149 +351,7 @@
         }
     }
 
-    function serializeAutosaveValue(value) {
-        if (value === undefined) return 'undefined';
-        if (value === null) return 'null';
-
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-            return String(value);
-        }
-
-        try {
-            return JSON.stringify(value);
-        } catch (e) {
-            return String(value);
-        }
-    }
-
-    function isStatusChangeEvent(eventName) {
-        return eventName === 'status-change';
-    }
-
-    function lockAutosaveForStatusChange() {
-        autosaveState.statusChangeLockUntil = Date.now() + 1500;
-        clearAutosaveTimer();
-        if (hasAutosaveUi()) {
-            showAutosaveIdleState();
-        }
-    }
-
-    function isStatusChangeLocked() {
-        return Date.now() < autosaveState.statusChangeLockUntil;
-    }
-
-    function unlockAutosaveStatusChangeLock() {
-        autosaveState.statusChangeLockUntil = 0;
-    }
-
-    /** Автосохранение только для заголовка, лида, описания картинки, SEO и блоков контента (атрибуты с __). */
-    const AUTOSAVE_ALLOWED_ROOT_ATTRS = [
-        'title',
-        'image_description',
-        'lead',
-        'seo_title',
-        'seo_description',
-        'seo_keywords',
-    ];
-
-    function isAutosaveAllowedAttributeName(attr) {
-        if (!attr || typeof attr !== 'string') {
-            return false;
-        }
-        if (attr.indexOf('__') !== -1) {
-            return true;
-        }
-        return AUTOSAVE_ALLOWED_ROOT_ATTRS.indexOf(attr) !== -1;
-    }
-
-    function isAutosaveAllowedNovaChangeEventName(eventName) {
-        if (typeof eventName !== 'string' || !eventName.endsWith('-change')) {
-            return false;
-        }
-        const core = eventName.slice(0, -7);
-        for (let i = 0; i < AUTOSAVE_ALLOWED_ROOT_ATTRS.length; i++) {
-            const attr = AUTOSAVE_ALLOWED_ROOT_ATTRS[i];
-            if (core === attr || core.endsWith('-' + attr)) {
-                return true;
-            }
-        }
-        return core.indexOf('__') !== -1;
-    }
-
-    function isAutosaveAllowedNovaAutosaveCustomEvent(e) {
-        const d = e && e.detail;
-        if (!d) {
-            return false;
-        }
-        if (d.source === 'flexible-add-group') {
-            return true;
-        }
-        return isAutosaveAllowedAttributeName(d.attribute);
-    }
-
-    function isAutosaveAllowedDomTarget(target) {
-        if (!target || !target.closest) {
-            return false;
-        }
-        return !!(
-            target.closest('[data-post-autosave-field="1"]')
-            || target.closest('[data-post-autosave-content="1"]')
-        );
-    }
-
-    function installNovaFieldChangePatch() {
-        if (autosaveState.novaEmitPatched || !window.Nova || typeof window.Nova.$emit !== 'function') {
-            return;
-        }
-
-        const originalEmit = window.Nova.$emit.bind(window.Nova);
-
-        window.Nova.$emit = function () {
-            const eventName = arguments[0];
-            const eventValue = arguments.length > 1 ? arguments[1] : undefined;
-            const result = originalEmit.apply(this, arguments);
-
-            try {
-                if (typeof eventName === 'string' && eventName.endsWith('-change')) {
-                    if (isStatusChangeEvent(eventName)) {
-                        lockAutosaveForStatusChange();
-                        return result;
-                    }
-
-                    if (!isAutosaveAllowedNovaChangeEventName(eventName)) {
-                        return result;
-                    }
-
-                    const serializedValue = serializeAutosaveValue(eventValue);
-                    const previousValue = autosaveState.fieldValues[eventName];
-                    autosaveState.fieldValues[eventName] = serializedValue;
-
-                    if (autosaveState.isBootstrapping) {
-                        return result;
-                    }
-
-                    if (previousValue === serializedValue) {
-                        return result;
-                    }
-
-                    if (!isAutosaveEnabled()) {
-                        clearAutosaveTimer();
-                        if (hasAutosaveUi()) {
-                            showAutosaveIdleState();
-                        }
-                    } else {
-                        setTimeout(function () {
-                            notifyAutosaveChange();
-                        }, 0);
-                    }
-                }
-            } catch (e) {}
-
-            return result;
-        };
-
-        autosaveState.novaEmitPatched = true;
-    }
+    // Legacy autosave change hooks removed.
 
     /**
      * Поле «Доступ к управлению» (owners): текущий пользователь не может снять себя с тега;
@@ -508,12 +457,18 @@
     }
 
     function isAutosaveEnabled() {
+        // Legacy autosave is intentionally disabled:
+        // autosave lifecycle is handled by change-engine v2 scripts.
+        return false;
+
+        /* legacy condition (kept for quick rollback)
         return (
             isExistingResource()
             && isDraftSelected()
             && getAutosaveStatusRoots().length > 0
             && !isPostEditLockBlockingEdit()
         );
+        */
     }
 
     function hasAutosaveUi() {
@@ -549,7 +504,23 @@
         return button.textContent || '';
     }
 
+    function isV2AutosaveActive() {
+        try {
+            return !!(
+                window.NovaChangeEngineV2
+                && window.NovaChangeEngineV2.config
+                && window.NovaChangeEngineV2.config.enabled
+                && window.NovaChangeEngineV2.config.enableAutosave
+            );
+        } catch (e) {
+            return false;
+        }
+    }
+
     function renderAutosaveSaveButtonCountdown(remainingSeconds) {
+        if (isV2AutosaveActive()) {
+            return;
+        }
         getAllAutosaveStayButtons().forEach(function (btn) {
             if (!btn || !btn.dataset) {
                 return;
@@ -563,6 +534,9 @@
     }
 
     function restoreAutosaveSaveButtonLabel() {
+        if (isV2AutosaveActive()) {
+            return;
+        }
         getAllAutosaveStayButtons().forEach(function (btn) {
             if (!btn) {
                 return;
@@ -681,24 +655,6 @@
         }
 
         hideAutosaveCountdown();
-    }
-
-    function startAutosaveCountdown() {
-        autosaveState.deadlineAt = Date.now() + autosaveState.debounceMs;
-        renderAutosaveCountdown();
-
-        if (autosaveState.countdownIntervalId) {
-            clearInterval(autosaveState.countdownIntervalId);
-        }
-
-        autosaveState.countdownIntervalId = setInterval(function () {
-            if (!autosaveState.deadlineAt || Date.now() >= autosaveState.deadlineAt) {
-                stopAutosaveCountdown();
-                return;
-            }
-
-            renderAutosaveCountdown();
-        }, 250);
     }
 
     function formatAutosaveTime(date) {
@@ -844,97 +800,21 @@
     }
 
     function clearAutosaveTimer() {
+        // Legacy autosave pipeline removed (V2 handles scheduling/countdown).
         if (autosaveState.timerId) {
             clearTimeout(autosaveState.timerId);
             autosaveState.timerId = null;
         }
-
         stopAutosaveCountdown();
     }
 
-    function suppressAutosaveAfterManualSave(durationMs) {
+    function suppressAutosaveAfterManualSave() {
+        // Kept for backward compatibility with manual-save flow.
         clearAutosaveTimer();
-        autosaveState.suppressUntilTs = Date.now() + (durationMs || 1000);
-    }
-
-    function isAutosaveSuppressedNow() {
-        return Date.now() < autosaveState.suppressUntilTs;
-    }
-
-    function scheduleAutosave() {
-        clearAutosaveTimer();
-
-        if (isAutosaveSuppressedNow()) {
-            if (hasAutosaveUi()) {
-                showAutosaveIdleState();
-            }
-            return;
-        }
-
-        if (!isAutosaveEnabled()) {
-            if (hasAutosaveUi()) {
-                showAutosaveIdleState();
-            }
-            return;
-        }
-
-        if (state.hadValidationError) {
-            state.hadValidationError = false;
-        }
-
-        showAutosaveIdleState();
-        startAutosaveCountdown();
-        autosaveState.timerId = setTimeout(function () {
-            autosaveState.timerId = null;
-            runAutosave();
-        }, autosaveState.debounceMs);
     }
 
     function notifyAutosaveChange() {
-        if (isAutosaveSuppressedNow()) {
-            clearAutosaveTimer();
-            return;
-        }
-
-        if (isStatusChangeLocked()) {
-            clearAutosaveTimer();
-            return;
-        }
-        scheduleAutosave();
-    }
-
-    function runAutosave() {
-        if (!isAutosaveEnabled()) {
-            clearAutosaveTimer();
-            if (hasAutosaveUi()) {
-                showAutosaveIdleState();
-            }
-            return;
-        }
-
-        if (state.active) {
-            stopAutosaveCountdown();
-            autosaveState.timerId = setTimeout(function () {
-                autosaveState.timerId = null;
-                runAutosave();
-            }, autosaveState.retryDelayMs);
-            return;
-        }
-
-        if (state.hadValidationError) {
-            stopAutosaveCountdown();
-            return;
-        }
-
-        const button = findAutosaveButton();
-        if (!button) {
-            stopAutosaveCountdown();
-            return;
-        }
-
-        stopAutosaveCountdown();
-        setAutosaveStatusText(getAutosaveSavingLabel());
-        saveWithoutReload(button, { fromAutosave: true });
+        // Legacy autosave pipeline removed.
     }
 
     function normalizeTarget(target) {
@@ -1020,16 +900,23 @@
     }
 
     function setButtonState(label, disabled) {
-        if (!state.button) return;
-        state.button.textContent = label;
-        state.button.disabled = !!disabled;
-        state.button.style.opacity = disabled ? '0.7' : '';
-        state.button.style.pointerEvents = disabled ? 'none' : '';
+        const buttons = getAllAutosaveStayButtons();
+        if (!buttons.length && !state.button) return;
+
+        const effectiveLabel = label || (state.button ? getAutosaveStayButtonDefaultLabel(state.button) : '');
+        buttons.forEach(function (btn) {
+            if (effectiveLabel) {
+                btn.textContent = effectiveLabel;
+            }
+            btn.disabled = !!disabled;
+            btn.style.opacity = disabled ? '0.7' : '';
+            btn.style.pointerEvents = disabled ? 'none' : '';
+        });
     }
 
     function resetState(success, showFailure) {
         const button = state.button;
-        const originalLabel = state.originalLabel;
+        const buttons = getAllAutosaveStayButtons();
         const statusSelect = findStatusSelect();
 
         state.active = false;
@@ -1059,16 +946,29 @@
             state.successFallbackId = null;
         }
 
-        if (!button) return;
-
         if (success && statusSelect) {
             syncStayButtonsOriginalStatusFromSelect();
         }
 
-        button.textContent = originalLabel;
-        button.disabled = false;
-        button.style.opacity = '';
-        button.style.pointerEvents = '';
+        buttons.forEach(function (btn) {
+            const defaultLabel = getAutosaveStayButtonDefaultLabel(btn);
+            if (defaultLabel) {
+                btn.textContent = defaultLabel;
+            }
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.pointerEvents = '';
+        });
+
+        if (!buttons.length && button) {
+            const fallbackLabel = getAutosaveStayButtonDefaultLabel(button) || state.originalLabel;
+            if (fallbackLabel) {
+                button.textContent = fallbackLabel;
+            }
+            button.disabled = false;
+            button.style.opacity = '';
+            button.style.pointerEvents = '';
+        }
 
         if (!success && showFailure && hasAutosaveUi()) {
             showAutosaveFailure();
@@ -1107,76 +1007,6 @@
         // Вместо этого блокируем автоскролл на короткое время.
         // Для последовательных 422 lock нужен дольше, иначе Nova успевает выполнить автоскролл.
         state.validationScrollLockUntil = Date.now() + 8000;
-    }
-
-    function removeErrorClassesFromElement(el) {
-        if (!el || !el.classList) return;
-
-        Array.from(el.classList).forEach(function (className) {
-            const lower = String(className).toLowerCase();
-            // Be conservative: don't remove generic "red" styles because
-            // project/UI themes may use red for the *normal* field frames.
-            // We remove only typical validation/error red classes.
-            // Tailwind may add variants/prefixes like `focus:border-red-500`.
-            // So we match by the exact intensity token, not only by prefix position.
-            const borderRedError = lower.includes('border-red-500')
-                || lower.includes('border-red-600')
-                || lower.includes('border-red-700');
-            const ringRedError = lower.includes('ring-red-500')
-                || lower.includes('ring-red-600')
-                || lower.includes('ring-red-700');
-            const textRedError = lower.includes('text-red-500')
-                || lower.includes('text-red-600')
-                || lower.includes('text-red-700');
-
-            // Avoid removing Tailwind variant helper classes like `invalid:border-red-*`
-            // unless they are clearly the validation/error red styling.
-            const looksLikeErrorClass = lower.includes('danger')
-                || lower.includes('error')
-                || ((lower.includes('invalid') || lower.includes('invalid:')) && (borderRedError || ringRedError || textRedError))
-                || borderRedError
-                || ringRedError
-                || textRedError;
-
-            if (looksLikeErrorClass) el.classList.remove(className);
-        });
-    }
-
-    function clearFormErrorsUi(form) {
-        if (!form || !form.querySelectorAll) return;
-
-        // 1) Не трогаем стили рамок/кольца/бордеров.
-        // Максимум — удаляем класс `error`, если он реально используется.
-        form.querySelectorAll('input, select, textarea, [contenteditable="true"]').forEach(function (el) {
-            try {
-                if (el && el.classList && el.classList.contains('error')) {
-                    el.classList.remove('error');
-                }
-            } catch (e) {}
-        });
-
-        // 2) Чистим текстовые блоки ошибок (тег остаётся, внутри пустота).
-        // В Nova `.text-red-*` может использоваться и для required-звёздочек в `label`,
-        // поэтому не чистим элементы внутри `label`, а чистим остальное.
-        form.querySelectorAll('[role="alert"], .help-text, .text-danger, .text-red-500, .text-red-600').forEach(function (el) {
-            try {
-                if (!el || !el.textContent) return;
-                if (el.closest && el.closest('label')) return; // required `*` in label
-
-                const txt = el.textContent.trim();
-                if (!txt) return;
-
-                // Доп. защита: звёздочка может быть отдельным элементом.
-                if (/^\*+$/.test(txt)) return;
-
-                el.textContent = '';
-            } catch (e) {}
-        });
-
-        // 3) Доп. чистку классов у контейнеров намеренно не делаем.
-        // Nova может переиспользовать классы/верстку между попытками сохранения,
-        // и слишком агрессивное снятие контейнерных `.error/.invalid`
-        // иногда ломает повторное отображение сообщений на следующем 422.
     }
 
     function findNovaComponentInstance(predicate) {
@@ -1327,6 +1157,10 @@
     }
 
     function markRequestResult(status, method, url) {
+        if (state.simpleSubmitLocked && saveEndpointMatchesCurrent(url) && status >= 200) {
+            unlockSimpleSubmitButton();
+        }
+
         // Handle validation errors first, no matter what our current state is.
         // This prevents "our success cleanup" from interfering with Nova's 422 UI.
         if (status === 422) {
@@ -1341,6 +1175,9 @@
         }
 
         if (status >= 400) {
+            if (state.simpleSubmitLocked && saveEndpointMatchesCurrent(url)) {
+                unlockSimpleSubmitButton();
+            }
             resetState(false, true);
             return;
         }
@@ -1709,9 +1546,7 @@
         installNavigationPatches();
         installLocationPatches();
         patchLocationHrefSetter();
-        installNovaFieldChangePatch();
         installPostOwnersSelfLock();
-        installAutosaveListeners();
         installTogglePublishUi();
         initializeAutosaveStatus();
         initializePreviewNotices();
@@ -1722,7 +1557,62 @@
     }
 
     function findUpdateAndContinueEditingButton() {
-        return document.querySelector('button[dusk=update-and-continue-editing-button]');
+        return document.querySelector('button[dusk=update-and-continue-editing-button], button[dusk=update-button-and-continue-editing-button]');
+    }
+
+    function findAnyNovaSubmitButton() {
+        return document.querySelector(
+            'button[dusk=update-button], button[dusk=create-button], button[dusk=update-and-continue-editing-button], button[dusk=update-button-and-continue-editing-button]'
+        );
+    }
+
+    function findNovaResourceForm() {
+        return document.querySelector('form[data-form-unique-id]') || document.querySelector('form');
+    }
+
+    function triggerNovaSubmit(submitButton) {
+        if (submitButton && !submitButton.disabled) {
+            submitButton.click();
+            return true;
+        }
+
+        const fallbackEnabled = document.querySelector(
+            'button[dusk=update-button]:not([disabled]), button[dusk=create-button]:not([disabled]), button[dusk=update-and-continue-editing-button]:not([disabled]), button[dusk=update-button-and-continue-editing-button]:not([disabled])'
+        );
+        if (fallbackEnabled) {
+            fallbackEnabled.click();
+            return true;
+        }
+
+        const form = (submitButton && submitButton.form) || findNovaResourceForm();
+        if (form && typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+            return true;
+        }
+
+        if (form && typeof form.submit === 'function') {
+            form.submit();
+            return true;
+        }
+
+        return false;
+    }
+
+    function setV2InFlightHint(active) {
+        try {
+            if (
+                window.NovaChangesManagerV2
+                && typeof window.NovaChangesManagerV2.setInFlightSave === 'function'
+            ) {
+                window.NovaChangesManagerV2.setInFlightSave(!!active);
+            }
+        } catch (e) {}
+    }
+
+    function notifyV2ManualSaveStart() {
+        try {
+            window.dispatchEvent(new CustomEvent('nova:manual-save:start'));
+        } catch (e) {}
     }
 
     function findStatusSelect() {
@@ -1797,28 +1687,24 @@
         refreshTogglePublishButtons();
     }
 
-    function shouldUseRegularSave(button) {
-        if (!button) return false;
-
-        if (state.hadValidationError) {
-            return true;
-        }
-
-        const originalStatus = button.dataset.originalStatus;
-        if (!originalStatus) return false;
-
-        const statusSelect = findStatusSelect();
-        if (!statusSelect) return false;
-
-        return statusSelect.value !== originalStatus;
-    }
-
     function saveWithoutReload(button, options) {
         const updateButton = findUpdateButton();
-        const submitButton = updateButton || findUpdateAndContinueEditingButton();
+        const submitButton = updateButton || findUpdateAndContinueEditingButton() || findAnyNovaSubmitButton();
         const fromAutosave = !!(options && options.fromAutosave);
 
-        if (!button || !submitButton || state.active) return;
+        if (!button || state.active) return;
+        if (!fromAutosave) {
+            notifyV2ManualSaveStart();
+            // Manual click should immediately stop V2 countdown re-scheduling.
+            setV2InFlightHint(true);
+        }
+        if (submitButton && submitButton.disabled) {
+            if (fromAutosave) {
+                return;
+            }
+            // Manual click must not be ignored while Nova toggles disabled on inner submit buttons.
+            // Continue and rely on triggerNovaSubmit() fallback (enabled submit or form.requestSubmit()).
+        }
 
         if (!fromAutosave) {
             // Manual save: cancel active countdown and suppress immediate re-scheduling from reactive field updates.
@@ -1861,139 +1747,10 @@
             }
         }, 30000);
 
-        submitButton.click();
-    }
-
-    function installAutosaveListeners() {
-        if (autosaveState.listenersInstalled) return;
-
-        const isSearchOnlyInput = function (target) {
-            if (!target || !target.closest) return false;
-
-            return !!(
-                (target.matches && target.matches('input[type="search"]'))
-                || target.closest('[dusk$="-search-input"], [role="combobox"], [dusk$="-dropdown"], [dusk$="-results"]')
-            );
-        };
-
-        const isCkEditorDialogInput = function (target) {
-            if (!target || !target.closest) return false;
-
-            return !!target.closest(
-                '.ck, .ck-body-wrapper, .ck-balloon-panel, .ck-dialog, .ck-termin-overlay, .ck-termin-modal'
-            );
-        };
-
-        const isStatusFieldTarget = function (target) {
-            const statusSelect = findStatusSelect();
-            return !!(target && statusSelect && target === statusSelect);
-        };
-
-        /** Выбор файлов даёт change до окончания upload (ImageGallery и др.) — автосохранение только после nova-autosave:change из поля */
-        const isFilePickerInput = function (target) {
-            if (!target || !target.tagName) return false;
-            if (target.tagName.toLowerCase() !== 'input') return false;
-            return (target.type || '').toLowerCase() === 'file';
-        };
-
-        const isTextLikeInputChange = function (event, target) {
-            if (!event || event.type !== 'change' || !target || !target.tagName) {
-                return false;
-            }
-
-            if (target.tagName.toLowerCase() === 'textarea') {
-                return true;
-            }
-
-            if (target.tagName.toLowerCase() !== 'input') {
-                return false;
-            }
-
-            const type = (target.type || 'text').toLowerCase();
-            return !['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'date', 'datetime-local', 'month', 'time', 'week'].includes(type);
-        };
-
-        const handleDomChange = function (event) {
-            const target = event && event.target;
-            if (!target) return;
-
-            if (target.closest && target.closest('[data-form-action-bar="1"]')) {
-                return;
-            }
-
-            if (isSearchOnlyInput(target)) {
-                return;
-            }
-
-            if (isCkEditorDialogInput(target)) {
-                return;
-            }
-
-            if (isStatusFieldTarget(target)) {
-                lockAutosaveForStatusChange();
-                return;
-            }
-
-            if (isFilePickerInput(target)) {
-                return;
-            }
-
-            if (autosaveState.isBootstrapping) {
-                return;
-            }
-
-            if (!isAutosaveAllowedDomTarget(target)) {
-                return;
-            }
-
-            if (isTextLikeInputChange(event, target)) {
-                return;
-            }
-
-            if (!isAutosaveEnabled()) {
-                clearAutosaveTimer();
-                if (hasAutosaveUi()) {
-                    showAutosaveIdleState();
-                }
-                return;
-            }
-
-            unlockAutosaveStatusChangeLock();
-            notifyAutosaveChange();
-        };
-
-        document.addEventListener('input', handleDomChange, true);
-        document.addEventListener('change', handleDomChange, true);
-        document.addEventListener('nova-autosave:change', function (e) {
-            if (autosaveState.isBootstrapping) {
-                return;
-            }
-            if (!isAutosaveAllowedNovaAutosaveCustomEvent(e)) {
-                return;
-            }
-            if (!isAutosaveEnabled()) {
-                clearAutosaveTimer();
-                if (hasAutosaveUi()) {
-                    showAutosaveIdleState();
-                }
-                return;
-            }
-            unlockAutosaveStatusChangeLock();
-            notifyAutosaveChange();
-        });
-
-        if (window.Nova && typeof window.Nova.$on === 'function') {
-            window.Nova.$on('nova-flexible-content-add-group', function () {
-                if (autosaveState.isBootstrapping) {
-                    return;
-                }
-                if (!isAutosaveEnabled()) return;
-                unlockAutosaveStatusChangeLock();
-                notifyAutosaveChange();
-            });
+        if (!triggerNovaSubmit(submitButton)) {
+            setV2InFlightHint(false);
+            resetState(false, true);
         }
-
-        autosaveState.listenersInstalled = true;
     }
 
     function cancelPendingAutosave() {
@@ -2011,6 +1768,7 @@
 
     window.NovaFormActionBar = {
         togglePublish: runTogglePublishAction,
+        submitResource: submitResource,
     };
 
     if (document.readyState === 'loading') {
@@ -2271,17 +2029,6 @@
         } catch (e) {
             return {};
         }
-    }
-
-    function formatLocalDate(iso) {
-        if (!iso) {
-            return '';
-        }
-        var d = new Date(iso);
-        if (isNaN(d.getTime())) {
-            return '';
-        }
-        return d.toLocaleString();
     }
 
     function formatLocalTime(iso) {

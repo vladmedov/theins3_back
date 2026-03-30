@@ -168,6 +168,14 @@ export default {
             type: String,
             required: true,
         },
+        resourceName: {
+            type: String,
+            default: null,
+        },
+        resourceId: {
+            type: [String, Number],
+            default: null,
+        },
     },
 
     data() {
@@ -267,7 +275,11 @@ export default {
             this.loading = true
             try {
                 const { data } = await Nova.request().get('/nova-vendor/nova-ckeditor/termins', {
-                    params: { id },
+                    params: {
+                        id,
+                        resourceName: this.resourceName,
+                        resourceId: this.resourceId,
+                    },
                 })
                 if (data.length) {
                     const termin = data[0]
@@ -303,7 +315,11 @@ export default {
             this.loading = true
             try {
                 const { data } = await Nova.request().get('/nova-vendor/nova-ckeditor/termins', {
-                    params: { q: this.searchQuery },
+                    params: {
+                        q: this.searchQuery,
+                        resourceName: this.resourceName,
+                        resourceId: this.resourceId,
+                    },
                 })
                 this.termins = data
             } catch (e) {
@@ -452,6 +468,8 @@ export default {
                     {
                         termin:      this.createName.trim(),
                         description: this.createDescription.trim(),
+                        resourceName: this.resourceName,
+                        resourceId: this.resourceId,
                     }
                 )
                 this.termins        = [data]

@@ -28,7 +28,7 @@ class PostPolicy
 
     public function update(User $user, PostArticle $post)
     {
-        return $user->isAdmin() || $user->isEditor() || $post->isOwner($user->id);
+        return $user->canViewAll() || $post->isOwner($user->id);
     }
 
     public function delete(User $user, PostArticle $post)

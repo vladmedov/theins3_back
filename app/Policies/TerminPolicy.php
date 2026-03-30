@@ -23,7 +23,7 @@ class TerminPolicy
 
     public function delete(User $user)
     {
-        return $user->isAdmin();
+        return $user->canViewAll();
     }
 
     public function restore()

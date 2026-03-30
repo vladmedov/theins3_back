@@ -4,8 +4,6 @@ namespace App\Nova\Dashboards;
 
 use Laravel\Nova\Dashboard;
 
-use App\Nova\Metrics\NewPosts;
-use App\Nova\Metrics\TotalViews;
 use App\Nova\Metrics\PostsPerDay;
 use App\Nova\Metrics\ViewsPerDay;
 
@@ -23,25 +21,19 @@ class ContentDashboard extends Dashboard
     public function cards(): array
     {
         return [
-            new PostsPerDay(PostTypes::ARTICLE),
             new PostsPerDay(PostTypes::NEWS),
-            new PostsPerDay(PostTypes::OPINION),
-            new PostsPerDay(PostTypes::ONLINE),
-
-            new NewPosts(PostTypes::ARTICLE),
-            new NewPosts(PostTypes::NEWS),
-            new NewPosts(PostTypes::OPINION),
-            new NewPosts(PostTypes::ONLINE),
-
-            new ViewsPerDay(PostTypes::ARTICLE),
             new ViewsPerDay(PostTypes::NEWS),
+            new TopUsersCard(PostTypes::NEWS),
+            TopUsersCard::articleViews(),
+
+            new PostsPerDay(PostTypes::ARTICLE),
+            new ViewsPerDay(PostTypes::ARTICLE),
+
+            new PostsPerDay(PostTypes::OPINION),
             new ViewsPerDay(PostTypes::OPINION),
+
+            new PostsPerDay(PostTypes::ONLINE),
             new ViewsPerDay(PostTypes::ONLINE),
-            
-            new TotalViews(PostTypes::ARTICLE),
-            new TotalViews(PostTypes::NEWS),
-            new TotalViews(PostTypes::OPINION),
-            new TotalViews(PostTypes::ONLINE),
             
             // new TopUsersCard(PostTypes::ARTICLE),
             // new TopUsersCard(PostTypes::NEWS),
