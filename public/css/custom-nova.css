@@ -84,6 +84,8 @@ html:has(#nova) [dusk='content']:has(.ct-chart) h1[dusk='index-heading'] {
  * линия/заливка графика тянут primary-500 и без костыля были бы чёрными. Раньше на весь SVG вешался
  * filter — он по-разному даёт оттенок в Safari (iOS) и в Chrome, из-за чего заливка на телефоне «уезжала».
  * Явные stroke/fill совпадают с фирменным #e54839 (см. brand 600 / custom-nova).
+ * Заливку области задаём через fill + fill-opacity (не rgba в fill): в Safari/iOS иначе
+ * полупрозрачная заливка под линией часто почти исчезает, тогда как на десктопе видна «красноватая».
  */
 .ct-chart > svg {
     filter: none !important;
@@ -91,19 +93,17 @@ html:has(#nova) [dusk='content']:has(.ct-chart) h1[dusk='index-heading'] {
 
 .ct-chart-line .ct-series-a .ct-area,
 .ct-chart-line .ct-series-a .ct-slice-donut-solid,
-.ct-chart-line .ct-series-a .ct-slice-pie {
-    fill: rgba(229, 72, 57, 0.2) !important;
+.ct-chart-line .ct-series-a .ct-slice-pie,
+.ct-series-a .ct-area,
+.ct-series-a .ct-slice-pie {
+    fill: #e54839 !important;
+    fill-opacity: 0.22 !important;
 }
 
 .ct-series-a .ct-bar,
 .ct-series-a .ct-line,
 .ct-series-a .ct-point {
     stroke: #e54839 !important;
-}
-
-.ct-series-a .ct-area,
-.ct-series-a .ct-slice-pie {
-    fill: rgba(229, 72, 57, 0.2) !important;
 }
 
 .ct-point {
