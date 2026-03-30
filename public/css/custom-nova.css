@@ -1,6 +1,30 @@
 /* Верхняя полоска загрузки Nova (NProgress) при запросах и поиске — красный акцент */
 html:has(#nova) body {
     margin-top: 0 !important;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+/* Правая колонка тянется минимум на высоту экрана; кастомный футер — внизу на коротких страницах */
+html:has(#nova) div[id='app'] {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+html:has(#nova) div[id='app'] > div[id='nova'] {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+html:has(#nova) div[id='app'] > div[id='nova'] > [dusk='content'] {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 html:has(#nova) #nprogress {
@@ -54,10 +78,36 @@ html:has(#nova) [dusk='content']:has(.ct-chart) h1[dusk='index-heading'] {
     margin-top: 1rem !important;
 }
 
-/* ЦВЕТ ГРАФИКА В СТАТИСТИКЕ */
-
+/*
+ * Цвета метрик Chartist (дашборд, списки с трендами).
+ * В config/nova.php brand переопределяет только часть primary (в т.ч. 500 → чёрный для текста);
+ * линия/заливка графика тянут primary-500 и без костыля были бы чёрными. Раньше на весь SVG вешался
+ * filter — он по-разному даёт оттенок в Safari (iOS) и в Chrome, из-за чего заливка на телефоне «уезжала».
+ * Явные stroke/fill совпадают с фирменным #e54839 (см. brand 600 / custom-nova).
+ */
 .ct-chart > svg {
-    filter: brightness(0) saturate(100%) invert(28%) sepia(80%) saturate(5766%) hue-rotate(346deg) brightness(92%) contrast(99%);
+    filter: none !important;
+}
+
+.ct-chart-line .ct-series-a .ct-area,
+.ct-chart-line .ct-series-a .ct-slice-donut-solid,
+.ct-chart-line .ct-series-a .ct-slice-pie {
+    fill: rgba(229, 72, 57, 0.2) !important;
+}
+
+.ct-series-a .ct-bar,
+.ct-series-a .ct-line,
+.ct-series-a .ct-point {
+    stroke: #e54839 !important;
+}
+
+.ct-series-a .ct-area,
+.ct-series-a .ct-slice-pie {
+    fill: rgba(229, 72, 57, 0.2) !important;
+}
+
+.ct-point {
+    stroke: #e54839 !important;
 }
 
 /* СТИЛИ РЕДАКТОРА */
@@ -70,8 +120,26 @@ form > .flex.flex-col.md\:flex-row.md\:items-center.justify-center.md\:justify-e
 
 /* Шапка, сайдбар, мобильное меню: public/css/nova-sidebar-menu.css */
 
-div[id="app"] > div[id="nova"] > [dusk="content"] > div:last-child {
+div[id='app'] > div[id='nova'] > [dusk='content'] > div:last-child {
     background-color: #f4f4f4;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/*
+ * layouts/Footer.vue: корневой div с mt-8 text-xs text-gray-500.
+ * margin-top: auto прижимает к низу колонки; padding-top вместо потерянного space-y-8 / mt-8.
+ */
+html:has(#nova)
+    div[id='app']
+    > div[id='nova']
+    > [dusk='content']
+    > div:last-child
+    > div.mt-8.leading-normal.text-xs.text-gray-500:last-child {
+    margin-top: auto !important;
+    padding-top: 2rem;
 }
 
 /* Новостной календарь: основная колонка без max-height / вертикального overflow (скролл — у окна) */
