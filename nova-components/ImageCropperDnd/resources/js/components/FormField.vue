@@ -29,7 +29,7 @@
       <VueCropper
         v-if="field.croppable"
         v-show="imgSrc && !skipCrop"
-        class="mb-4"
+        class="mb-2"
         ref="cropper"
         :view-mode="1"
         :aspect-ratio="field.aspectRatio || NaN"
@@ -55,7 +55,7 @@
         {{ __("Crop area") }}: {{ cropWidth }}x{{ cropHeight }}px
       </p>
 
-      <div v-if="imgSrc" class="cancel-upload-row mt-3 mb-6">
+      <div v-if="imgSrc" class="cancel-upload-row mb-6">
         <div v-if="selectedImageMetaText" class="selected-image-meta">
           {{ selectedImageMetaText }}
           <div v-if="selectedCropMetaText" class="selected-crop-meta">
@@ -331,14 +331,22 @@ export default {
       if (!file) return;
 
       const fileName = file.name || "";
-      this.fileName = fileName;
-      this.file = file;
-      this.fileSizeBytes = file.size || null;
 
-      if (!file.type.includes("image/")) {
+      if (!this.hasAllowedExtension(file)) {
+        this.cancel();
+        alert(this.__("Please select a file of an allowed image format"));
+        return;
+      }
+
+      if (!this.isImageFile(file)) {
+        this.cancel();
         alert(this.__("Please select an image file"));
         return;
       }
+
+      this.fileName = fileName;
+      this.file = file;
+      this.fileSizeBytes = file.size || null;
 
       this.skipCrop = false;
       this.cropWidth = null;
@@ -420,6 +428,23 @@ export default {
 
     imageDeleteFailed() {
       this.existingImageDeleted = false;
+    },
+
+    isImageFile(file) {
+      if (!file) return false;
+      const mimeType = (file.type || "").toLowerCase();
+      return mimeType.startsWith("image/");
+    },
+
+    hasAllowedExtension(file) {
+      const fileName = (file.name || "").toLowerCase();
+      const lastDotIndex = fileName.lastIndexOf(".");
+      if (lastDotIndex === -1) return false;
+
+      const extension = fileName.slice(lastDotIndex + 1);
+      const allowedExtensions = new Set(["jpeg", "jpg", "png", "webp"]);
+
+      return allowedExtensions.has(extension);
     },
   },
 

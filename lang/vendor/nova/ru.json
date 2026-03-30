@@ -615,7 +615,7 @@
   "Reset Password Notification": "Reset Password Notification",
   "Nova User": "Nova User",
   "of": "of",
-  "no file selected": "no file selected",
+  "no file selected": "файл не выбран",
   "Sorry, your session has expired.": "Sorry, your session has expired.",
   "Reload": "Reload",
   "Key": "Key",
@@ -716,6 +716,9 @@
   "Crop area": "Область кадрирования",
   "Selected crop area": "Выбранная область кадрирования",
   "Could not delete the image. Please try again.": "Не удалось удалить изображение. Попробуйте еще раз.",
-  "Choose image": "Выбрать изображение"
+  "Choose image": "Выбрать изображение",
+  "Drag an image here or choose via button above": "Перетащите изображение сюда или выберите его кнопкой выше",
+  "Release the image to upload": "Отпустите изображение для загрузки",
+  "Please select a file of an allowed image format": "Выберите файл допустимого формата изображения"
   
 }

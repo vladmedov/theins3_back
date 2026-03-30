@@ -367,18 +367,20 @@ abstract class Post extends Resource
                 ->hideFromIndex()
                 ->disk('public')
                 ->croppable(3 / 2)
+                ->withMeta([
+                    'acceptedTypes' => '.jpeg,.jpg,.png,.webp',
+                ])
                 ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=640,min_height=100')
-                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.').' '.__('Autosave is enabled for this field.'))
+                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.'))
                 ->dependsOn(
                     ['ignore_image_dimension_requirements'],
                     function (ImageCropper $field, NovaRequest $request, FormData $formData) {
-                        $autosaveHint = ' '.__('Autosave is enabled for this field.');
                         if ($formData->ignore_image_dimension_requirements) {
                             $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480')
-                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.').$autosaveHint);
+                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.'));
                         } else {
                             $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=640,min_height=100')
-                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.').$autosaveHint);
+                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.'));
                         }
                     }
                 )

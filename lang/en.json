@@ -14,5 +14,6 @@
     "User role: Administrator": "Administrator",
     "User role: Editor": "Editor",
     "User role: Journalist": "Journalist",
-    "Date/time": "Date/time"
+    "Date/time": "Date/time",
+    "Please select a file of an allowed image format": "Please select a file of an allowed image format"
 }

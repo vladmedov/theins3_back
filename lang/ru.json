@@ -25,5 +25,6 @@
     "User role: Administrator": "Администратор",
     "User role: Editor": "Редактор",
     "User role: Journalist": "Журналист",
-    "Date/time": "Дата/время"
+    "Date/time": "Дата/время",
+    "Please select a file of an allowed image format": "Выберите файл допустимого формата изображения"
 }
