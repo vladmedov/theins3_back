@@ -9,6 +9,7 @@ export default {
             isTargetBlank: {
                 mode: 'manual',
                 label: 'Target _blank',
+                defaultValue: true,
                 attributes: {
                     target: '_blank'
                 }
