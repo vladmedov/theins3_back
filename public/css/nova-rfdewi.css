@@ -102,6 +102,10 @@ html:has(#nova) .help-text {
     font-style: normal !important;
 }
 
+html:has(#nova) .help-text-error {
+    color: rgba(var(--colors-red-500)) !important;
+}
+
 /*
  * Поля форм и выпадающие списки: часть разметки в <teleport to="body"> (вне #nova);
  * у input/select часто свой UA-шрифт без наследования от body.
