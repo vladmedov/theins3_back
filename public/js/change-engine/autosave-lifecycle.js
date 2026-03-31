@@ -116,7 +116,7 @@
     }
 
     function isExistingResourceEditPage() {
-        var m = window.location.pathname.match(/^\/nova\/resources\/[^/]+\/([^/]+)\/edit\/?$/);
+        var m = window.location.pathname.match(/\/resources\/[^/]+\/([^/]+)\/edit\/?$/);
         if (!m) return false;
         var resourceId = m[1];
         return !!resourceId && resourceId !== 'new';

@@ -13,14 +13,19 @@
 
     var cfg = Object.assign({}, defaults, window.NovaChangeEngineV2Config || {});
 
-    function getCurrentResourceKeyFromPath() {
-        var m = window.location.pathname.match(/^\/nova\/resources\/([^/]+)\/[^/]+\/edit\/?$/);
-        return m ? m[1] : null;
+    function getEditResourceInfoFromPath() {
+        var m = window.location.pathname.match(/\/resources\/([^/]+)\/([^/]+)\/edit\/?$/);
+        if (!m) return null;
+        return {
+            key: m[1],
+            id: m[2],
+        };
     }
 
     function isPostEditPage() {
-        var key = getCurrentResourceKeyFromPath();
-        if (!key) return false;
+        var info = getEditResourceInfoFromPath();
+        if (!info || !info.key || !info.id || info.id === 'new') return false;
+        var key = info.key;
         return key === 'posts' || key.indexOf('post-') === 0;
     }
 
