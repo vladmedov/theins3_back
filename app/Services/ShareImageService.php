@@ -60,7 +60,21 @@ class ShareImageService
         $siteUrl = $post->language_code === 'ru'
             ? rtrim((string) config('app.ru_edition_host'), '/')
             : rtrim((string) config('app.en_edition_host'), '/');
-        return $siteUrl . '/storage/' . $path;
+
+        $version = null;
+        $fullPath = $disk->path($path);
+        if (file_exists($fullPath)) {
+            $mtime = @filemtime($fullPath);
+            if ($mtime !== false) {
+                $version = (string) $mtime;
+            }
+        }
+
+        $url = $siteUrl . '/storage/' . $path;
+
+        return $version !== null
+            ? $url . '?v=' . $version
+            : $url;
     }
 
     private static function drawBackgroundImage(Imagick $canvas, Post $post): void
