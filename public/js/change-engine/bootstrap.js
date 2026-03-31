@@ -13,6 +13,17 @@
 
     var cfg = Object.assign({}, defaults, window.NovaChangeEngineV2Config || {});
 
+    function getCurrentResourceKeyFromPath() {
+        var m = window.location.pathname.match(/^\/nova\/resources\/([^/]+)\/[^/]+\/edit\/?$/);
+        return m ? m[1] : null;
+    }
+
+    function isPostEditPage() {
+        var key = getCurrentResourceKeyFromPath();
+        if (!key) return false;
+        return key === 'posts' || key.indexOf('post-') === 0;
+    }
+
     if (!cfg.enabled) {
         return;
     }
@@ -22,7 +33,7 @@
 
     manager.init({ debounceMs: cfg.debounceMs });
 
-    if (cfg.mountBanner && window.NovaUnsavedBannerViewV2) {
+    if (cfg.mountBanner && isPostEditPage() && window.NovaUnsavedBannerViewV2) {
         window.NovaUnsavedBannerViewV2.init(manager);
     }
 

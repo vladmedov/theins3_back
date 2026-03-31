@@ -115,6 +115,13 @@
         return !!(s && s.value === 'draft');
     }
 
+    function isExistingResourceEditPage() {
+        var m = window.location.pathname.match(/^\/nova\/resources\/[^/]+\/([^/]+)\/edit\/?$/);
+        if (!m) return false;
+        var resourceId = m[1];
+        return !!resourceId && resourceId !== 'new';
+    }
+
     function findAutosaveButton() {
         return document.querySelector('button[data-saving-label]');
     }
@@ -201,6 +208,7 @@
 
     function triggerSave() {
         if (!config.enabled || inProgress || !manager) return;
+        if (!isExistingResourceEditPage()) return;
         if (hasManualIntentNow()) return;
         clearSaveTimerOnly();
 
@@ -229,6 +237,11 @@
 
     function scheduleByState(state) {
         if (!config.enabled || !state || !state.ready) {
+            clearTimer();
+            restoreButtonLabels();
+            return;
+        }
+        if (!isExistingResourceEditPage()) {
             clearTimer();
             restoreButtonLabels();
             return;

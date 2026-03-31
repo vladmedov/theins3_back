@@ -170,9 +170,9 @@ abstract class Post extends Resource
                 'exists' => $this->exists,
                 'status' => $this->status,
             ],
-            'toggle_publish' => [
+            'toggle_publish' => $this->exists ? [
                 'status' => $this->status,
-            ],
+            ] : null,
             'url' => $postUrl ? [
                 'url' => $postUrl,
                 'notice' => $previewNotice ?: null,
