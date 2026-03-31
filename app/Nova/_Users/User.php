@@ -285,11 +285,6 @@ class User extends Resource
                     : []
             ),
 
-            Text::make(__('Posts count'), 'posts_count')
-                ->canSee(fn () => $canManageAllUserFields)
-                ->onlyOnIndex()
-                ->sortable(),
-
             ...(
                 ($canEditOwnSettings || $canManageAllUserFields) && !empty($request->resourceId) && $postsCount > 0
                     ? [
@@ -325,8 +320,6 @@ class User extends Resource
         if (static::getUserRole()) {
             $query->where('role_code', static::getUserRole());
         }
-
-        $query->withCount('posts');
 
         return $query;
     }
