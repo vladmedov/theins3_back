@@ -3,6 +3,7 @@
 namespace App\Support\Nova;
 
 use App\Enums\PostTypes;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class RelatedPostsPanel
@@ -17,12 +18,18 @@ class RelatedPostsPanel
             return '';
         }
 
-        $posts = collect($relatedPostsPaginator->items())->map(function ($post) {
+        $items = $relatedPostsPaginator->getCollection();
+        if ($items instanceof EloquentCollection) {
+            $items->loadMissing('authors');
+        }
+
+        $posts = collect($items)->map(function ($post) {
             return [
                 'id' => $post->id,
                 'title' => trim((string) $post->title) !== '' ? $post->title : ('#' . $post->id),
                 'type_label' => self::getPostTypeLabel($post->type),
                 'published_at' => self::formatPublishedAt($post->published_at),
+                'authors' => self::formatAuthors($post),
                 'edit_url' => self::buildPostEditUrl($post),
             ];
         });
@@ -84,5 +91,25 @@ class RelatedPostsPanel
         }
 
         return $publishedAt->format('d.m.Y H:i');
+    }
+
+    protected static function formatAuthors(object $post): ?string
+    {
+        if (!method_exists($post, 'authors')) {
+            return null;
+        }
+
+        $authors = $post->authors
+            ->map(function ($author) {
+                return trim((string) ($author->full_name ?? ''));
+            })
+            ->filter()
+            ->values();
+
+        if ($authors->isEmpty()) {
+            return null;
+        }
+
+        return $authors->implode(', ');
     }
 }
