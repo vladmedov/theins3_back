@@ -60,7 +60,7 @@ class ViewsPerDay extends Trend
                 7 => __('nova_metrics.ranges.week'),
             ],
             PostTypes::ARTICLE => [
-                8 => __('nova_metrics.ranges.month'),
+                30 => __('nova_metrics.ranges.month'),
             ],
             PostTypes::OPINION => [
                 6 => __('nova_metrics.ranges.half_year'),
@@ -89,7 +89,7 @@ class ViewsPerDay extends Trend
         return match ($this->_postType) {
             PostTypes::NEWS => 7,
             PostTypes::ONLINE => 5,
-            PostTypes::ARTICLE => 8,
+            PostTypes::ARTICLE => 30,
             PostTypes::OPINION => 6,
             default => 30,
         };

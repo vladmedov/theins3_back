@@ -21,7 +21,7 @@ class TopUsersCard extends Card
 
         if ($mode === self::MODE_ARTICLE_VIEWS) {
             $title = __('top_users_card.titles.article_views');
-            $articleMonthFrom = now()->subDays(7)->startOfDay();
+            $articleMonthFrom = now()->subDays(29)->startOfDay();
             $periods = [
                 [
                     'key' => 'month',
