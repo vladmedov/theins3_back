@@ -30,7 +30,6 @@
         simpleSubmitLocked: false,
         simpleSubmitButton: null,
         simpleSubmitSafetyTimeoutId: null,
-        simpleSubmitRetrying: false,
         simpleSubmitLockedAt: 0,
         simpleSubmitMinUnlockDelayMs: 1000,
     };
@@ -125,8 +124,47 @@
         button.style.pointerEvents = '';
     }
 
+    function triggerCreateSubmit() {
+        const nativeSubmit = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
+        if (nativeSubmit && !nativeSubmit.disabled) {
+            nativeSubmit.click();
+            return true;
+        }
+
+        if (nativeSubmit) {
+            const nativeForm = nativeSubmit.form || findNovaResourceForm();
+            if (nativeForm && typeof nativeForm.requestSubmit === 'function') {
+                try {
+                    nativeForm.requestSubmit(nativeSubmit);
+                    return true;
+                } catch (e) {
+                    try {
+                        nativeForm.requestSubmit();
+                        return true;
+                    } catch (e2) {}
+                }
+            }
+        }
+
+        const fallbackEnabled = document.querySelector(
+            'button[dusk=create-button]:not([disabled]), button[dusk=update-button]:not([disabled]), button[dusk=update-and-continue-editing-button]:not([disabled]), button[dusk=update-button-and-continue-editing-button]:not([disabled])'
+        );
+        if (fallbackEnabled) {
+            fallbackEnabled.click();
+            return true;
+        }
+
+        const form = findNovaResourceForm();
+        if (form && typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+            return true;
+        }
+
+        return false;
+    }
+
     function submitResource(button) {
-        if (state.simpleSubmitLocked || state.simpleSubmitRetrying || state.active) return;
+        if (state.simpleSubmitLocked || state.active) return;
 
         if (window.NovaCustomSave && window.NovaCustomSave.cancelPendingAutosave) {
             window.NovaCustomSave.cancelPendingAutosave();
@@ -134,58 +172,24 @@
 
         ensureInstalled();
 
-        const nativeSubmit = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
-
-        const startLockedSubmit = function (submitBtn) {
-            state.simpleSubmitLocked = true;
-            state.simpleSubmitLockedAt = Date.now();
-            state.simpleSubmitButton = button || null;
-
-            if (button) {
-                button.disabled = true;
-                button.style.opacity = '0.7';
-                button.style.pointerEvents = 'none';
-            }
-
-            state.simpleSubmitSafetyTimeoutId = setTimeout(function () {
-                unlockSimpleSubmitButton();
-            }, 45000);
-
-            if (!triggerNovaSubmit(submitBtn)) {
-                unlockSimpleSubmitButton();
-            }
-        };
-
-        if (nativeSubmit && !nativeSubmit.disabled) {
-            startLockedSubmit(nativeSubmit);
+        if (!triggerCreateSubmit()) {
             return;
         }
 
-        // Nova can briefly keep the real submit button disabled on first click.
-        // Keep trying automatically so the first click still submits.
-        state.simpleSubmitRetrying = true;
-        var retryAttempts = 0;
-        var maxRetryAttempts = 30; // up to ~3s
-        var retryDelayMs = 100;
+        state.simpleSubmitLocked = true;
+        state.simpleSubmitLockedAt = Date.now();
+        state.simpleSubmitButton = button || null;
 
-        var retryWhenEnabled = function () {
-            var submitBtn = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
-            if (submitBtn && !submitBtn.disabled) {
-                state.simpleSubmitRetrying = false;
-                startLockedSubmit(submitBtn);
-                return;
-            }
+        if (button) {
+            button.disabled = true;
+            button.style.opacity = '0.7';
+            button.style.pointerEvents = 'none';
+        }
 
-            retryAttempts += 1;
-            if (retryAttempts >= maxRetryAttempts) {
-                state.simpleSubmitRetrying = false;
-                return;
-            }
-
-            setTimeout(retryWhenEnabled, retryDelayMs);
-        };
-
-        setTimeout(retryWhenEnabled, retryDelayMs);
+        // Safety unlock if no network callback observed (e.g. client-side prevented submit).
+        state.simpleSubmitSafetyTimeoutId = setTimeout(function () {
+            unlockSimpleSubmitButton();
+        }, 3000);
     }
 
     function getAutosaveStatusRoots() {

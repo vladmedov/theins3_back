@@ -223,7 +223,7 @@ class FormActionBar
 
     protected static function defaultSaveJs(): string
     {
-        return 'window.NovaFormActionBar && window.NovaFormActionBar.submitResource && window.NovaFormActionBar.submitResource(this)';
+        return "document.querySelector('button[dusk=create-button],button[dusk=update-button]')?.click()";
     }
 
     protected static function saveWithoutReloadJs(): string
