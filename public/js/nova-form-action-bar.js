@@ -135,7 +135,6 @@
         ensureInstalled();
 
         const nativeSubmit = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
-        if (!nativeSubmit) return;
 
         const startLockedSubmit = function (submitBtn) {
             state.simpleSubmitLocked = true;
@@ -152,21 +151,25 @@
                 unlockSimpleSubmitButton();
             }, 45000);
 
-            triggerNovaSubmit(submitBtn);
+            if (!triggerNovaSubmit(submitBtn)) {
+                unlockSimpleSubmitButton();
+            }
         };
 
-        if (!nativeSubmit.disabled) {
+        if (nativeSubmit && !nativeSubmit.disabled) {
             startLockedSubmit(nativeSubmit);
             return;
         }
 
+        // Nova can briefly keep the real submit button disabled on first click.
+        // Keep trying automatically so the first click still submits.
         state.simpleSubmitRetrying = true;
-        let retryAttempts = 0;
-        const maxRetryAttempts = 10; // up to ~1s
-        const retryDelayMs = 100;
+        var retryAttempts = 0;
+        var maxRetryAttempts = 30; // up to ~3s
+        var retryDelayMs = 100;
 
-        const retryWhenEnabled = function () {
-            const submitBtn = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
+        var retryWhenEnabled = function () {
+            var submitBtn = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
             if (submitBtn && !submitBtn.disabled) {
                 state.simpleSubmitRetrying = false;
                 startLockedSubmit(submitBtn);
@@ -1571,27 +1574,26 @@
     }
 
     function triggerNovaSubmit(submitButton) {
-        if (submitButton && !submitButton.disabled) {
-            submitButton.click();
-            return true;
+        if (submitButton) {
+            if (!submitButton.disabled) {
+                submitButton.click();
+                return true;
+            }
+
+            const fallbackEnabled = document.querySelector(
+                'button[dusk=update-button]:not([disabled]), button[dusk=create-button]:not([disabled]), button[dusk=update-and-continue-editing-button]:not([disabled]), button[dusk=update-button-and-continue-editing-button]:not([disabled])'
+            );
+            if (fallbackEnabled) {
+                fallbackEnabled.click();
+                return true;
+            }
+
+            return false;
         }
 
-        const fallbackEnabled = document.querySelector(
-            'button[dusk=update-button]:not([disabled]), button[dusk=create-button]:not([disabled]), button[dusk=update-and-continue-editing-button]:not([disabled]), button[dusk=update-button-and-continue-editing-button]:not([disabled])'
-        );
-        if (fallbackEnabled) {
-            fallbackEnabled.click();
-            return true;
-        }
-
-        const form = (submitButton && submitButton.form) || findNovaResourceForm();
+        const form = findNovaResourceForm();
         if (form && typeof form.requestSubmit === 'function') {
             form.requestSubmit();
-            return true;
-        }
-
-        if (form && typeof form.submit === 'function') {
-            form.submit();
             return true;
         }
 

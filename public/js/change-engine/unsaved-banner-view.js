@@ -4,6 +4,22 @@
     var bannerEl = null;
     var unsubscribe = null;
 
+    function getEditResourceInfoFromPath() {
+        var m = window.location.pathname.match(/\/resources\/([^/]+)\/([^/]+)\/edit\/?$/);
+        if (!m) return null;
+        return {
+            key: m[1],
+            id: m[2],
+        };
+    }
+
+    function isPostEditPage() {
+        var info = getEditResourceInfoFromPath();
+        if (!info || !info.key || !info.id || info.id === 'new') return false;
+        var key = info.key;
+        return key === 'posts' || key.indexOf('post-') === 0;
+    }
+
     function ensureBanner() {
         if (bannerEl && bannerEl.parentNode) return;
         bannerEl = document.createElement('div');
@@ -24,8 +40,9 @@
     function setVisible(visible) {
         ensureBanner();
         if (!bannerEl) return;
-        bannerEl.hidden = !visible;
-        bannerEl.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        var shouldShow = !!visible && isPostEditPage();
+        bannerEl.hidden = !shouldShow;
+        bannerEl.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
     }
 
     function init(manager) {
