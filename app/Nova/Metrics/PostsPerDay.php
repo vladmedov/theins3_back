@@ -58,11 +58,17 @@ class PostsPerDay extends Trend
         $query = $this->postFilter($this->_postType)
             ->where('status', Post::STATUS_PUBLISHED);
 
-        return match ($this->resolveUnitByRange($range)) {
+        $result = match ($this->resolveUnitByRange($range)) {
             'months' => $this->countByMonths($request, $query, 'published_at')->showSumValue(),
             'weeks' => $this->countByWeeks($request, $query, 'published_at')->showSumValue(),
             default => $this->countByDays($request, $query, 'published_at')->showSumValue(),
         };
+
+        if ($this->context === self::CONTEXT_RESOURCE) {
+            return $result->result($this->resolveTodayCount());
+        }
+
+        return $result;
     }
 
     public function ranges(): array
@@ -182,5 +188,16 @@ class PostsPerDay extends Trend
         }
 
         return $this->result(0)->trend($trend)->showSumValue();
+    }
+
+    private function resolveTodayCount(): int
+    {
+        $todayStart = Carbon::now()->startOfDay();
+        $todayEnd = Carbon::now()->endOfDay();
+
+        return (int) $this->postFilter($this->_postType)
+            ->where('status', Post::STATUS_PUBLISHED)
+            ->whereBetween('published_at', [$todayStart, $todayEnd])
+            ->count();
     }
 }
