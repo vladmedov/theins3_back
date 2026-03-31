@@ -14,6 +14,7 @@ use App\Nova\Fields\ImageCropperDnd as ImageCropper;
 use App\Nova\Metrics\PostsPerDay;
 use App\Nova\Resource;
 use App\Services\ImageService;
+use App\Services\ShareImageService;
 use App\Services\Nova\PostEditLockService;
 use App\Services\PostPreviewTokenService;
 use App\Support\Nova\FormActionBar;
@@ -790,6 +791,15 @@ abstract class Post extends Resource
                     }
 
                     $url = ImageService::publicUrlForPath($this->image, $this->language_code);
+
+                    return '<img src="'.e($url).'" style="max-width: 512px; height: auto; display:block;" />';
+                })->asHtml(),
+                Text::make(__('posts.share_image_label'), 'share_image')->resolveUsing(function () {
+                    $url = ShareImageService::getShareImageUrl($this->model());
+
+                    if (!$url) {
+                        return null;
+                    }
 
                     return '<img src="'.e($url).'" style="max-width: 512px; height: auto; display:block;" />';
                 })->asHtml(),

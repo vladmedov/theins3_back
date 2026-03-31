@@ -58,8 +58,8 @@ class ShareImageService
         }
 
         $siteUrl = $post->language_code === 'ru'
-            ? rtrim((string) config('app.ru_canonical_host'), '/')
-            : rtrim((string) config('app.en_canonical_host'), '/');
+            ? rtrim((string) config('app.ru_edition_host'), '/')
+            : rtrim((string) config('app.en_edition_host'), '/');
         return $siteUrl . '/storage/' . $path;
     }
 
@@ -69,7 +69,8 @@ class ShareImageService
             return;
         }
 
-        $coverPath = ImageService::publicUrlForPath($post->image, $post->language_code);
+        $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
+        $coverPath = $disk->path($post->image);
         if (!file_exists($coverPath)) {
             return;
         }
