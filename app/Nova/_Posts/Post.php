@@ -145,8 +145,12 @@ abstract class Post extends Resource
     {
         $locale = $this->effectiveResourceLanguageCode();
 
+        $previewBaseUrl = $locale === 'ru'
+            ? config('app.ru_preview_url')
+            : config('app.en_preview_url');
+
         $postUrl = ($this->exists && $this->category)
-            ? rtrim(config('app.preview_url', config('app.frontend_url', config('app.url'))), '/').$this->getPath()
+            ? rtrim((string) $previewBaseUrl, '/').$this->getPath()
             : null;
 
         $isDraft = $this->exists && $this->status === 'draft';

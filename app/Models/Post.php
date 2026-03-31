@@ -183,14 +183,26 @@ class Post extends Model { //implements HasMedia {
                 $updated = true;
             }
 
-            if (!empty($post->translation_id)) {
-                $post->translation()->update([
-                    'translation_id' => $post->id,
-                ]);
-            } else {
-                $post->translation()->update([
-                    'translation_id' => null,
-                ]);
+            $currentTranslationId = !empty($post->translation_id) ? (int) $post->translation_id : null;
+
+            // Clear stale reverse links when translation is removed or replaced.
+            static::query()
+                ->where('translation_id', $post->id)
+                ->when(
+                    $currentTranslationId !== null,
+                    fn ($query) => $query->where('id', '!=', $currentTranslationId)
+                )
+                ->whereNotNull('translation_id')
+                ->update(['translation_id' => null]);
+
+            if ($currentTranslationId !== null) {
+                static::query()
+                    ->whereKey($currentTranslationId)
+                    ->where(function ($query) use ($post) {
+                        $query->whereNull('translation_id')
+                            ->orWhere('translation_id', '!=', $post->id);
+                    })
+                    ->update(['translation_id' => $post->id]);
             }
         
             if ($updated) {

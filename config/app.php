@@ -55,7 +55,8 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
     'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
     // Used specifically for draft preview links (?preview=TOKEN) generated in Nova.
-    'preview_url' => env('PREVIEW_URL', env('FRONTEND_URL', env('APP_URL', 'http://localhost'))),
+    'ru_preview_url' => env('RU_PREVIEW_URL', env('FRONTEND_URL', env('APP_URL', 'http://localhost'))),
+    'en_preview_url' => env('EN_PREVIEW_URL', env('FRONTEND_URL', env('APP_URL', 'http://localhost'))),
 
     /*
     |--------------------------------------------------------------------------
