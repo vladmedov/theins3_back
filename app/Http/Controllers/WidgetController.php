@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Post;
 use App\Models\Author;
 use App\Models\CollectionPost;
@@ -13,92 +14,106 @@ use App\Http\Resources\ColumnistResource;
 
 class WidgetController extends Controller
 {
+    private const HOT_BLOCK_CACHE_TTL_SECONDS = 60;
+
     public function getTopNews($language_code)
     {
-        $limit = 5;
+        return Cache::remember(
+            "widget:top_news:{$language_code}",
+            now()->addSeconds(self::HOT_BLOCK_CACHE_TTL_SECONDS),
+            function () use ($language_code) {
+                $limit = 5;
 
-        $forcedPosts = CollectionPost
-            ::where('language_code', $language_code)
-            ->where('collection_code', CollectionPost::COLLECTION_CODE_TOP_NEWS)
-            ->orderBy('position', 'asc')
-            ->limit($limit)
-            ->get()
-            ->pluck('post_id');
+                $forcedPosts = CollectionPost
+                    ::where('language_code', $language_code)
+                    ->where('collection_code', CollectionPost::COLLECTION_CODE_TOP_NEWS)
+                    ->orderBy('position', 'asc')
+                    ->limit($limit)
+                    ->get()
+                    ->pluck('post_id');
 
-        $query = Post
-            ::whereIn('id', $forcedPosts)
-            ->where('status', Post::STATUS_PUBLISHED)
-            ->where('language_code', $language_code)
-            ->where('type', PostTypes::NEWS)
-            ->with(['category', 'authors']);
+                $query = Post
+                    ::whereIn('id', $forcedPosts)
+                    ->where('status', Post::STATUS_PUBLISHED)
+                    ->where('language_code', $language_code)
+                    ->where('type', PostTypes::NEWS)
+                    ->with(['category', 'authors']);
 
-        $forcedPostsCollection = $query->get()
-            ->sortBy(function($post) use ($forcedPosts) {
-                return array_search($post->id, $forcedPosts->toArray());
-            });
-        
-        if ($forcedPostsCollection->count() < $limit) {
-            $additionalPosts = Post
-                ::where('language_code', $language_code)
-                ->where('status', Post::STATUS_PUBLISHED)
-                ->where('type', PostTypes::NEWS)
-                ->where('published_at', '>=', now()->subWeek()) // За последнюю неделю
-                ->whereNotIn('id', $forcedPosts)
-                ->with(['category', 'authors'])
-                ->orderBy('views_count', 'desc')
-                ->limit($limit - $forcedPostsCollection->count())
-                ->get();
-            
-            $posts = $forcedPostsCollection->concat($additionalPosts);
-        } else {
-            $posts = $forcedPostsCollection->take($limit);
-        }
-        
-        return PostResource::collection($posts);
+                $forcedPostsCollection = $query->get()
+                    ->sortBy(function($post) use ($forcedPosts) {
+                        return array_search($post->id, $forcedPosts->toArray());
+                    });
+                
+                if ($forcedPostsCollection->count() < $limit) {
+                    $additionalPosts = Post
+                        ::where('language_code', $language_code)
+                        ->where('status', Post::STATUS_PUBLISHED)
+                        ->where('type', PostTypes::NEWS)
+                        ->where('published_at', '>=', now()->subWeek()) // За последнюю неделю
+                        ->whereNotIn('id', $forcedPosts)
+                        ->with(['category', 'authors'])
+                        ->orderBy('views_count', 'desc')
+                        ->limit($limit - $forcedPostsCollection->count())
+                        ->get();
+                    
+                    $posts = $forcedPostsCollection->concat($additionalPosts);
+                } else {
+                    $posts = $forcedPostsCollection->take($limit);
+                }
+                
+                return PostResource::collection($posts);
+            }
+        );
     }
     
     public function getPopular($language_code)
     {
-        $limit = 5;
+        return Cache::remember(
+            "widget:popular:{$language_code}",
+            now()->addSeconds(self::HOT_BLOCK_CACHE_TTL_SECONDS),
+            function () use ($language_code) {
+                $limit = 5;
 
-        $forcedPosts = CollectionPost
-            ::where('language_code', $language_code)
-            ->where('collection_code', CollectionPost::COLLECTION_CODE_POPULAR)
-            ->orderBy('position', 'asc')
-            ->limit($limit)
-            ->get()
-            ->pluck('post_id');
+                $forcedPosts = CollectionPost
+                    ::where('language_code', $language_code)
+                    ->where('collection_code', CollectionPost::COLLECTION_CODE_POPULAR)
+                    ->orderBy('position', 'asc')
+                    ->limit($limit)
+                    ->get()
+                    ->pluck('post_id');
 
-        $query = Post
-            ::whereIn('id', $forcedPosts)
-            ->where('status', Post::STATUS_PUBLISHED)
-            ->where('language_code', $language_code)
-            ->where('type', PostTypes::ARTICLE)
-            ->with(['category', 'authors', 'columnist']);
+                $query = Post
+                    ::whereIn('id', $forcedPosts)
+                    ->where('status', Post::STATUS_PUBLISHED)
+                    ->where('language_code', $language_code)
+                    ->where('type', PostTypes::ARTICLE)
+                    ->with(['category', 'authors', 'columnist']);
 
-        $forcedPostsCollection = $query->get()
-            ->sortBy(function($post) use ($forcedPosts) {
-                return array_search($post->id, $forcedPosts->toArray());
-            });
-        
-        if ($forcedPostsCollection->count() < $limit) {
-            $additionalPosts = Post
-                ::where('language_code', $language_code)
-                ->where('status', Post::STATUS_PUBLISHED)
-                ->where('type', PostTypes::ARTICLE)
-                ->where('published_at', '>=', now()->subWeeks(2))
-                ->whereNotIn('id', $forcedPosts)
-                ->with(['category', 'authors', 'columnist'])
-                ->orderBy('views_count', 'desc')
-                ->limit($limit - $forcedPostsCollection->count())
-                ->get();
-            
-            $posts = $forcedPostsCollection->concat($additionalPosts);
-        } else {
-            $posts = $forcedPostsCollection->take($limit);
-        }
-        
-        return PostResource::collection($posts);
+                $forcedPostsCollection = $query->get()
+                    ->sortBy(function($post) use ($forcedPosts) {
+                        return array_search($post->id, $forcedPosts->toArray());
+                    });
+                
+                if ($forcedPostsCollection->count() < $limit) {
+                    $additionalPosts = Post
+                        ::where('language_code', $language_code)
+                        ->where('status', Post::STATUS_PUBLISHED)
+                        ->where('type', PostTypes::ARTICLE)
+                        ->where('published_at', '>=', now()->subWeeks(2))
+                        ->whereNotIn('id', $forcedPosts)
+                        ->with(['category', 'authors', 'columnist'])
+                        ->orderBy('views_count', 'desc')
+                        ->limit($limit - $forcedPostsCollection->count())
+                        ->get();
+                    
+                    $posts = $forcedPostsCollection->concat($additionalPosts);
+                } else {
+                    $posts = $forcedPostsCollection->take($limit);
+                }
+                
+                return PostResource::collection($posts);
+            }
+        );
     }
     
     public function getOpinions($language_code)

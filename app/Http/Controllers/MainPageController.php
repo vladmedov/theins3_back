@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 use App\Models\Post;
 use App\Enums\PostTypes;
@@ -16,6 +17,7 @@ use App\Models\InvestigationTheme;
 use App\Models\ExchangeRate;
 class MainPageController extends Controller
 {
+    private const HOT_BLOCK_CACHE_TTL_SECONDS = 60;
     private $excludedIds = [];
 
     public function getLayoutData($language_code)
@@ -189,43 +191,49 @@ class MainPageController extends Controller
 
     private function getPopular($language_code)
     {
-        $limit = 5;
+        return Cache::remember(
+            "main_page:popular:{$language_code}",
+            now()->addSeconds(self::HOT_BLOCK_CACHE_TTL_SECONDS),
+            function () use ($language_code) {
+                $limit = 5;
 
-        $forcedPosts = CollectionPost
-            ::where('language_code', $language_code)
-            ->where('collection_code', CollectionPost::COLLECTION_CODE_POPULAR)
-            ->orderBy('position', 'asc')
-            ->limit($limit)
-            ->get()
-            ->pluck('post_id');
+                $forcedPosts = CollectionPost
+                    ::where('language_code', $language_code)
+                    ->where('collection_code', CollectionPost::COLLECTION_CODE_POPULAR)
+                    ->orderBy('position', 'asc')
+                    ->limit($limit)
+                    ->get()
+                    ->pluck('post_id');
 
-        $query = Post
-            ::whereIn('id', $forcedPosts)
-            ->where('status', Post::STATUS_PUBLISHED)
-            ->where('language_code', $language_code)
-            ->with(['category', 'authors', 'columnist']);
+                $query = Post
+                    ::whereIn('id', $forcedPosts)
+                    ->where('status', Post::STATUS_PUBLISHED)
+                    ->where('language_code', $language_code)
+                    ->with(['category', 'authors', 'columnist']);
 
-        $forcedPostsCollection = $query->get()
-            ->sortBy(function($post) use ($forcedPosts) {
-                return array_search($post->id, $forcedPosts->toArray());
-            });
-        
-        if ($forcedPostsCollection->count() < $limit) {
-            $additionalPosts = Post
-                ::where('language_code', $language_code)
-                ->where('status', Post::STATUS_PUBLISHED)
-                ->where('published_at', '>=', now()->subMonth())
-                ->whereNotIn('id', $forcedPosts)
-                ->with(['category', 'authors', 'columnist'])
-                ->orderBy('views_count', 'desc')
-                ->limit($limit - $forcedPostsCollection->count())
-                ->get();
-            
-            $posts = $forcedPostsCollection->concat($additionalPosts);
-        } else {
-            $posts = $forcedPostsCollection->take($limit);
-        }
-        
-        return PostResource::collection($posts)->toArray(request());
+                $forcedPostsCollection = $query->get()
+                    ->sortBy(function($post) use ($forcedPosts) {
+                        return array_search($post->id, $forcedPosts->toArray());
+                    });
+                
+                if ($forcedPostsCollection->count() < $limit) {
+                    $additionalPosts = Post
+                        ::where('language_code', $language_code)
+                        ->where('status', Post::STATUS_PUBLISHED)
+                        ->where('published_at', '>=', now()->subMonth())
+                        ->whereNotIn('id', $forcedPosts)
+                        ->with(['category', 'authors', 'columnist'])
+                        ->orderBy('views_count', 'desc')
+                        ->limit($limit - $forcedPostsCollection->count())
+                        ->get();
+                    
+                    $posts = $forcedPostsCollection->concat($additionalPosts);
+                } else {
+                    $posts = $forcedPostsCollection->take($limit);
+                }
+                
+                return PostResource::collection($posts)->toArray(request());
+            }
+        );
     }
 }
