@@ -21,13 +21,14 @@ class TopUsersCard extends Card
 
         if ($mode === self::MODE_ARTICLE_VIEWS) {
             $title = __('top_users_card.titles.article_views');
+            $articleMonthFrom = now()->subDays(7)->startOfDay();
             $periods = [
                 [
                     'key' => 'month',
                     'label' => __('top_users_card.periods.month'),
-                    'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, now()->subMonth()),
-                    'total' => $this->getArticleViewsTotalByPeriod(now()->subMonth()),
-                    'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, now()->subMonth()),
+                    'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, $articleMonthFrom),
+                    'total' => $this->getArticleViewsTotalByPeriod($articleMonthFrom),
+                    'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, $articleMonthFrom),
                 ],
                 [
                     'key' => 'quarter',
