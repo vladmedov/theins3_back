@@ -122,6 +122,7 @@ abstract class Post extends Resource
     {
         return [
             PostsPerDay::make(static::getPostType())
+                ->forResourcePage()
                 ->width('full')
                 ->refreshWhenFiltersChange(),
         ];

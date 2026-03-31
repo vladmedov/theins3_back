@@ -28,11 +28,11 @@ class ViewsPerDay extends Trend
         $this->_postType = $postType;
         $this->defaultRange((string) $this->resolveDefaultRangeValue());
         $this->_title = match ($postType) {
-            PostTypes::ARTICLE => __('Article views'),
-            PostTypes::NEWS => __('News views'),
-            PostTypes::OPINION => __('Opinion views'),
-            PostTypes::ONLINE => __('Online views'),
-            default => __('Post views')
+            PostTypes::ARTICLE => __('nova_metrics.views.article_views'),
+            PostTypes::NEWS => __('nova_metrics.views.news_views'),
+            PostTypes::OPINION => __('nova_metrics.views.opinion_views'),
+            PostTypes::ONLINE => __('nova_metrics.views.online_views'),
+            default => __('nova_metrics.views.post_views')
         };
     }
 
@@ -57,19 +57,19 @@ class ViewsPerDay extends Trend
     {
         return match ($this->_postType) {
             PostTypes::NEWS => [
-                7 => __('Week'),
+                7 => __('nova_metrics.ranges.week'),
             ],
             PostTypes::ARTICLE => [
-                8 => __('Month'),
+                8 => __('nova_metrics.ranges.month'),
             ],
             PostTypes::OPINION => [
-                6 => __('Half-year'),
+                6 => __('nova_metrics.ranges.half_year'),
             ],
             PostTypes::ONLINE => [
-                5 => __('5 Years'),
+                5 => __('nova_metrics.ranges.five_years'),
             ],
             default => [
-                30 => __('Today'),
+                30 => __('nova_metrics.ranges.today'),
             ],
         };
     }

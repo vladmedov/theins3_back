@@ -18,8 +18,12 @@ class PostsPerDay extends Trend
 
     public $width = '1/4';
 
+    private const CONTEXT_DASHBOARD = 'dashboard';
+    private const CONTEXT_RESOURCE = 'resource';
+
     private $_title = null;
     private $_postType = null;
+    private string $context = self::CONTEXT_DASHBOARD;
 
     public function __construct($postType)
     {
@@ -28,17 +32,25 @@ class PostsPerDay extends Trend
         $this->_postType = $postType;
         $this->defaultRange((string) $this->resolveDefaultRangeValue());
         $this->_title = match ($postType) {
-            PostTypes::ARTICLE => __('Articles count'),
-            PostTypes::NEWS => __('News count'),
-            PostTypes::OPINION => __('Opinions count'),
-            PostTypes::ONLINE => __('Onlines count'),
-            default => __('Posts count')
+            PostTypes::ARTICLE => __('nova_metrics.posts.articles_count'),
+            PostTypes::NEWS => __('nova_metrics.posts.news_count'),
+            PostTypes::OPINION => __('nova_metrics.posts.opinions_count'),
+            PostTypes::ONLINE => __('nova_metrics.posts.onlines_count'),
+            default => __('nova_metrics.posts.posts_count')
         };
+    }
+
+    public function forResourcePage(): self
+    {
+        $this->context = self::CONTEXT_RESOURCE;
+        $this->defaultRange((string) $this->resolveDefaultRangeValue());
+
+        return $this;
     }
 
     public function calculate(NovaRequest $request): TrendResult
     {
-        if ($this->_postType === PostTypes::ONLINE) {
+        if ($this->context === self::CONTEXT_DASHBOARD && $this->_postType === PostTypes::ONLINE) {
             return $this->countOnlineByYears();
         }
 
@@ -55,22 +67,42 @@ class PostsPerDay extends Trend
 
     public function ranges(): array
     {
+        if ($this->context === self::CONTEXT_RESOURCE) {
+            return match ($this->_postType) {
+                PostTypes::NEWS => [
+                    30 => __('nova_metrics.ranges.month'),
+                ],
+                PostTypes::ARTICLE => [
+                    26 => __('nova_metrics.ranges.half_year'),
+                ],
+                PostTypes::OPINION => [
+                    26 => __('nova_metrics.ranges.half_year'),
+                ],
+                PostTypes::ONLINE => [
+                    60 => __('nova_metrics.ranges.five_years'),
+                ],
+                default => [
+                    30 => __('nova_metrics.ranges.month'),
+                ],
+            };
+        }
+
         return match ($this->_postType) {
             PostTypes::NEWS => [
-                7 => __('Week'),
+                7 => __('nova_metrics.ranges.week'),
             ],
             PostTypes::ARTICLE => [
-                8 => __('Month'),
+                8 => __('nova_metrics.ranges.month'),
             ],
             PostTypes::OPINION => [
-                6 => __('Half-year'),
+                6 => __('nova_metrics.ranges.half_year'),
             ],
             PostTypes::ONLINE => [
-                5 => __('5 Years'),
+                5 => __('nova_metrics.ranges.five_years'),
             ],
             default => [
-                30 => __('Today'),
-                12 => __('This month'),
+                30 => __('nova_metrics.ranges.today'),
+                12 => __('nova_metrics.ranges.this_month'),
             ],
         };
     }
@@ -87,6 +119,16 @@ class PostsPerDay extends Trend
 
     private function resolveDefaultRangeValue(): int
     {
+        if ($this->context === self::CONTEXT_RESOURCE) {
+            return match ($this->_postType) {
+                PostTypes::NEWS => 30,
+                PostTypes::ARTICLE => 26,
+                PostTypes::OPINION => 26,
+                PostTypes::ONLINE => 60,
+                default => 30,
+            };
+        }
+
         return match ($this->_postType) {
             PostTypes::NEWS => 7,
             PostTypes::ONLINE => 5,
@@ -98,6 +140,14 @@ class PostsPerDay extends Trend
 
     private function resolveUnitByRange(int $range): string
     {
+        if ($this->context === self::CONTEXT_RESOURCE) {
+            return match ($this->_postType) {
+                PostTypes::ARTICLE, PostTypes::OPINION => 'weeks',
+                PostTypes::ONLINE => 'months',
+                default => 'days',
+            };
+        }
+
         return match ($this->_postType) {
             PostTypes::NEWS => match ($range) {
                 default => 'days',
@@ -119,7 +169,8 @@ class PostsPerDay extends Trend
         $currentYear = Carbon::now()->year;
         $startYear = $currentYear - 4;
 
-        $baseQuery = $this->postFilter($this->_postType);
+        $baseQuery = $this->postFilter($this->_postType)
+            ->where('status', Post::STATUS_PUBLISHED);
         $trend = [];
 
         foreach (range($startYear, $currentYear) as $year) {
