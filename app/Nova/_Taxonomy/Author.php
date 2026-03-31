@@ -9,7 +9,6 @@ use App\Nova\Resource;
 
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Resource as NovaResource;
@@ -41,6 +40,7 @@ class Author extends Resource
 
     public function fields(Request $request) {
         $locale = $this->effectiveResourceLanguageCode();
+        $localeDisk = ImageService::publicDiskForLanguage($locale);
 
         $generalFields = [
             Slug::make('Slug', 'slug')
@@ -57,14 +57,14 @@ class Author extends Resource
                 ->rules('required', 'max:255'),
 
             Avatar::make(__('Photo'), 'avatar')
-                ->disk('public')
+                ->disk($localeDisk)
                 ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120')
                 ->path(ImageService::getImagePath($this->id, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
+                ->preview(function ($value) use ($locale) {
+                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
                 })
-                ->thumbnail(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
+                ->thumbnail(function ($value) use ($locale) {
+                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
                 })
                 ->prunable()
                 ->onlyOnForms(),
@@ -107,14 +107,16 @@ class Author extends Resource
             $formActionBar,
 
             Avatar::make(__('Photo'), 'avatar')
-                ->disk('public')
+                ->disk($localeDisk)
                 ->onlyOnIndex()
                 ->preview(function ($value, $disk) {
                     $model = $this->resource ?? null;
                     if (!$model || !$value) return null;
                     $url = $model->avatar_url;
                     if (!$url) return null;
-                    return str_starts_with($url, 'http') ? $url : rtrim(config('app.url'), '/') . $url;
+                    return str_starts_with($url, 'http')
+                        ? $url
+                        : ImageService::publicUrlForPath(ltrim($url, '/'), $model->language_code);
                 }),
 
             Panel::make(__('General'), $generalFields),

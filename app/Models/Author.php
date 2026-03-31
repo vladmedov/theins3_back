@@ -58,13 +58,13 @@ class Author extends Model {
 
         static::updated(function ($author) {
             if ($author->wasChanged('avatar') && !empty($author->avatar)) {
-                ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO);
+                ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO, $author->language_code);
             }
         });
 
         static::created(function ($author) {
             if (!empty($author->avatar)) {
-                ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO);
+                ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO, $author->language_code);
             }
         });
 

@@ -32,7 +32,14 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
         // с userId = null и меню навсегда пустое (см. Nova::provideToScript при empty $jsonVariables).
         Nova::serving(function () {
             Nova::provideToScript([
-                'frontendPublicUrl' => fn () => rtrim((string) config('app.frontend_url'), '/'),
+                'frontendPublicUrl' => fn () => rtrim(
+                    (string) (
+                        app()->getLocale() === 'ru'
+                            ? config('app.ru_edition_host')
+                            : config('app.en_edition_host')
+                    ),
+                    '/'
+                ),
             ]);
         });
 

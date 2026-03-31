@@ -440,20 +440,28 @@ class Post extends Model { //implements HasMedia {
         $filename = basename($imagePath);
         $correctPath = $correctDir . '/' . $filename;
 
-        if ($imagePath !== $correctPath && Storage::disk('public')->exists($imagePath)) {
-            Storage::disk('public')->move($imagePath, $correctPath);
+        $disk = Storage::disk(ImageService::publicDiskForLanguage($this->language_code));
+        if ($imagePath !== $correctPath && $disk->exists($imagePath)) {
+            $disk->move($imagePath, $correctPath);
             $this->image = $correctPath;
             $this->saveQuietly();
             $imagePath = $correctPath;
         }
 
-        ImageService::createImageVariants($this->id, $imagePath);
+        ImageService::createImageVariants($this->id, $imagePath, ImageService::TYPE_POST_COVER, $this->language_code);
         ShareImageService::generate($this);
     }
 
     public function getImageUrl($size = ImageService::SIZE_ORIGINAL, bool $includeDomain = false)
     {
-        return ImageService::getImageUrl($this->id, $this->image, ImageService::TYPE_POST_COVER, $size, $includeDomain);
+        return ImageService::getImageUrl(
+            $this->id,
+            $this->image,
+            ImageService::TYPE_POST_COVER,
+            $size,
+            $includeDomain,
+            $this->language_code
+        );
     }
 
     public function getPath() {

@@ -80,7 +80,9 @@ class GenerateMissingShareImages extends Command
 
             $processed++;
 
-            if (!Storage::disk('public')->exists($post->image)) {
+            $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
+
+            if (!$disk->exists($post->image)) {
                 $failed++;
                 $this->newLine();
                 $this->warn("Original image is missing for post #{$post->id}: {$post->image}");
@@ -95,14 +97,14 @@ class GenerateMissingShareImages extends Command
             $mediumPath = ImageService::getImagePath($post->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_MEDIUM)
                 . '/' . $filename;
 
-            $needSmall = !Storage::disk('public')->exists($smallPath);
-            $needMedium = !Storage::disk('public')->exists($mediumPath);
+            $needSmall = !$disk->exists($smallPath);
+            $needMedium = !$disk->exists($mediumPath);
 
             if ($needSmall || $needMedium) {
-                ImageService::createImageVariants($post->id, $post->image);
+                ImageService::createImageVariants($post->id, $post->image, ImageService::TYPE_POST_COVER, $post->language_code);
             }
 
-            if (Storage::disk('public')->exists($smallPath)) {
+            if ($disk->exists($smallPath)) {
                 $needSmall ? $generatedSmall++ : $existsSmall++;
             } else {
                 $failed++;
@@ -110,7 +112,7 @@ class GenerateMissingShareImages extends Command
                 $this->warn("Failed to ensure small image for post #{$post->id}");
             }
 
-            if (Storage::disk('public')->exists($mediumPath)) {
+            if ($disk->exists($mediumPath)) {
                 $needMedium ? $generatedMedium++ : $existsMedium++;
             } else {
                 $failed++;
@@ -119,9 +121,9 @@ class GenerateMissingShareImages extends Command
             }
 
             $sharePath = ShareImageService::getShareImagePath($post);
-            if (!Storage::disk('public')->exists($sharePath)) {
+            if (!$disk->exists($sharePath)) {
                 $result = ShareImageService::generate($post);
-                if ($result !== null && Storage::disk('public')->exists($sharePath)) {
+                if ($result !== null && $disk->exists($sharePath)) {
                     $generatedShare++;
                 } else {
                     $failed++;

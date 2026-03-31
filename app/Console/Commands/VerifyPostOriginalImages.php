@@ -6,7 +6,6 @@ use App\Enums\PostTypes;
 use App\Models\Post;
 use App\Services\ImageService;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 
 class VerifyPostOriginalImages extends Command
@@ -19,8 +18,6 @@ class VerifyPostOriginalImages extends Command
 
     public function handle(): int
     {
-        /** @var Filesystem $disk */
-        $disk = Storage::disk('public');
         $chunk = max(1, (int) $this->option('chunk'));
         $scanHtml = (bool) $this->option('inline-html');
 
@@ -35,9 +32,9 @@ class VerifyPostOriginalImages extends Command
         $bar = $this->output->createProgressBar($total);
         $bar->start();
 
-        $query->orderBy('id')->chunkById($chunk, function ($posts) use ($disk, $scanHtml, $bar, &$missingLines) {
+        $query->orderBy('id')->chunkById($chunk, function ($posts) use ($scanHtml, $bar, &$missingLines) {
             foreach ($posts as $post) {
-                $missing = $this->collectMissingForPost($post, $disk, $scanHtml);
+                $missing = $this->collectMissingForPost($post, $scanHtml);
                 if ($missing !== []) {
                     $bar->clear();
                     foreach ($missing as $line) {
@@ -60,9 +57,10 @@ class VerifyPostOriginalImages extends Command
     /**
      * @return list<string>
      */
-    private function collectMissingForPost(Post $post, Filesystem $disk, bool $scanHtml): array
+    private function collectMissingForPost(Post $post, bool $scanHtml): array
     {
         $out = [];
+        $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
 
         if (!empty($post->image) && !$disk->exists($post->image)) {
             $out[] = (string) $post->id;

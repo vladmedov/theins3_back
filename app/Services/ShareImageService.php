@@ -21,6 +21,7 @@ class ShareImageService
     public static function generate(Post $post): ?string
     {
         try {
+            $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
             $canvas = new Imagick();
             $canvas->newImage(self::WIDTH, self::HEIGHT, new ImagickPixel('#000000'));
             $canvas->setImageFormat('png');
@@ -30,8 +31,8 @@ class ShareImageService
             self::drawLogo($canvas, $post->language_code);
 
             $path = self::getShareImagePath($post);
-            Storage::disk('public')->makeDirectory(dirname($path));
-            $fullPath = Storage::disk('public')->path($path);
+            $disk->makeDirectory(dirname($path));
+            $fullPath = $disk->path($path);
             $canvas->writeImage($fullPath);
             $canvas->destroy();
 
@@ -50,12 +51,15 @@ class ShareImageService
 
     public static function getShareImageUrl(Post $post): ?string
     {
+        $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
         $path = self::getShareImagePath($post);
-        if (!Storage::disk('public')->exists($path)) {
+        if (!$disk->exists($path)) {
             return null;
         }
 
-        $siteUrl = rtrim(config('app.frontend_url'), '/');
+        $siteUrl = $post->language_code === 'ru'
+            ? rtrim((string) config('app.ru_canonical_host'), '/')
+            : rtrim((string) config('app.en_canonical_host'), '/');
         return $siteUrl . '/storage/' . $path;
     }
 
@@ -65,7 +69,7 @@ class ShareImageService
             return;
         }
 
-        $coverPath = Storage::disk('public')->path($post->image);
+        $coverPath = ImageService::publicUrlForPath($post->image, $post->language_code);
         if (!file_exists($coverPath)) {
             return;
         }

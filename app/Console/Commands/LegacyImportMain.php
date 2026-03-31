@@ -228,7 +228,8 @@ class LegacyImportMain extends Command
                         $post->id,
                         $post->preview_image ?? $post->detail_image ?? null,
                         'post',
-                        ImageService::TYPE_POST_COVER
+                        ImageService::TYPE_POST_COVER,
+                        $languageCode
                     );
 
                     // withoutEvents skips the saved-hook which would wastefully
@@ -239,7 +240,7 @@ class LegacyImportMain extends Command
                     ));
                     // Refresh the model cache entry after upsert
                     $this->postModelCache[$post->id] = Post::find($post->id);
-                    $this->syncPostCoverImages($post->id, $imagePath);
+                    $this->syncPostCoverImages($post->id, $imagePath, $languageCode);
 
                     $this->syncPostRelations($post, $regionId, $languageCode);
                     $createdCount++;
@@ -276,13 +277,14 @@ class LegacyImportMain extends Command
                             $post->id,
                             $post->preview_image ?? $post->detail_image ?? null,
                             'post',
-                            ImageService::TYPE_POST_COVER
+                            ImageService::TYPE_POST_COVER,
+                            $languageCode
                         );
 
                         Post::withoutEvents(fn () => Post::where('id', $post->id)->update(
                             $this->buildPostAttributes($post, $languageCode, $imagePath)
                         ));
-                        $this->syncPostCoverImages($post->id, $imagePath);
+                        $this->syncPostCoverImages($post->id, $imagePath, $languageCode);
 
                         $this->syncPostRelations($post, $regionId, $languageCode);
                         $updatedCount++;
@@ -432,13 +434,15 @@ class LegacyImportMain extends Command
         return trim($html);
     }
 
-    private function syncPostCoverImages(int $postId, ?string $imagePath): void
+    private function syncPostCoverImages(int $postId, ?string $imagePath, string $languageCode): void
     {
         if ($this->skipPostImages) {
             return;
         }
 
-        if (empty($imagePath) || !Storage::disk('public')->exists($imagePath)) {
+        $disk = Storage::disk(ImageService::publicDiskForLanguage($languageCode));
+
+        if (empty($imagePath) || !$disk->exists($imagePath)) {
             return;
         }
 
@@ -449,10 +453,10 @@ class LegacyImportMain extends Command
             . '/' . $filename;
 
         if (
-            !Storage::disk('public')->exists($smallPath)
-            || !Storage::disk('public')->exists($mediumPath)
+            !$disk->exists($smallPath)
+            || !$disk->exists($mediumPath)
         ) {
-            ImageService::createImageVariants($postId, $imagePath);
+            ImageService::createImageVariants($postId, $imagePath, ImageService::TYPE_POST_COVER, $languageCode);
         }
 
         if ($this->skipShareImages) {
@@ -463,7 +467,7 @@ class LegacyImportMain extends Command
         if ($post && !empty($post->image)) {
             $this->postModelCache[$postId] = $post;
             $sharePath = ShareImageService::getShareImagePath($post);
-            if (!Storage::disk('public')->exists($sharePath)) {
+            if (!$disk->exists($sharePath)) {
                 ShareImageService::generate($post);
             }
         }
@@ -476,7 +480,13 @@ class LegacyImportMain extends Command
     /**
      * Skip download if the file already exists on disk; otherwise download normally.
      */
-    protected function downloadLegacyImage(int $id, ?string $legacyFilename, string $legacySlug, string $imageType): ?string
+    protected function downloadLegacyImage(
+        int $id,
+        ?string $legacyFilename,
+        string $legacySlug,
+        string $imageType,
+        string $languageCode
+    ): ?string
     {
         if (empty($legacyFilename)) {
             return null;
@@ -485,16 +495,18 @@ class LegacyImportMain extends Command
         $targetPath = ImageService::getImagePath($id, $imageType, ImageService::SIZE_ORIGINAL)
             . '/' . $legacyFilename;
 
-        if (Storage::disk('public')->exists($targetPath)) {
+        $disk = Storage::disk(ImageService::publicDiskForLanguage($languageCode));
+
+        if ($disk->exists($targetPath)) {
             return $targetPath;
         }
 
         $url = 'https://admin.theins.today/storage/' . $legacySlug . '/' . $id . '/' . $legacyFilename;
 
         try {
-            Storage::disk('public')->makeDirectory(dirname($targetPath));
+            $disk->makeDirectory(dirname($targetPath));
 
-            $fullPath = Storage::disk('public')->path($targetPath);
+            $fullPath = $disk->path($targetPath);
 
             $response = Http::timeout(30)
                 ->withOptions(['sink' => $fullPath])

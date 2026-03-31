@@ -53,10 +53,10 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
-    'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
-    // Used specifically for draft preview links (?preview=TOKEN) generated in Nova.
-    'ru_preview_url' => env('RU_PREVIEW_URL', env('FRONTEND_URL', env('APP_URL', 'http://localhost'))),
-    'en_preview_url' => env('EN_PREVIEW_URL', env('FRONTEND_URL', env('APP_URL', 'http://localhost'))),
+    'ru_edition_host' => env('RU_EDITION_HOST', env('APP_URL', 'http://localhost')),
+    'en_edition_host' => env('EN_EDITION_HOST', env('APP_URL', 'http://localhost')),
+    'ru_canonical_host' => env('RU_CANONICAL_HOST', env('RU_EDITION_HOST', env('APP_URL', 'http://localhost'))),
+    'en_canonical_host' => env('EN_CANONICAL_HOST', env('EN_EDITION_HOST', env('APP_URL', 'http://localhost'))),
 
     /*
     |--------------------------------------------------------------------------

@@ -187,7 +187,7 @@ class ContentRenderer
 
     public static function getPostUrl(Post $post): string
     {
-        return rtrim(config('app.frontend_url'), '/') . $post->getPath();
+        return self::canonicalBaseUrl($post->language_code) . $post->getPath();
     }
 
     public static function getPostImageUrl(Post $post): ?string
@@ -197,13 +197,22 @@ class ContentRenderer
             return null;
         }
 
-        $appUrl = rtrim(config('app.url'), '/');
-        $siteUrl = rtrim(config('app.frontend_url'), '/');
+        $appUrl = rtrim((string) config('app.url'), '/');
+        $siteUrl = self::canonicalBaseUrl($post->language_code);
 
         if ($appUrl !== $siteUrl && str_starts_with($localUrl, $appUrl)) {
             return $siteUrl . substr($localUrl, strlen($appUrl));
         }
 
         return $localUrl;
+    }
+
+    private static function canonicalBaseUrl(string $languageCode): string
+    {
+        $host = $languageCode === 'ru'
+            ? config('app.ru_canonical_host')
+            : config('app.en_canonical_host');
+
+        return rtrim((string) $host, '/');
     }
 }

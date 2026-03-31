@@ -21,8 +21,8 @@ class FeedController extends Controller
             return view('feeds.rss', [
                 'posts' => $posts,
                 'language' => $language_code,
-                'siteUrl' => $this->getSiteUrl(),
-                'selfUrl' => $this->getSiteUrl() . $this->feedPath($language_code, ''),
+                'siteUrl' => $this->getSiteUrl($language_code),
+                'selfUrl' => $this->getSiteUrl($language_code) . $this->feedPath($language_code, ''),
                 'description' => $this->getSiteDescription($language_code),
             ])->render();
         });
@@ -44,8 +44,8 @@ class FeedController extends Controller
             return view('feeds.yandex-news', [
                 'posts' => $posts,
                 'language' => $language_code,
-                'siteUrl' => $this->getSiteUrl(),
-                'selfUrl' => $this->getSiteUrl() . $this->feedPath($language_code, '/yandex-news'),
+                'siteUrl' => $this->getSiteUrl($language_code),
+                'selfUrl' => $this->getSiteUrl($language_code) . $this->feedPath($language_code, '/yandex-news'),
                 'description' => $this->getSiteDescription($language_code),
             ])->render();
         });
@@ -61,8 +61,8 @@ class FeedController extends Controller
             return view('feeds.dzen', [
                 'posts' => $posts,
                 'language' => $language_code,
-                'siteUrl' => $this->getSiteUrl(),
-                'selfUrl' => $this->getSiteUrl() . $this->feedPath($language_code, '/dzen'),
+                'siteUrl' => $this->getSiteUrl($language_code),
+                'selfUrl' => $this->getSiteUrl($language_code) . $this->feedPath($language_code, '/dzen'),
                 'description' => $this->getSiteDescription($language_code),
             ])->render();
         });
@@ -78,8 +78,8 @@ class FeedController extends Controller
             return view('feeds.google-news', [
                 'posts' => $posts,
                 'language' => $language_code,
-                'siteUrl' => $this->getSiteUrl(),
-                'selfUrl' => $this->getSiteUrl() . $this->feedPath($language_code, '/google-news'),
+                'siteUrl' => $this->getSiteUrl($language_code),
+                'selfUrl' => $this->getSiteUrl($language_code) . $this->feedPath($language_code, '/google-news'),
                 'description' => $this->getSiteDescription($language_code),
             ])->render();
         });
@@ -95,8 +95,8 @@ class FeedController extends Controller
             return view('feeds.facebook-instant', [
                 'posts' => $posts,
                 'language' => $language_code,
-                'siteUrl' => $this->getSiteUrl(),
-                'selfUrl' => $this->getSiteUrl() . $this->feedPath($language_code, '/facebook-instant'),
+                'siteUrl' => $this->getSiteUrl($language_code),
+                'selfUrl' => $this->getSiteUrl($language_code) . $this->feedPath($language_code, '/facebook-instant'),
                 'description' => $this->getSiteDescription($language_code),
             ])->render();
         });
@@ -121,9 +121,13 @@ class FeedController extends Controller
             ->header('Content-Type', 'application/xml; charset=UTF-8');
     }
 
-    private function getSiteUrl(): string
+    private function getSiteUrl(string $lang): string
     {
-        return rtrim(config('app.frontend_url'), '/');
+        $host = $lang === 'en'
+            ? config('app.en_canonical_host')
+            : config('app.ru_canonical_host');
+
+        return rtrim((string) $host, '/');
     }
 
     private function getSiteDescription(string $lang): string

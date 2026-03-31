@@ -144,10 +144,11 @@ abstract class Post extends Resource
     public function fields(Request $request)
     {
         $locale = $this->effectiveResourceLanguageCode();
+        $localeDisk = ImageService::publicDiskForLanguage($locale);
 
         $previewBaseUrl = $locale === 'ru'
-            ? config('app.ru_preview_url')
-            : config('app.en_preview_url');
+            ? config('app.ru_edition_host')
+            : config('app.en_edition_host');
 
         $postUrl = ($this->exists && $this->category)
             ? rtrim((string) $previewBaseUrl, '/').$this->getPath()
@@ -370,7 +371,7 @@ abstract class Post extends Resource
             ImageCropper::make(__('Image file'), 'image')
                 ->hideFromDetail()
                 ->hideFromIndex()
-                ->disk('public')
+                ->disk($localeDisk)
                 ->croppable(3 / 2)
                 ->withMeta([
                     'acceptedTypes' => '.jpeg,.jpg,.png,.webp',
@@ -391,11 +392,11 @@ abstract class Post extends Resource
                 )
                 ->nullable()
                 ->path(ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
+                ->preview(function ($value) use ($locale) {
+                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
                 })
-                ->thumbnail(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
+                ->thumbnail(function ($value) use ($locale) {
+                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
                 }),
 
             Text::make(__('Image description'), 'image_description')
@@ -464,6 +465,7 @@ abstract class Post extends Resource
                         ->forLayout('images')
                         ->default(true),
                     ImageGallery::make(__('Image list'), 'images')
+                        ->storageDisk($localeDisk)
                         ->fullWidth()
                         ->stacked()
                         ->rules('nullable'),
@@ -783,9 +785,13 @@ abstract class Post extends Resource
                     return $this->views_count;
                 }),
                 Text::make(__('Image file'), 'image')->resolveUsing(function () {
-                    return $this->image
-                        ? '<img src="'.e(\Storage::disk('public')->url($this->image)).'" style="max-width: 512px; height: auto; display:block;" />'
-                        : null;
+                    if (!$this->image) {
+                        return null;
+                    }
+
+                    $url = ImageService::publicUrlForPath($this->image, $this->language_code);
+
+                    return '<img src="'.e($url).'" style="max-width: 512px; height: auto; display:block;" />';
                 })->asHtml(),
             ]),
         ];

@@ -13,8 +13,6 @@ use Illuminate\Contracts\Database\Eloquent\Builder;
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Resource as NovaResource;
 
-use Illuminate\Support\Facades\Storage;
-
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Slug;
@@ -43,6 +41,7 @@ class InvestigationTheme extends Resource
 
     public function fields(Request $request) {
         $locale = $this->effectiveResourceLanguageCode();
+        $localeDisk = ImageService::publicDiskForLanguage($locale);
 
         $generalFields = [
             Boolean::make(__('Is it main Insvestigation theme?'), 'is_main')
@@ -59,15 +58,15 @@ class InvestigationTheme extends Resource
 
             Image::make(__('Image cover'), 'cover_image')
                 ->hideFromIndex()
-                ->disk('public')
+                ->disk($localeDisk)
                 ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120')
                 ->nullable()
                 ->path(ImageService::getImagePath($this->id, ImageService::TYPE_THEME_COVER, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
+                ->preview(function ($value) use ($locale) {
+                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
                 })
-                ->thumbnail(function ($value, $disk) {
-                    return $value ? Storage::disk($disk)->url($value) : null;
+                ->thumbnail(function ($value) use ($locale) {
+                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
                 }),
 
             Slug::make('Slug', 'slug')

@@ -255,7 +255,13 @@ trait LegacyImportHelpersTrait
                     $allowedPostTypes[] = 'opinion';
                 }
 
-                $avatarPath = $this->downloadLegacyImage($author->id, $author->image ?? null, 'person', ImageService::TYPE_USER_PHOTO);
+                $avatarPath = $this->downloadLegacyImage(
+                    $author->id,
+                    $author->image ?? null,
+                    'person',
+                    ImageService::TYPE_USER_PHOTO,
+                    $languageCode
+                );
 
                 Author::updateOrCreate(
                     ['id' => $author->id],
@@ -329,7 +335,13 @@ trait LegacyImportHelpersTrait
 
             foreach ($themes as $theme) {
                 $bar->setMessage($this->barLabel("#{$theme->id} {$theme->title}"));
-                $coverImagePath = $this->downloadLegacyImage($theme->id, $theme->image ?? null, 'theme', ImageService::TYPE_THEME_COVER);
+                $coverImagePath = $this->downloadLegacyImage(
+                    $theme->id,
+                    $theme->image ?? null,
+                    'theme',
+                    ImageService::TYPE_THEME_COVER,
+                    $languageCode
+                );
 
                 InvestigationTheme::updateOrCreate(
                     ['id' => $theme->id],
@@ -926,7 +938,8 @@ trait LegacyImportHelpersTrait
                 foreach ($images as $image) {
                     $imagePath = $this->downloadLegacyImage(
                         $image->id, $image->image ?? null,
-                        'content_block/image', ImageService::TYPE_CONTENT_IMAGE
+                        'content_block/image', ImageService::TYPE_CONTENT_IMAGE,
+                        $languageCode
                     );
                     $templates[$dbTemplate->human_id]['attributes']['images'][] = [
                         'id'          => (string) $image->id,
@@ -1107,7 +1120,7 @@ trait LegacyImportHelpersTrait
                             $outline = $this->cleanOutline($match['content']);
                             $textHtml .= '<h3 class="outline-heading">' . e($outline) . '</h3>';
                         } elseif ($match['type'] === 'legacy_caption') {
-                            $imageBlock = $this->buildLegacyWpCaptionBlock($match['fullMatch'], $postId);
+                            $imageBlock = $this->buildLegacyWpCaptionBlock($match['fullMatch'], $postId, $languageCode);
                             if ($imageBlock !== null) {
                                 $key = $this->flexibleBlockKey('images', $postId . '_cap_' . $match['offset']);
                                 $content[$key] = [
@@ -1120,7 +1133,7 @@ trait LegacyImportHelpersTrait
                                 $textHtml .= '<p>{{ images_id' . $key . ' }}</p>';
                             }
                         } elseif ($match['type'] === 'legacy_wp_image') {
-                            $imageBlock = $this->buildLegacyWpContentImageBlock($match['fullMatch'], $postId);
+                            $imageBlock = $this->buildLegacyWpContentImageBlock($match['fullMatch'], $postId, $languageCode);
                             if ($imageBlock !== null) {
                                 $key = $this->flexibleBlockKey('images', $postId . '_wp_' . $match['offset']);
                                 $content[$key] = [
@@ -1362,7 +1375,13 @@ trait LegacyImportHelpersTrait
                     'text' => $online->text ?? '',
                     'images' => $online->image ? [
                         'id' => (string) $online->id,
-                        'link' => $this->downloadLegacyImage($online->id, $online->image, 'online_item', ImageService::TYPE_ONLINE_IMAGE),
+                        'link' => $this->downloadLegacyImage(
+                            $online->id,
+                            $online->image,
+                            'online_item',
+                            ImageService::TYPE_ONLINE_IMAGE,
+                            $languageCode
+                        ),
                         'author' => '',
                         'description' => '',
                     ] : [],
@@ -1426,7 +1445,8 @@ trait LegacyImportHelpersTrait
                 $post->id,
                 $post->preview_image ?? $post->detail_image ?? null,
                 'post',
-                ImageService::TYPE_POST_COVER
+                ImageService::TYPE_POST_COVER,
+                $languageCode
             );
 
             Post::updateOrCreate(
@@ -1488,7 +1508,13 @@ trait LegacyImportHelpersTrait
     // Image download
     // -------------------------------------------------------------------------
 
-    protected function downloadLegacyImage(int $id, ?string $legacyFilename, string $legacySlug, string $imageType): ?string
+    protected function downloadLegacyImage(
+        int $id,
+        ?string $legacyFilename,
+        string $legacySlug,
+        string $imageType,
+        string $languageCode
+    ): ?string
     {
         if (empty($legacyFilename)) {
             return null;
@@ -1500,9 +1526,10 @@ trait LegacyImportHelpersTrait
             $targetPath = ImageService::getImagePath($id, $imageType, ImageService::SIZE_ORIGINAL)
                 . '/' . $legacyFilename;
 
-            Storage::disk('public')->makeDirectory(dirname($targetPath));
+            $disk = Storage::disk(ImageService::publicDiskForLanguage($languageCode));
+            $disk->makeDirectory(dirname($targetPath));
 
-            $fullPath = Storage::disk('public')->path($targetPath);
+            $fullPath = $disk->path($targetPath);
 
             $response = Http::timeout(30)
                 ->withOptions(['sink' => $fullPath])
@@ -2069,7 +2096,7 @@ trait LegacyImportHelpersTrait
      * Parse [caption id="..." align="..." width="..."]<img ... /> или <a><img></a> Текст подписи[/caption].
      * Возвращает блок images с одной картинкой, description = подпись из текста внутри caption.
      */
-    protected function buildLegacyWpCaptionBlock(string $html, int $postId): ?array
+    protected function buildLegacyWpCaptionBlock(string $html, int $postId, string $languageCode): ?array
     {
         if (!preg_match('/\[caption[^]]*\](.*)\[\/caption\]/is', $html, $capMatch)) {
             return null;
@@ -2080,7 +2107,7 @@ trait LegacyImportHelpersTrait
             return null;
         }
         $captionText = trim(strip_tags(preg_replace($imgPattern, '', $inner, 1)));
-        $imageBlock = $this->buildLegacyWpContentImageBlock($imgMatch[0], $postId);
+        $imageBlock = $this->buildLegacyWpContentImageBlock($imgMatch[0], $postId, $languageCode);
         if ($imageBlock === null) {
             return null;
         }
@@ -2090,7 +2117,7 @@ trait LegacyImportHelpersTrait
         return $imageBlock;
     }
 
-    protected function buildLegacyWpContentImageBlock(string $html, int $postId): ?array
+    protected function buildLegacyWpContentImageBlock(string $html, int $postId, string $languageCode): ?array
     {
         if (!preg_match('/<img\b[^>]*\bsrc=["\']([^"\']+)["\'][^>]*\/?>/i', $html, $srcMatch)) {
             return null;
@@ -2116,7 +2143,7 @@ trait LegacyImportHelpersTrait
             $alt = trim(html_entity_decode($altMatch[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         }
 
-        $downloaded = $this->downloadLegacyWpContentImage($preferredPath, $postId);
+        $downloaded = $this->downloadLegacyWpContentImage($preferredPath, $postId, $languageCode);
         if ($downloaded === null) {
             return null;
         }
@@ -2152,7 +2179,7 @@ trait LegacyImportHelpersTrait
         return null;
     }
 
-    protected function downloadLegacyWpContentImage(string $wpContentPath, int $postId): ?array
+    protected function downloadLegacyWpContentImage(string $wpContentPath, int $postId, string $languageCode): ?array
     {
         $path = $this->normalizeLegacyWpContentPath($wpContentPath);
         if ($path === null) {
@@ -2168,15 +2195,17 @@ trait LegacyImportHelpersTrait
         $targetPath = ImageService::getImagePath($imageId, ImageService::TYPE_CONTENT_IMAGE, ImageService::SIZE_ORIGINAL)
             . '/' . $filename;
 
-        if (Storage::disk('public')->exists($targetPath)) {
+        $disk = Storage::disk(ImageService::publicDiskForLanguage($languageCode));
+
+        if ($disk->exists($targetPath)) {
             return ['id' => $imageId, 'link' => $targetPath];
         }
 
-        $url = 'https://theins.ru' . $path;
+        $url = 'https://theins.today' . $path;
 
         try {
-            Storage::disk('public')->makeDirectory(dirname($targetPath));
-            $fullPath = Storage::disk('public')->path($targetPath);
+            $disk->makeDirectory(dirname($targetPath));
+            $fullPath = $disk->path($targetPath);
 
             $response = Http::timeout(30)
                 ->withOptions(['sink' => $fullPath])

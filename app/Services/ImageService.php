@@ -24,6 +24,16 @@ class ImageService
     /** Минимальная ширина оригинала, при которой создаём уменьшенный small; иначе копируем без ресайза (чтобы не сжимать картинки 768–1024px) */
     private const MIN_WIDTH_TO_RESIZE_SMALL = 1024;
 
+    public static function publicDiskForLanguage(?string $languageCode): string
+    {
+        return $languageCode === 'en' ? 'en_public' : 'ru_public';
+    }
+
+    public static function publicUrlForPath(string $path, ?string $languageCode): string
+    {
+        return Storage::disk(self::publicDiskForLanguage($languageCode))->url($path);
+    }
+
     public static function getImagePath($id, string $type = self::TYPE_POST_COVER, string $size = self::SIZE_ORIGINAL): string
     {
         $idStr = (string) $id;
@@ -37,14 +47,20 @@ class ImageService
         return "{$type}/{$size}/{$prefix}/{$idStr}";
     }
 
-    public static function createImageVariants($id, ?string $imagePath, string $type = self::TYPE_POST_COVER): bool
+    public static function createImageVariants(
+        $id,
+        ?string $imagePath,
+        string $type = self::TYPE_POST_COVER,
+        string $languageCode
+    ): bool
     {
         if (empty($imagePath)) {
             return false;
         }
         
         try {
-            $originalPath = Storage::disk('public')->path($imagePath);
+            $disk = Storage::disk(self::publicDiskForLanguage($languageCode));
+            $originalPath = $disk->path($imagePath);
             
             if (!file_exists($originalPath)) {
                 Log::warning("Файл не существует: {$originalPath}");
@@ -59,12 +75,12 @@ class ImageService
             }
             
             $smallSuccess = $originalWidth >= self::MIN_WIDTH_TO_RESIZE_SMALL
-                ? self::createResizedImage($originalPath, $id, $filename, $type, self::SIZE_SMALL, self::WIDTH_SMALL)
-                : self::createImageCopy($originalPath, $id, $filename, $type, self::SIZE_SMALL);
+                ? self::createResizedImage($originalPath, $id, $filename, $type, self::SIZE_SMALL, self::WIDTH_SMALL, $languageCode)
+                : self::createImageCopy($originalPath, $id, $filename, $type, self::SIZE_SMALL, $languageCode);
             
             $mediumSuccess = $originalWidth > self::WIDTH_MEDIUM 
-                ? self::createResizedImage($originalPath, $id, $filename, $type, self::SIZE_MEDIUM, self::WIDTH_MEDIUM)
-                : self::createImageCopy($originalPath, $id, $filename, $type, self::SIZE_MEDIUM);
+                ? self::createResizedImage($originalPath, $id, $filename, $type, self::SIZE_MEDIUM, self::WIDTH_MEDIUM, $languageCode)
+                : self::createImageCopy($originalPath, $id, $filename, $type, self::SIZE_MEDIUM, $languageCode);
             
             return $smallSuccess && $mediumSuccess;
         } catch (Exception $e) {
@@ -87,12 +103,21 @@ class ImageService
         }
     }
     
-    private static function createResizedImage(string $originalPath, $id, string $filename, string $type, string $sizeType, int $width): bool
+    private static function createResizedImage(
+        string $originalPath,
+        $id,
+        string $filename,
+        string $type,
+        string $sizeType,
+        int $width,
+        string $languageCode
+    ): bool
     {
         try {
             $dir = self::getImagePath($id, $type, $sizeType);
-            Storage::disk('public')->makeDirectory($dir);
-            $path = Storage::disk('public')->path($dir . '/' . $filename);
+            $disk = Storage::disk(self::publicDiskForLanguage($languageCode));
+            $disk->makeDirectory($dir);
+            $path = $disk->path($dir . '/' . $filename);
             
             $imagick = new Imagick($originalPath);
             $imagick->setImageColorspace(Imagick::COLORSPACE_SRGB);
@@ -110,12 +135,20 @@ class ImageService
         }
     }
 
-    private static function createImageCopy(string $originalPath, $id, string $filename, string $type, string $sizeType): bool
+    private static function createImageCopy(
+        string $originalPath,
+        $id,
+        string $filename,
+        string $type,
+        string $sizeType,
+        string $languageCode
+    ): bool
     {
         try {
             $dir = self::getImagePath($id, $type, $sizeType);
-            Storage::disk('public')->makeDirectory($dir);
-            $path = Storage::disk('public')->path($dir . '/' . $filename);
+            $disk = Storage::disk(self::publicDiskForLanguage($languageCode));
+            $disk->makeDirectory($dir);
+            $path = $disk->path($dir . '/' . $filename);
             
             if (!copy($originalPath, $path)) {
                 throw new Exception("Не удалось скопировать файл из {$originalPath} в {$path}");
@@ -128,7 +161,14 @@ class ImageService
         }
     }
 
-    public static function getImageUrl($id, ?string $imagePath, string $type = self::TYPE_POST_COVER, string $size = self::SIZE_ORIGINAL, bool $includeDomain = true): ?string
+    public static function getImageUrl(
+        $id,
+        ?string $imagePath,
+        string $type = self::TYPE_POST_COVER,
+        string $size = self::SIZE_ORIGINAL,
+        bool $includeDomain = true,
+        ?string $languageCode = null
+    ): ?string
     {
         if (empty($imagePath)) {
             return null;
@@ -141,6 +181,6 @@ class ImageService
             return '/storage/' . $path;
         }
 
-        return Storage::disk('public')->url($path);
+        return self::publicUrlForPath($path, $languageCode);
     }
 }

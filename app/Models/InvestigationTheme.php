@@ -70,13 +70,13 @@ class InvestigationTheme extends Model {
 
         static::updated(function ($theme) {
             if ($theme->wasChanged('cover_image') && !empty($theme->cover_image)) {
-                ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER);
+                ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER, $theme->language_code);
             }
         });
 
         static::created(function ($theme) {
             if (!empty($theme->cover_image)) {
-                ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER);
+                ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER, $theme->language_code);
             }
         });
 

@@ -17,12 +17,10 @@ class GenerateSitemap extends Command
     protected $description = 'Generate static sitemap XML files in the public directory';
 
     private const POSTS_PER_FILE = 1000;
-    private string $baseUrl;
     private array $generatedFiles = [];
 
     public function handle(): int
     {
-        $this->baseUrl = rtrim(config('app.frontend_url'), '/');
         $startTime = microtime(true);
 
         $this->info('Generating sitemaps...');
@@ -57,13 +55,13 @@ class GenerateSitemap extends Command
                 $chunkIndex++;
                 $filename = "sitemap-posts-{$lang}-{$chunkIndex}.xml";
 
-                $urls = $posts->map(function (Post $post) {
+                $urls = $posts->map(function (Post $post) use ($lang) {
                     $path = $this->getPostPath($post);
                     $priority = $this->getPostPriority($post);
                     $changefreq = $this->getChangeFreq($post->published_at);
 
                     return [
-                        'loc' => $this->baseUrl . $path,
+                        'loc' => $this->baseUrlForLanguage($lang) . $path,
                         'lastmod' => $post->updated_at->toW3cString(),
                         'changefreq' => $changefreq,
                         'priority' => $priority,
@@ -72,7 +70,7 @@ class GenerateSitemap extends Command
 
                 $lastmod = $posts->max('updated_at');
                 $this->writeSitemap($filename, $urls->toArray());
-                $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => $lastmod->toW3cString()];
+                $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => $lastmod->toW3cString(), 'lang' => $lang];
 
                 $this->line("  {$filename}: {$urls->count()} URLs");
             });
@@ -81,8 +79,9 @@ class GenerateSitemap extends Command
     private function generateCategorySitemap(string $lang): void
     {
         $homePath = $lang === 'ru' ? '/' : "/{$lang}";
+        $baseUrl = $this->baseUrlForLanguage($lang);
         $urls = collect([[
-            'loc' => $this->baseUrl . $homePath,
+            'loc' => $baseUrl . $homePath,
             'lastmod' => now()->toW3cString(),
             'changefreq' => 'always',
             'priority' => '1.0',
@@ -95,7 +94,7 @@ class GenerateSitemap extends Command
             $path = '/' . ($lang === 'ru' ? '' : "{$lang}/") . $category->slug;
             $isNews = $category->type === PostTypes::NEWS;
             return [
-                'loc' => $this->baseUrl . $path,
+                'loc' => $baseUrl . $path,
                 'lastmod' => $category->updated_at?->toW3cString() ?? now()->toW3cString(),
                 'changefreq' => $isNews ? 'always' : 'hourly',
                 'priority' => $isNews ? '0.9' : '0.7',
@@ -106,7 +105,7 @@ class GenerateSitemap extends Command
 
         $filename = "sitemap-pages-{$lang}.xml";
         $this->writeSitemap($filename, $urls->toArray());
-        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString()];
+        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString(), 'lang' => $lang];
         $this->line("  {$filename}: {$urls->count()} URLs");
     }
 
@@ -118,10 +117,11 @@ class GenerateSitemap extends Command
         }
 
         $filename = "sitemap-tags-{$lang}.xml";
-        $urls = $tags->map(function (Tag $tag) use ($lang) {
+        $baseUrl = $this->baseUrlForLanguage($lang);
+        $urls = $tags->map(function (Tag $tag) use ($lang, $baseUrl) {
             $path = '/' . ($lang === 'ru' ? '' : "{$lang}/") . "tag/{$tag->slug}";
             return [
-                'loc' => $this->baseUrl . $path,
+                'loc' => $baseUrl . $path,
                 'lastmod' => $tag->updated_at?->toW3cString() ?? now()->toW3cString(),
                 'changefreq' => 'weekly',
                 'priority' => '0.4',
@@ -129,7 +129,7 @@ class GenerateSitemap extends Command
         });
 
         $this->writeSitemap($filename, $urls->toArray());
-        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString()];
+        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString(), 'lang' => $lang];
         $this->line("  {$filename}: {$urls->count()} URLs");
     }
 
@@ -153,10 +153,11 @@ class GenerateSitemap extends Command
         }
 
         $filename = "sitemap-authors-{$lang}.xml";
-        $urls = $authors->map(function (Author $author) use ($lang) {
+        $baseUrl = $this->baseUrlForLanguage($lang);
+        $urls = $authors->map(function (Author $author) use ($lang, $baseUrl) {
             $path = '/' . ($lang === 'ru' ? '' : "{$lang}/") . "authors/{$author->slug}";
             return [
-                'loc' => $this->baseUrl . $path,
+                'loc' => $baseUrl . $path,
                 'lastmod' => $author->updated_at?->toW3cString() ?? now()->toW3cString(),
                 'changefreq' => 'weekly',
                 'priority' => '0.5',
@@ -164,7 +165,7 @@ class GenerateSitemap extends Command
         });
 
         $this->writeSitemap($filename, $urls->toArray());
-        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString()];
+        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString(), 'lang' => $lang];
         $this->line("  {$filename}: {$urls->count()} URLs");
     }
 
@@ -187,10 +188,11 @@ class GenerateSitemap extends Command
         }
 
         $filename = "sitemap-columnists-{$lang}.xml";
-        $urls = $columnists->map(function (Author $author) use ($lang) {
+        $baseUrl = $this->baseUrlForLanguage($lang);
+        $urls = $columnists->map(function (Author $author) use ($lang, $baseUrl) {
             $path = '/' . ($lang === 'ru' ? '' : "{$lang}/") . "opinions/{$author->slug}";
             return [
-                'loc' => $this->baseUrl . $path,
+                'loc' => $baseUrl . $path,
                 'lastmod' => $author->updated_at?->toW3cString() ?? now()->toW3cString(),
                 'changefreq' => 'weekly',
                 'priority' => '0.5',
@@ -198,7 +200,7 @@ class GenerateSitemap extends Command
         });
 
         $this->writeSitemap($filename, $urls->toArray());
-        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString()];
+        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString(), 'lang' => $lang];
         $this->line("  {$filename}: {$urls->count()} URLs");
     }
 
@@ -210,9 +212,10 @@ class GenerateSitemap extends Command
         }
 
         $filename = "sitemap-investigations-{$lang}.xml";
-        $urls = $themes->map(function (InvestigationTheme $theme) {
+        $baseUrl = $this->baseUrlForLanguage($lang);
+        $urls = $themes->map(function (InvestigationTheme $theme) use ($baseUrl) {
             return [
-                'loc' => $this->baseUrl . $theme->getPath(),
+                'loc' => $baseUrl . $theme->getPath(),
                 'lastmod' => $theme->updated_at?->toW3cString() ?? now()->toW3cString(),
                 'changefreq' => 'weekly',
                 'priority' => '0.6',
@@ -220,7 +223,7 @@ class GenerateSitemap extends Command
         });
 
         $this->writeSitemap($filename, $urls->toArray());
-        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString()];
+        $this->generatedFiles[] = ['filename' => $filename, 'lastmod' => now()->toW3cString(), 'lang' => $lang];
         $this->line("  {$filename}: {$urls->count()} URLs");
     }
 
@@ -231,7 +234,7 @@ class GenerateSitemap extends Command
 
         foreach ($this->generatedFiles as $file) {
             $xml .= '  <sitemap>' . "\n";
-            $xml .= '    <loc>' . $this->baseUrl . '/' . $file['filename'] . '</loc>' . "\n";
+            $xml .= '    <loc>' . $this->baseUrlForLanguage($file['lang'] ?? 'ru') . '/' . $file['filename'] . '</loc>' . "\n";
             $xml .= '    <lastmod>' . $file['lastmod'] . '</lastmod>' . "\n";
             $xml .= '  </sitemap>' . "\n";
         }
@@ -323,5 +326,14 @@ class GenerateSitemap extends Command
         }
 
         return 'monthly';
+    }
+
+    private function baseUrlForLanguage(string $lang): string
+    {
+        $host = $lang === 'en'
+            ? config('app.en_canonical_host')
+            : config('app.ru_canonical_host');
+
+        return rtrim((string) $host, '/');
     }
 }

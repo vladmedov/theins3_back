@@ -38,10 +38,19 @@ return [
             'report' => false,
         ],
 
-        'public' => [
+        'ru_public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('STORAGE_URL'),
+            'url' => rtrim(env('RU_EDITION_HOST', env('APP_URL', 'http://localhost')), '/') . '/storage',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'en_public' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => rtrim(env('EN_EDITION_HOST', env('APP_URL', 'http://localhost')), '/') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
