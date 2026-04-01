@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Post;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Imagick;
@@ -83,20 +84,30 @@ class ShareImageService
         return (int) ($post->updated_at?->getTimestamp() ?? time());
     }
 
-    private static function deleteStaleShareImages($disk, Post $post, string $keepPath): void
+    private static function deleteStaleShareImages(FilesystemAdapter $disk, Post $post, string $keepPath): void
     {
         $prefix = (string) intdiv((int) $post->id, 1000);
         $directory = "share/{$prefix}";
         $id = (int) $post->id;
+        $pathsToDelete = [];
 
-        foreach ($disk->files($directory) as $path) {
-            if ($path === $keepPath) {
-                continue;
-            }
+        $legacyPath = "{$directory}/{$id}.png";
+        if ($legacyPath !== $keepPath && $disk->exists($legacyPath)) {
+            $pathsToDelete[] = $legacyPath;
+        }
 
-            if (preg_match('/^share\/' . preg_quote($prefix, '/') . '\/' . $id . '(?:-\d+)?\.png$/', $path) === 1) {
-                $disk->delete($path);
+        $directoryFsPath = $disk->path($directory);
+        if (is_dir($directoryFsPath)) {
+            foreach (glob($directoryFsPath . '/' . $id . '-*.png') ?: [] as $absolutePath) {
+                $candidate = $directory . '/' . basename($absolutePath);
+                if ($candidate !== $keepPath) {
+                    $pathsToDelete[] = $candidate;
+                }
             }
+        }
+
+        if (!empty($pathsToDelete)) {
+            $disk->delete(array_values(array_unique($pathsToDelete)));
         }
     }
 
