@@ -91,6 +91,7 @@ class SearchController extends Controller
                             'query' => $query,
                             'fields' => $fields,
                             'type' => 'most_fields', // Аналог word_start - поиск с начала слов
+                            'operator' => 'and',
                         ]]
                     ],
                     'filter' => $filters
