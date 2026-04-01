@@ -6,6 +6,7 @@ use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Metrics\Trend;
 use Laravel\Nova\Metrics\TrendResult;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 use App\Nova\Metrics\Traits\PostFilterTrait; 
 
@@ -17,6 +18,7 @@ class ViewsPerDay extends Trend
     use PostFilterTrait;
 
     public $width = '1/4';
+    private const CACHE_TTL_SECONDS = 900;
 
     private $_title = null;
     private $_postType = null;
@@ -38,19 +40,32 @@ class ViewsPerDay extends Trend
 
     public function calculate(NovaRequest $request): TrendResult
     {
-        if ($this->_postType === PostTypes::ONLINE) {
-            return $this->sumOnlineViewsByYears();
-        }
-
         $range = (int) $request->get('range', $this->resolveDefaultRangeValue());
-        $query = $this->postFilter($this->_postType)
-            ->where('status', Post::STATUS_PUBLISHED);
+        $cacheKey = sprintf(
+            'nova:metric:views_per_day:%s:%s:%d',
+            app()->getLocale(),
+            (string) $this->_postType,
+            $range
+        );
 
-        return match ($this->resolveUnitByRange($range)) {
-            'months' => $this->sumByMonths($request, $query, 'views_count', 'published_at')->showSumValue(),
-            'weeks' => $this->sumByWeeks($request, $query, 'views_count', 'published_at')->showSumValue(),
-            default => $this->sumByDays($request, $query, 'views_count', 'published_at')->showSumValue(),
-        };
+        return Cache::remember(
+            $cacheKey,
+            now()->addSeconds(self::CACHE_TTL_SECONDS),
+            function () use ($request, $range) {
+                if ($this->_postType === PostTypes::ONLINE) {
+                    return $this->sumOnlineViewsByYears();
+                }
+
+                $query = $this->postFilter($this->_postType)
+                    ->where('status', Post::STATUS_PUBLISHED);
+
+                return match ($this->resolveUnitByRange($range)) {
+                    'months' => $this->sumByMonths($request, $query, 'views_count', 'published_at')->showSumValue(),
+                    'weeks' => $this->sumByWeeks($request, $query, 'views_count', 'published_at')->showSumValue(),
+                    default => $this->sumByDays($request, $query, 'views_count', 'published_at')->showSumValue(),
+                };
+            }
+        );
     }
 
     public function ranges(): array

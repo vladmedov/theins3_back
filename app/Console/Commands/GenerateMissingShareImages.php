@@ -41,7 +41,8 @@ class GenerateMissingShareImages extends Command
         }
 
         $query = Post::query()
-            ->select(['id', 'image', 'language_code', 'published_at'])
+            ->setEagerLoads([])
+            ->select(['id', 'image', 'language_code'])
             ->whereNotNull('image')
             ->where('image', '!=', '');
 

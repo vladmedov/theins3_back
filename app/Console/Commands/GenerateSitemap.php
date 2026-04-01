@@ -90,7 +90,7 @@ class GenerateSitemap extends Command
         $categories = Category::where('language_code', $lang)
             ->where('is_show_in_menu', true)
             ->get();
-        $categoryUrls = $categories->map(function (Category $category) use ($lang) {
+        $categoryUrls = $categories->map(function (Category $category) use ($lang, $baseUrl) {
             $path = '/' . ($lang === 'ru' ? '' : "{$lang}/") . $category->slug;
             $isNews = $category->type === PostTypes::NEWS;
             return [

@@ -7,11 +7,13 @@ use App\Models\Author;
 use App\Models\Post;
 use App\Enums\PostTypes;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 class TopUsersCard extends Card
 {
     public const MODE_AUTHORS_POSTS = 'authors_posts';
     public const MODE_ARTICLE_VIEWS = 'article_views';
+    private const CACHE_TTL_SECONDS = 900;
 
     public $width = '1/4';
 
@@ -19,58 +21,89 @@ class TopUsersCard extends Card
     {
         parent::__construct();
 
-        if ($mode === self::MODE_ARTICLE_VIEWS) {
-            $title = __('top_users_card.titles.article_views');
-            $articleMonthFrom = now()->subDays(29)->startOfDay();
-            $periods = [
-                [
-                    'key' => 'month',
-                    'label' => __('top_users_card.periods.month'),
-                    'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, $articleMonthFrom),
-                    'total' => $this->getArticleViewsTotalByPeriod($articleMonthFrom),
-                    'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, $articleMonthFrom),
-                ],
-                [
-                    'key' => 'quarter',
-                    'label' => __('top_users_card.periods.quarter'),
-                    'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, now()->subMonths(3)),
-                    'total' => $this->getArticleViewsTotalByPeriod(now()->subMonths(3)),
-                    'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, now()->subMonths(3)),
-                ],
-                [
-                    'key' => 'year',
-                    'label' => __('top_users_card.periods.year'),
-                    'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, now()->subYear()),
-                    'total' => $this->getArticleViewsTotalByPeriod(now()->subYear()),
-                    'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, now()->subYear()),
-                ],
-                [
-                    'key' => 'always',
-                    'label' => __('top_users_card.periods.always'),
-                    'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, null),
-                    'total' => $this->getArticleViewsTotalByPeriod(null),
-                    'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, null),
-                ],
-            ];
-            $defaultPeriod = 'month';
-            $totalLabel = __('top_users_card.totals.article_views');
-            $secondaryLinePrefix = __('top_users_card.secondary.on_posts_prefix');
-            $secondaryLineSuffix = __('top_users_card.secondary.on_posts_suffix');
-        } else {
-            // Keep ranking periods aligned with dashboard metrics buckets.
-            $weekFrom = now()->subDays(6)->startOfDay();
-            $monthFrom = now()->subDays(29)->startOfDay();
-            $yearFrom = now()->subDays(364)->startOfDay();
+        $cacheKey = sprintf(
+            'nova:top_users_card:%s:%s:%s',
+            app()->getLocale(),
+            (string) $postType,
+            $mode
+        );
+        $meta = Cache::remember(
+            $cacheKey,
+            now()->addSeconds(self::CACHE_TTL_SECONDS),
+            fn () => $this->buildCardMeta((string) $postType, $mode)
+        );
 
-            $title = match ($postType) {
+        $this->withMeta([
+            'periods' => $meta['periods'],
+            'title' => $meta['title'],
+            'defaultPeriod' => $meta['defaultPeriod'],
+            'totalLabel' => $meta['totalLabel'],
+            'secondaryLinePrefix' => $meta['secondaryLinePrefix'],
+            'secondaryLineSuffix' => $meta['secondaryLineSuffix'],
+            'locale' => app()->getLocale(),
+            'emptyLabel' => __('top_users_card.empty'),
+            'isTallCard' => true,
+        ]);
+    }
+
+    private function buildCardMeta(string $postType, string $mode): array
+    {
+        if ($mode === self::MODE_ARTICLE_VIEWS) {
+            $articleMonthFrom = now()->subDays(29)->startOfDay();
+
+            return [
+                'title' => __('top_users_card.titles.article_views'),
+                'periods' => [
+                    [
+                        'key' => 'month',
+                        'label' => __('top_users_card.periods.month'),
+                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, $articleMonthFrom),
+                        'total' => $this->getArticleViewsTotalByPeriod($articleMonthFrom),
+                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, $articleMonthFrom),
+                    ],
+                    [
+                        'key' => 'quarter',
+                        'label' => __('top_users_card.periods.quarter'),
+                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, now()->subMonths(3)),
+                        'total' => $this->getArticleViewsTotalByPeriod(now()->subMonths(3)),
+                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, now()->subMonths(3)),
+                    ],
+                    [
+                        'key' => 'year',
+                        'label' => __('top_users_card.periods.year'),
+                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, now()->subYear()),
+                        'total' => $this->getArticleViewsTotalByPeriod(now()->subYear()),
+                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, now()->subYear()),
+                    ],
+                    [
+                        'key' => 'always',
+                        'label' => __('top_users_card.periods.always'),
+                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, null),
+                        'total' => $this->getArticleViewsTotalByPeriod(null),
+                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, null),
+                    ],
+                ],
+                'defaultPeriod' => 'month',
+                'totalLabel' => __('top_users_card.totals.article_views'),
+                'secondaryLinePrefix' => __('top_users_card.secondary.on_posts_prefix'),
+                'secondaryLineSuffix' => __('top_users_card.secondary.on_posts_suffix'),
+            ];
+        }
+
+        // Keep ranking periods aligned with dashboard metrics buckets.
+        $weekFrom = now()->subDays(6)->startOfDay();
+        $monthFrom = now()->subDays(29)->startOfDay();
+        $yearFrom = now()->subDays(364)->startOfDay();
+
+        return [
+            'title' => match ($postType) {
                 PostTypes::ARTICLE => __('top_users_card.titles.article'),
                 PostTypes::NEWS => __('top_users_card.titles.news'),
                 PostTypes::OPINION => __('top_users_card.titles.opinion'),
                 PostTypes::ONLINE => __('top_users_card.titles.online'),
                 default => __('top_users_card.titles.default'),
-            };
-
-            $periods = [
+            },
+            'periods' => [
                 [
                     'key' => 'week',
                     'label' => __('top_users_card.periods.week'),
@@ -99,24 +132,12 @@ class TopUsersCard extends Card
                     'total' => $this->getPostsTotalByPeriod($postType, null),
                     'secondary_total' => $this->getViewsTotalByPeriod($postType, null),
                 ],
-            ];
-            $defaultPeriod = 'week';
-            $totalLabel = __('top_users_card.totals.news_total');
-            $secondaryLinePrefix = __('top_users_card.secondary.brought_views_prefix');
-            $secondaryLineSuffix = __('top_users_card.secondary.brought_views_suffix');
-        }
-
-        $this->withMeta([
-            'periods' => $periods,
-            'title' => $title,
-            'defaultPeriod' => $defaultPeriod,
-            'totalLabel' => $totalLabel,
-            'secondaryLinePrefix' => $secondaryLinePrefix,
-            'secondaryLineSuffix' => $secondaryLineSuffix,
-            'locale' => app()->getLocale(),
-            'emptyLabel' => __('top_users_card.empty'),
-            'isTallCard' => true,
-        ]);
+            ],
+            'defaultPeriod' => 'week',
+            'totalLabel' => __('top_users_card.totals.news_total'),
+            'secondaryLinePrefix' => __('top_users_card.secondary.brought_views_prefix'),
+            'secondaryLineSuffix' => __('top_users_card.secondary.brought_views_suffix'),
+        ];
     }
 
     public static function articleViews(): self

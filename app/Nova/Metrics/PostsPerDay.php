@@ -6,6 +6,7 @@ use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Metrics\Trend;
 use Laravel\Nova\Metrics\TrendResult;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 use App\Nova\Metrics\Traits\PostFilterTrait; 
 
@@ -20,6 +21,7 @@ class PostsPerDay extends Trend
 
     private const CONTEXT_DASHBOARD = 'dashboard';
     private const CONTEXT_RESOURCE = 'resource';
+    private const CACHE_TTL_SECONDS = 900;
 
     private $_title = null;
     private $_postType = null;
@@ -50,25 +52,39 @@ class PostsPerDay extends Trend
 
     public function calculate(NovaRequest $request): TrendResult
     {
-        if ($this->context === self::CONTEXT_DASHBOARD && $this->_postType === PostTypes::ONLINE) {
-            return $this->countOnlineByYears();
-        }
-
         $range = (int) $request->get('range', $this->resolveDefaultRangeValue());
-        $query = $this->postFilter($this->_postType)
-            ->where('status', Post::STATUS_PUBLISHED);
+        $cacheKey = sprintf(
+            'nova:metric:posts_per_day:%s:%s:%s:%d',
+            app()->getLocale(),
+            (string) $this->_postType,
+            $this->context,
+            $range
+        );
 
-        $result = match ($this->resolveUnitByRange($range)) {
-            'months' => $this->countByMonths($request, $query, 'published_at')->showSumValue(),
-            'weeks' => $this->countByWeeks($request, $query, 'published_at')->showSumValue(),
-            default => $this->countByDays($request, $query, 'published_at')->showSumValue(),
-        };
+        return Cache::remember(
+            $cacheKey,
+            now()->addSeconds(self::CACHE_TTL_SECONDS),
+            function () use ($request, $range) {
+                if ($this->context === self::CONTEXT_DASHBOARD && $this->_postType === PostTypes::ONLINE) {
+                    return $this->countOnlineByYears();
+                }
 
-        if ($this->context === self::CONTEXT_RESOURCE) {
-            return $result->result($this->resolveTodayCount());
-        }
+                $query = $this->postFilter($this->_postType)
+                    ->where('status', Post::STATUS_PUBLISHED);
 
-        return $result;
+                $result = match ($this->resolveUnitByRange($range)) {
+                    'months' => $this->countByMonths($request, $query, 'published_at')->showSumValue(),
+                    'weeks' => $this->countByWeeks($request, $query, 'published_at')->showSumValue(),
+                    default => $this->countByDays($request, $query, 'published_at')->showSumValue(),
+                };
+
+                if ($this->context === self::CONTEXT_RESOURCE) {
+                    return $result->result($this->resolveTodayCount());
+                }
+
+                return $result;
+            }
+        );
     }
 
     public function ranges(): array
