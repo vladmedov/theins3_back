@@ -275,6 +275,9 @@ export default {
         candidates.map(async (file) => {
           const formData = new FormData();
           formData.append("file", file);
+          if (this.field?.storageDisk) {
+            formData.append("storage_disk", this.field.storageDisk);
+          }
           if (csrf) formData.append("_token", csrf);
 
           try {

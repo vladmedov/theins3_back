@@ -35,6 +35,7 @@ class ImageGallery extends Field
 
         return array_merge(parent::jsonSerialize(), [
             'storageUrl' => Storage::disk($disk)->url(''),
+            'storageDisk' => $disk,
         ]);
     }
 }

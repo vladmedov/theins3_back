@@ -45,13 +45,6 @@ class ShareImageService
         }
     }
 
-    public static function getShareImagePath(Post $post): string
-    {
-        $prefix = (string) intdiv((int) $post->id, 1000);
-        $mtime = self::getCoverImageMtime($post);
-        return "share/{$prefix}/{$post->id}-{$mtime}.png";
-    }
-
     public static function getShareImageUrl(Post $post): ?string
     {
         $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
@@ -66,28 +59,27 @@ class ShareImageService
         return $siteUrl . '/storage/' . $path;
     }
 
-    private static function getCoverImageMtime(Post $post): int
+    public static function getShareImagePath(Post $post): string
     {
-        if (empty($post->image)) {
-            return (int) ($post->updated_at?->getTimestamp() ?? time());
-        }
+        $prefix = (string) intdiv((int) $post->id, 1000);
+        $imageToken = self::shareNameTokenFromImage($post);
+        return "share/{$prefix}/{$post->id}/{$imageToken}.png";
+    }
 
-        $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
-        $coverPath = $disk->path($post->image);
-        if (file_exists($coverPath)) {
-            $mtime = @filemtime($coverPath);
-            if ($mtime !== false) {
-                return (int) $mtime;
-            }
-        }
+    private static function shareNameTokenFromImage(Post $post): string
+    {
+        $filename = pathinfo((string) $post->image, PATHINFO_FILENAME);
+        $filename = preg_replace('/[^A-Za-z0-9_-]+/', '-', $filename) ?? '';
+        $filename = trim($filename, '-_');
 
-        return (int) ($post->updated_at?->getTimestamp() ?? time());
+        return $filename !== '' ? $filename : 'image';
     }
 
     private static function deleteStaleShareImages(FilesystemAdapter $disk, Post $post, string $keepPath): void
     {
         $prefix = (string) intdiv((int) $post->id, 1000);
         $directory = "share/{$prefix}";
+        $postDirectory = "{$directory}/{$post->id}";
         $id = (int) $post->id;
         $pathsToDelete = [];
 
@@ -100,6 +92,16 @@ class ShareImageService
         if (is_dir($directoryFsPath)) {
             foreach (glob($directoryFsPath . '/' . $id . '-*.png') ?: [] as $absolutePath) {
                 $candidate = $directory . '/' . basename($absolutePath);
+                if ($candidate !== $keepPath) {
+                    $pathsToDelete[] = $candidate;
+                }
+            }
+        }
+
+        $postDirectoryFsPath = $disk->path($postDirectory);
+        if (is_dir($postDirectoryFsPath)) {
+            foreach (glob($postDirectoryFsPath . '/*.png') ?: [] as $absolutePath) {
+                $candidate = $postDirectory . '/' . basename($absolutePath);
                 if ($candidate !== $keepPath) {
                     $pathsToDelete[] = $candidate;
                 }
