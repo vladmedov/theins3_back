@@ -40,9 +40,7 @@ class GenerateMissingShareImages extends Command
         $query = Post::query()
             ->select(['id', 'image', 'language_code', 'published_at'])
             ->whereNotNull('image')
-            ->where('image', '!=', '')
-            ->orderByDesc('published_at')
-            ->orderByDesc('id');
+            ->where('image', '!=', '');
 
         if ($idFrom !== null) {
             $query->where('id', '>=', $idFrom);
@@ -58,7 +56,6 @@ class GenerateMissingShareImages extends Command
         }
         if ($limit > 0) {
             $total = min($total, $limit);
-            $query->limit($limit);
         }
 
         $processed = 0;
@@ -78,7 +75,7 @@ class GenerateMissingShareImages extends Command
         $bar->setMessage('0');
         $bar->start();
 
-        foreach ($query->lazy($chunk) as $post) {
+        foreach ($query->lazyByIdDesc($chunk, 'id') as $post) {
             if ($limit > 0 && $processed >= $limit) {
                 break;
             }
