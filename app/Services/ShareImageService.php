@@ -31,6 +31,7 @@ class ShareImageService
             self::drawLogo($canvas, $post->language_code);
 
             $path = self::getShareImagePath($post);
+            self::deleteStaleShareImages($disk, $post, $path);
             $disk->makeDirectory(dirname($path));
             $fullPath = $disk->path($path);
             $canvas->writeImage($fullPath);
@@ -46,7 +47,8 @@ class ShareImageService
     public static function getShareImagePath(Post $post): string
     {
         $prefix = (string) intdiv((int) $post->id, 1000);
-        return "share/{$prefix}/{$post->id}.png";
+        $mtime = self::getCoverImageMtime($post);
+        return "share/{$prefix}/{$post->id}-{$mtime}.png";
     }
 
     public static function getShareImageUrl(Post $post): ?string
@@ -60,21 +62,42 @@ class ShareImageService
         $siteUrl = $post->language_code === 'ru'
             ? rtrim((string) config('app.ru_edition_host'), '/')
             : rtrim((string) config('app.en_edition_host'), '/');
+        return $siteUrl . '/storage/' . $path;
+    }
 
-        $version = null;
-        $fullPath = $disk->path($path);
-        if (file_exists($fullPath)) {
-            $mtime = @filemtime($fullPath);
+    private static function getCoverImageMtime(Post $post): int
+    {
+        if (empty($post->image)) {
+            return (int) ($post->updated_at?->getTimestamp() ?? time());
+        }
+
+        $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
+        $coverPath = $disk->path($post->image);
+        if (file_exists($coverPath)) {
+            $mtime = @filemtime($coverPath);
             if ($mtime !== false) {
-                $version = (string) $mtime;
+                return (int) $mtime;
             }
         }
 
-        $url = $siteUrl . '/storage/' . $path;
+        return (int) ($post->updated_at?->getTimestamp() ?? time());
+    }
 
-        return $version !== null
-            ? $url . '?v=' . $version
-            : $url;
+    private static function deleteStaleShareImages($disk, Post $post, string $keepPath): void
+    {
+        $prefix = (string) intdiv((int) $post->id, 1000);
+        $directory = "share/{$prefix}";
+        $id = (int) $post->id;
+
+        foreach ($disk->files($directory) as $path) {
+            if ($path === $keepPath) {
+                continue;
+            }
+
+            if (preg_match('/^share\/' . preg_quote($prefix, '/') . '\/' . $id . '(?:-\d+)?\.png$/', $path) === 1) {
+                $disk->delete($path);
+            }
+        }
     }
 
     private static function drawBackgroundImage(Imagick $canvas, Post $post): void

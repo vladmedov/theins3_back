@@ -88,6 +88,7 @@ class Post extends Model { //implements HasMedia {
     ];
 
     protected ?array $frontendRevalidationOriginalSnapshot = null;
+    protected ?int $frontendRevalidationOriginalTranslationId = null;
 
     public static function boot() {
         parent::boot();
@@ -160,6 +161,9 @@ class Post extends Model { //implements HasMedia {
 
             $post->frontendRevalidationOriginalSnapshot = app(FrontendCacheTagService::class)
                 ->snapshotPost($originalPost);
+            $post->frontendRevalidationOriginalTranslationId = $originalPost?->translation_id !== null
+                ? (int) $originalPost->translation_id
+                : null;
         });
 
         static::updating(function ($post) use ($createHistory) {
@@ -250,7 +254,18 @@ class Post extends Model { //implements HasMedia {
                 $post->frontendRevalidationOriginalSnapshot
             );
 
+            $currentTranslationId = !empty($post->translation_id) ? (int) $post->translation_id : null;
+            $originalTranslationId = $post->frontendRevalidationOriginalTranslationId;
+
+            foreach (array_values(array_unique(array_filter([
+                $originalTranslationId,
+                $currentTranslationId,
+            ]))) as $translationPostId) {
+                app(FrontendRevalidationService::class)->queuePostChange((int) $translationPostId);
+            }
+
             $post->frontendRevalidationOriginalSnapshot = null;
+            $post->frontendRevalidationOriginalTranslationId = null;
         });
 
         static::deleted(function ($post) {

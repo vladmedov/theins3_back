@@ -14,7 +14,8 @@ class GenerateMissingShareImages extends Command
                             {--limit=0 : Process only first N posts (0 = all)}
                             {--chunk=1000 : Chunk size}
                             {--id-from= : Process posts with id >= value}
-                            {--id-to= : Process posts with id <= value}';
+                            {--id-to= : Process posts with id <= value}
+                            {--rebuild-share : Force rebuild share images and delete stale share files}';
 
     protected $description = 'Generate missing post images (small, medium, share) for local posts';
 
@@ -24,6 +25,7 @@ class GenerateMissingShareImages extends Command
         $chunk = max(100, (int) $this->option('chunk'));
         $idFrom = $this->option('id-from');
         $idTo = $this->option('id-to');
+        $rebuildShare = (bool) $this->option('rebuild-share');
 
         $idFrom = ($idFrom === null || $idFrom === '') ? null : (int) $idFrom;
         $idTo = ($idTo === null || $idTo === '') ? null : (int) $idTo;
@@ -121,9 +123,11 @@ class GenerateMissingShareImages extends Command
             }
 
             $sharePath = ShareImageService::getShareImagePath($post);
-            if (!$disk->exists($sharePath)) {
+            $shareExistsBefore = $disk->exists($sharePath);
+
+            if ($rebuildShare || !$shareExistsBefore) {
                 $result = ShareImageService::generate($post);
-                if ($result !== null && $disk->exists($sharePath)) {
+                if ($result !== null && $disk->exists($result)) {
                     $generatedShare++;
                 } else {
                     $failed++;
