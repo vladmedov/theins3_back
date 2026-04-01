@@ -46,8 +46,8 @@ class ShareImageService
     public static function getShareImageUrl(Post $post): ?string
     {
         $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
-        $path = self::getShareImagePath($post);
-        if (!$disk->exists($path)) {
+        $path = self::resolveExistingShareImagePath($post, $disk);
+        if ($path === null) {
             return null;
         }
 
@@ -71,6 +71,29 @@ class ShareImageService
         $filename = trim($filename, '-_');
 
         return $filename !== '' ? $filename : 'image';
+    }
+
+    private static function resolveExistingShareImagePath(Post $post, $disk): ?string
+    {
+        $currentPath = self::getShareImagePath($post);
+        if ($disk->exists($currentPath)) {
+            return $currentPath;
+        }
+
+        $prefix = (string) intdiv((int) $post->id, 1000);
+        $legacyFlatPath = "share/{$prefix}/{$post->id}.png";
+        if ($disk->exists($legacyFlatPath)) {
+            return $legacyFlatPath;
+        }
+
+        $postDirectory = "share/{$prefix}/{$post->id}";
+        foreach ($disk->files($postDirectory) as $path) {
+            if (str_ends_with(strtolower($path), '.png')) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 
     private static function drawBackgroundImage(Imagick $canvas, Post $post): void
