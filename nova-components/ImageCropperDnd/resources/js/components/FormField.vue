@@ -6,90 +6,7 @@
     :show-help-text="false"
   >
     <template #field>
-      <ImageViewer
-        ref="existingImageViewer"
-        @image-deleted="imageDeleted"
-        @image-delete-failed="imageDeleteFailed"
-        v-show="!imgSrc && !existingImageDeleted"
-        :field="field"
-        :resourceId="resourceId"
-        :resourceName="resourceName"
-        :relatedResourceId="relatedResourceId"
-        :relatedResourceName="relatedResourceName"
-        :viaRelationship="viaRelationship"
-      />
-
-      <img
-        v-if="imgSrc && skipCrop"
-        :src="imgSrc"
-        class="mb-4 max-w-full rounded"
-        style="max-height: 300px;"
-      />
-
-      <VueCropper
-        v-if="field.croppable"
-        v-show="imgSrc && !skipCrop"
-        class="mb-2"
-        ref="cropper"
-        :view-mode="1"
-        :aspect-ratio="field.aspectRatio || NaN"
-        :auto-crop-area="1"
-        :src="imgSrc"
-        @cropend="onCropEnd"
-        @ready="onCropReady"
-      />
-
-      <p
-        v-if="
-          imgSrc &&
-          field.croppable &&
-          field.minWidth &&
-          field.minHeight &&
-          cropWidth &&
-          cropHeight &&
-          !skipCrop
-        "
-        class="text-sm mb-3"
-        :class="cropDimensionsValid ? 'text-green-500' : 'text-red-500'"
-      >
-        {{ __("Crop area") }}: {{ cropWidth }}x{{ cropHeight }}px
-      </p>
-
-      <div v-if="imgSrc" class="cancel-upload-row mb-6">
-        <div v-if="selectedImageMetaText" class="selected-image-meta">
-          {{ selectedImageMetaText }}
-          <div v-if="selectedCropMetaText" class="selected-crop-meta">
-            {{ selectedCropMetaText }}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          class="cancel-upload-btn"
-          @click="cancel"
-          :title="__('Cancel image selection')"
-          :aria-label="__('Cancel image selection')"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-          <span>{{ __("Cancel image selection") }}</span>
-        </button>
-      </div>
-
-      <div class="upload-controls-row mt-2 mb-6">
+      <div class="upload-controls-row mb-2">
         <div
           class="upload-box"
           :class="{ 'upload-box--disabled': false }"
@@ -161,6 +78,79 @@
         </div>
       </div>
 
+      <ImageViewer
+        ref="existingImageViewer"
+        @image-deleted="imageDeleted"
+        @image-delete-failed="imageDeleteFailed"
+        v-show="!imgSrc && !existingImageDeleted"
+        :field="field"
+        :resourceId="resourceId"
+        :resourceName="resourceName"
+        :relatedResourceId="relatedResourceId"
+        :relatedResourceName="relatedResourceName"
+        :viaRelationship="viaRelationship"
+      />
+
+      <img
+        v-if="imgSrc && skipCrop"
+        :src="imgSrc"
+        class="mb-4 max-w-full rounded"
+        style="max-height: 300px;"
+      />
+
+      <VueCropper
+        v-if="field.croppable"
+        v-show="imgSrc && !skipCrop"
+        class="mb-2"
+        ref="cropper"
+        :view-mode="1"
+        :aspect-ratio="field.aspectRatio || NaN"
+        :auto-crop-area="1"
+        :src="imgSrc"
+        @cropend="onCropEnd"
+        @ready="onCropReady"
+      />
+
+      <div v-if="imgSrc" class="cancel-upload-row mb-6">
+        <div v-if="selectedImageMetaText" class="selected-image-meta">
+          {{ selectedImageMetaText }}
+          <div
+            v-if="dimensionsBelowMinimum && belowMinimumCropLineText"
+            class="selected-crop-meta text-red-500"
+          >
+            {{ belowMinimumCropLineText }}
+          </div>
+          <div v-else-if="selectedCropMetaText" class="selected-crop-meta">
+            {{ selectedCropMetaText }}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="cancel-upload-btn"
+          @click="cancel"
+          :title="__('Cancel image selection')"
+          :aria-label="__('Cancel image selection')"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          <span>{{ __("Cancel image selection") }}</span>
+        </button>
+      </div>
+
       <p
         v-if="field.helpText"
         class="mt-2 text-xs"
@@ -173,6 +163,40 @@
         {{ field.helpText }}
         <span v-if="imageSizeError"> ({{ imageSizeError }})</span>
       </p>
+
+      <div class="ignore-dimensions-row mt-3 mb-6">
+        <label class="ignore-dimensions-label flex cursor-pointer m-0 w-full">
+          <div class="ignore-dimensions-checkbox-wrap shrink-0">
+            <input
+              type="checkbox"
+              v-model="ignoreDimensionRequirements"
+              class="ignore-dimensions-checkbox"
+            />
+          </div>
+          <div class="ignore-dimensions-copy min-w-0 flex-1 pl-1">
+            <div
+              class="ignore-dimensions-title font-medium text-gray-900 dark:text-gray-100"
+            >
+              {{ __("Ignore image dimension requirements") }}
+            </div>
+            <div
+              class="ignore-dimensions-help mt-1.5 text-xs leading-normal text-gray-400 dark:text-gray-500"
+            >
+              <span class="font-extralight">{{
+                __(
+                  "Use this option only if no high-quality publication image is available. Low-quality images reduce the overall quality of the site."
+                )
+              }}</span>
+              <span class="font-light">{{
+                " " +
+                __(
+                  "If enabled, minimum image dimensions (900x600) will not be validated."
+                )
+              }}</span>
+            </div>
+          </div>
+        </label>
+      </div>
 
       <p v-if="hasError" class="text-xs mt-2 text-danger">
         {{ firstError }}
@@ -216,22 +240,73 @@ export default {
     imageSizeError: null,
     isDraggingOverDropzone: false,
     existingImageDeleted: false,
+    ignoreDimensionRequirements: false,
   }),
+
+  watch: {
+    ignoreDimensionRequirements(val, oldVal) {
+      const hadSkipCropBeforeApply = this.skipCrop;
+      this.applyDimensionRulesToImage();
+
+      // Включаем игнор: не трогаем cropper.replace — сохраняем выбранную область.
+      // Исключение: раньше был skipCrop (мелкое фото), теперь нужен кроппер — один раз подставляем картинку.
+      if (val === true && oldVal === false) {
+        if (hadSkipCropBeforeApply && !this.skipCrop) {
+          this.$nextTick(() => {
+            if (this.imgSrc && this.field.croppable && this.$refs.cropper) {
+              this.$refs.cropper.replace(this.imgSrc);
+            }
+          });
+        }
+        return;
+      }
+
+      // Выключаем игнор: сбрасываем область кадрирования к дефолту пакета
+      if (val === false && oldVal === true) {
+        this.$nextTick(() => {
+          if (
+            this.imgSrc &&
+            this.field.croppable &&
+            !this.skipCrop &&
+            this.$refs.cropper
+          ) {
+            this.$refs.cropper.replace(this.imgSrc);
+          }
+        });
+      }
+    },
+  },
 
   methods: {
     fill(formData) {
+      formData.append(
+        "ignore_image_dimension_requirements",
+        this.ignoreDimensionRequirements ? "1" : "0"
+      );
       if (this.file) {
         if (
           this.field.croppable &&
-          this.field.minWidth &&
-          this.field.minHeight &&
+          this.effectiveMinWidth &&
+          this.effectiveMinHeight &&
           !this.skipCrop &&
           !this.cropDimensionsValid
         ) {
           Nova.$toasted.show(
-            `Crop area (${this.cropWidth}x${this.cropHeight}px) is too small. It must be at least ${this.field.minWidth}x${this.field.minHeight}px.`,
+            this.__("Crop area :current is too small. Minimum: :min px.", {
+              current: `${Math.round(this.cropWidth)}x${Math.round(this.cropHeight)}`,
+              min: `${this.effectiveMinWidth}x${this.effectiveMinHeight}`,
+            }),
             { type: "error", duration: 4000 }
           );
+          // fill() бросает до axios: нет markRequestResult. stayAction использует saveWithoutReload (state.active),
+          // не submitResource — прежний unlockSimpleSubmit не снимал «Сохранить…».
+          if (
+            typeof window !== "undefined" &&
+            window.NovaFormActionBar &&
+            typeof window.NovaFormActionBar.unlockSimpleSubmit === "function"
+          ) {
+            window.NovaFormActionBar.unlockSimpleSubmit();
+          }
           throw new Error("crop-dimensions-invalid");
         }
         formData.append(this.field.attribute, this.file, this.fileName);
@@ -265,6 +340,7 @@ export default {
       this.imageSizeError = null;
       this.isDraggingOverDropzone = false;
       this.existingImageDeleted = false;
+      this.ignoreDimensionRequirements = false;
       if (this.uploadErrors?.clear) {
         this.uploadErrors.clear(this.fieldAttribute);
       }
@@ -361,8 +437,6 @@ export default {
       const reader = new FileReader();
       reader.onload = async (loadEvent) => {
         const dataUrl = loadEvent.target.result;
-        const minW = this.field.minWidth || 0;
-        const minH = this.field.minHeight || 0;
 
         try {
           const { width, height } = await this.getImageSize(file);
@@ -373,24 +447,7 @@ export default {
           this.actualHeight = null;
         }
 
-        if (this.field.croppable && minW && minH) {
-          try {
-            const width = this.actualWidth;
-            const height = this.actualHeight;
-            if (!width || !height) {
-              throw new Error("image-size-unavailable");
-            }
-            if (width < minW || height < minH) {
-              this.imageSizeError = `${width}x${height}px`;
-              this.skipCrop = true;
-            } else {
-              this.imageSizeError = null;
-              this.skipCrop = width === minW && height === minH;
-            }
-          } catch (e) {
-            this.imageSizeError = null;
-          }
-        }
+        this.applyDimensionRulesToImage();
 
         this.imgSrc = dataUrl;
         if (this.field.croppable && !this.skipCrop && this.$refs.cropper) {
@@ -446,9 +503,51 @@ export default {
 
       return allowedExtensions.has(extension);
     },
+
+    applyDimensionRulesToImage() {
+      const minW = this.effectiveMinWidth;
+      const minH = this.effectiveMinHeight;
+
+      if (!this.field.croppable || !minW || !minH) {
+        this.imageSizeError = null;
+        this.skipCrop = false;
+        return;
+      }
+
+      try {
+        const width = this.actualWidth;
+        const height = this.actualHeight;
+        if (!width || !height) {
+          throw new Error("image-size-unavailable");
+        }
+        if (width < minW || height < minH) {
+          this.imageSizeError = `${width}x${height}px`;
+          this.skipCrop = true;
+        } else {
+          this.imageSizeError = null;
+          this.skipCrop = width === minW && height === minH;
+        }
+      } catch (e) {
+        this.imageSizeError = null;
+      }
+    },
   },
 
   computed: {
+    effectiveMinWidth() {
+      if (this.ignoreDimensionRequirements) {
+        return 0;
+      }
+      return this.field.minWidth || 0;
+    },
+
+    effectiveMinHeight() {
+      if (this.ignoreDimensionRequirements) {
+        return 0;
+      }
+      return this.field.minHeight || 0;
+    },
+
     hasError() {
       return this.uploadErrors.has(this.fieldAttribute);
     },
@@ -478,11 +577,6 @@ export default {
       let dimensions = this.__("Image dimensions could not be determined");
       if (this.actualWidth && this.actualHeight) {
         dimensions = `${this.actualWidth}x${this.actualHeight} px`;
-        if (this.imageSizeError) {
-          dimensions = `${dimensions} (${this.__(
-            "Image dimensions do not meet minimum requirements"
-          )})`;
-        }
       }
 
       let sizeText = this.__("File size is unknown");
@@ -506,6 +600,40 @@ export default {
       )}x${Math.round(this.cropHeight)} px`;
     },
 
+    dimensionsBelowMinimum() {
+      if (this.ignoreDimensionRequirements) {
+        return false;
+      }
+      if (this.imageSizeError) {
+        return true;
+      }
+      if (
+        !this.skipCrop &&
+        this.cropWidth &&
+        this.cropHeight &&
+        !this.cropDimensionsValid
+      ) {
+        return true;
+      }
+      return false;
+    },
+
+    /** Same wording as valid crop line, red — for under-minimum crop or whole image when too small. */
+    belowMinimumCropLineText() {
+      if (!this.dimensionsBelowMinimum) {
+        return null;
+      }
+      if (!this.skipCrop && this.cropWidth && this.cropHeight) {
+        return `${this.__("Selected crop area")}: ${Math.round(
+          this.cropWidth
+        )}x${Math.round(this.cropHeight)} px`;
+      }
+      if (this.actualWidth && this.actualHeight) {
+        return `${this.__("Selected crop area")}: ${this.actualWidth}x${this.actualHeight} px`;
+      }
+      return null;
+    },
+
     hasExistingImage() {
       if (this.existingImageDeleted) return false;
       return Boolean(this.field?.previewUrl || this.field?.value);
@@ -515,8 +643,8 @@ export default {
       if (!this.cropWidth || !this.cropHeight) {
         return true;
       }
-      const minWidth = this.field.minWidth || 0;
-      const minHeight = this.field.minHeight || 0;
+      const minWidth = this.effectiveMinWidth;
+      const minHeight = this.effectiveMinHeight;
       return this.cropWidth >= minWidth && this.cropHeight >= minHeight;
     },
   },
@@ -647,5 +775,39 @@ export default {
 
 .image-viewer-delete-btn:hover {
   background-color: #c03d31;
+}
+
+/* Same visual base as .cancel-upload-row (Nova form field tone) */
+.ignore-dimensions-row {
+  padding: 12px 14px;
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+.ignore-dimensions-label {
+  align-items: flex-start;
+  gap: 0;
+}
+
+.ignore-dimensions-checkbox-wrap {
+  width: 1.5rem;
+  min-height: 1.25rem;
+  padding-right: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 2px;
+}
+
+.ignore-dimensions-checkbox {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dark .ignore-dimensions-row {
+  background: rgb(31 41 55 / 0.5);
 }
 </style>

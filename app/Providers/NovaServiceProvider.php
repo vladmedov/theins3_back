@@ -28,6 +28,14 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
     {
         parent::boot();
 
+        // Слить lang/{locale}.json в Nova::translations — иначе Vue __() в кастомных полях не видит ключи из lang/*.json
+        Nova::serving(function () {
+            $path = lang_path(app()->getLocale().'.json');
+            if (is_readable($path)) {
+                Nova::translations($path);
+            }
+        });
+
         // Только в ServingNova: иначе первый provideToScript в boot() инициализирует jsonVariables
         // с userId = null и меню навсегда пустое (см. Nova::provideToScript при empty $jsonVariables).
         Nova::serving(function () {

@@ -124,6 +124,19 @@
         button.style.pointerEvents = '';
     }
 
+    /** fill() бросил до запроса — снять блокировку UI (иначе ждём timeout). */
+    function abortSaveBeforeHttpRequest() {
+        try {
+            setV2InFlightHint(false);
+        } catch (e) {}
+
+        unlockSimpleSubmitButton();
+
+        if (state.active) {
+            resetState(false, true);
+        }
+    }
+
     function triggerCreateSubmit() {
         const nativeSubmit = findNovaResourceSubmitButton() || findAnyNovaSubmitButton();
         if (nativeSubmit && !nativeSubmit.disabled) {
@@ -1775,6 +1788,7 @@
     window.NovaFormActionBar = {
         togglePublish: runTogglePublishAction,
         submitResource: submitResource,
+        unlockSimpleSubmit: abortSaveBeforeHttpRequest,
     };
 
     if (document.readyState === 'loading') {

@@ -376,18 +376,20 @@ abstract class Post extends Resource
                 ->croppable(3 / 2)
                 ->withMeta([
                     'acceptedTypes' => '.jpeg,.jpg,.png,.webp',
+                    'minWidth' => 900,
+                    'minHeight' => 600,
                 ])
-                ->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=640,min_height=100')
-                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.'))
+                ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=900,min_height=600')
+                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 900x600 px.'))
                 ->dependsOn(
                     ['ignore_image_dimension_requirements'],
                     function (ImageCropper $field, NovaRequest $request, FormData $formData) {
-                        if ($formData->ignore_image_dimension_requirements) {
-                            $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480')
+                        if ($formData->boolean('ignore_image_dimension_requirements')) {
+                            $field->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480')
                                 ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.'));
                         } else {
-                            $field->rules('image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=640,min_height=100')
-                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 640x100 px.'));
+                            $field->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=900,min_height=600')
+                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 900x600 px.'));
                         }
                     }
                 )
@@ -428,18 +430,6 @@ abstract class Post extends Resource
                 ->rules('boolean')
                 ->help(__('posts.super_news_help'));
         }
-
-        $general[] = Boolean::make(__('Ignore image dimension requirements'), 'ignore_image_dimension_requirements')
-            ->onlyOnForms()
-            ->help('<strong>'.__('Use this option only if no high-quality publication image is available. Low-quality images reduce the overall quality of the site.').'</strong><br>'.__('If enabled, minimum image dimensions (640x100) will not be validated.'))
-            ->withMeta([
-                'extraAttributes' => [
-                    'class' => 'ignore-image-dimensions-boolean',
-                ],
-            ])
-            ->fillUsing(function () {
-                // UI-only toggle, do not persist to the model.
-            });
 
         $general[] = Boolean::make(__('Queued for auto-publication'), 'auto_publish_pending')
             ->sortable()
