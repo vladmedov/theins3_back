@@ -2,10 +2,9 @@
 
 namespace App\Policies;
 
+use App\Models\Termin;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
-
-use App\Enums\UserRoles;
 
 class TerminPolicy
 {
@@ -21,9 +20,9 @@ class TerminPolicy
         return true;
     }
 
-    public function delete(User $user)
+    public function delete(User $user, Termin $termin)
     {
-        return $user->canViewAll();
+        return $user->canViewAll() && !$termin->isUsedInPosts();
     }
 
     public function restore()

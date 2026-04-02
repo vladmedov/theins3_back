@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class Termin extends Model {
     use HasFactory;
@@ -14,8 +15,24 @@ class Termin extends Model {
         'description',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Termin $termin): void {
+            if ($termin->isUsedInPosts()) {
+                throw ValidationException::withMessages([
+                    'termin' => [__('termin.cannot_delete_in_use')],
+                ]);
+            }
+        });
+    }
+
     public function posts() {
         return $this->belongsToMany(Post::class, 'post_termins');
+    }
+
+    public function isUsedInPosts(): bool
+    {
+        return $this->posts()->exists();
     }
 
     /**
