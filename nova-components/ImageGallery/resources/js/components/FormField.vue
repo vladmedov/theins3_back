@@ -71,13 +71,17 @@
           v-for="(image, index) in value"
           :key="image.link"
           class="image-gallery-item"
-          draggable="true"
-          @dragstart="dragStart(index, $event)"
+          :class="{ 'image-gallery-item--dragging': draggedIndex === index }"
           @dragover.prevent
           @drop="drop(index)"
         >
-          <!-- Перетаскивание -->
-          <div class="drag-handle">
+          <!-- Перетаскивание только с ручки — иначе draggable на строке ломает выделение в полях -->
+          <div
+            class="drag-handle"
+            draggable="true"
+            @dragstart="dragStart(index, $event)"
+            @dragend="dragEnd"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="7" y1="5" x2="17" y2="5"></line>
               <line x1="7" y1="9" x2="17" y2="9"></line>
@@ -313,7 +317,51 @@ export default {
 
     dragStart(index, event) {
       this.draggedIndex = index;
-      event.dataTransfer.effectAllowed = "move";
+      const dt = event.dataTransfer;
+      if (dt) {
+        dt.effectAllowed = "move";
+        dt.setData("text/plain", String(index));
+      }
+
+      const handle = event.currentTarget;
+      const row = handle && handle.closest && handle.closest(".image-gallery-item");
+      if (!row || !dt || typeof dt.setDragImage !== "function") {
+        return;
+      }
+
+      const clone = row.cloneNode(true);
+      clone.classList.add("image-gallery-item--drag-ghost");
+      const cloneHandle = clone.querySelector(".drag-handle");
+      if (cloneHandle) {
+        cloneHandle.removeAttribute("draggable");
+      }
+
+      clone.style.cssText =
+        "position:absolute;left:-9999px;top:0;width:" +
+        row.offsetWidth +
+        "px;z-index:10000;margin:0;pointer-events:none;";
+      document.body.appendChild(clone);
+
+      const rowRect = row.getBoundingClientRect();
+      const x = Math.max(0, Math.round(event.clientX - rowRect.left));
+      const y = Math.max(0, Math.round(event.clientY - rowRect.top));
+
+      try {
+        dt.setDragImage(clone, x, y);
+      } catch (e) {
+        clone.remove();
+        return;
+      }
+
+      this._dragGhostEl = clone;
+    },
+
+    dragEnd() {
+      if (this._dragGhostEl && this._dragGhostEl.parentNode) {
+        this._dragGhostEl.parentNode.removeChild(this._dragGhostEl);
+      }
+      this._dragGhostEl = null;
+      this.draggedIndex = null;
     },
 
     drop(index) {
@@ -459,6 +507,18 @@ export default {
   border-radius: 6px;
   gap: 15px;
   background: white;
+}
+
+.image-gallery-item--dragging {
+  opacity: 0.38;
+  outline: 2px dashed #1976d2;
+  outline-offset: 2px;
+}
+
+.image-gallery-item--drag-ghost {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  background: #fff;
 }
 
 .image-gallery-container {
