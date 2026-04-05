@@ -1,6 +1,6 @@
 <template>
   <div class="history-viewer">
-    <div class="history-top-bar" v-if="currentChange">
+    <div class="history-top-bar" v-if="historyLoaded">
       <h1 class="history-post-title">
         <span class="nova-post-edit-page-title">
           <span class="nova-post-edit-page-title__type">{{ historyHeaderType }}</span>
@@ -13,23 +13,37 @@
       </div>
     </div>
 
+    <p v-if="historyLoaded && !changes.length" class="history-empty-message">
+      История изменений отсутствует.
+    </p>
+
     <!-- Выбор изменения: сначала дата, потом время -->
-    <div class="history-scroll-container">
-      <div class="history-scroll-list history-date-list">
+    <div v-if="changes.length" class="history-picker">
+      <div class="history-scroll-list history-date-list" role="tablist">
         <button
           v-for="dateKey in getUniqueDates()"
           :key="`date-${dateKey}`"
+          type="button"
           :class="['history-item', { active: selectedDate === dateKey }]"
+          :aria-selected="selectedDate === dateKey"
+          role="tab"
           @click="selectDate(dateKey)"
         >
           {{ formatDateLabel(dateKey) }}
         </button>
       </div>
-      <div class="history-scroll-list history-time-list" v-if="selectedDate">
-        <button 
+      <div
+        v-if="selectedDate"
+        class="history-scroll-list history-time-list"
+        role="tablist"
+      >
+        <button
           v-for="item in getChangesForDate(selectedDate)"
           :key="item.change.id"
+          type="button"
           :class="['history-item', { active: item.index === currentIndex }]"
+          :aria-selected="item.index === currentIndex"
+          role="tab"
           @click="selectChange(item.index)"
         >
           {{ formatTimeLabel(item.change.created_at) }}
@@ -241,6 +255,7 @@ export default {
       copiedDebugBlocks: {},
       selectedDate: '',
       emptyPostTitleLabel: '—',
+      historyLoaded: false,
     };
   },
 
@@ -298,13 +313,22 @@ export default {
       if (data.empty_post_title_label) {
         this.emptyPostTitleLabel = data.empty_post_title_label;
       }
-      this.changes = data.changes.map(change => {
+      this.changes = (data.changes || []).map((change) => {
         change.changes = this.parseChanges(change.changes);
         return change;
       });
       this.currentIndex = 0;
       this.selectedDate = this.changes.length ? this.getChangeDateKey(this.changes[0]) : '';
-      this.loadCurrentChange();
+      if (!this.changes.length) {
+        this.currentChange = null;
+        this.historyLoaded = true;
+        return;
+      }
+      try {
+        await this.loadCurrentChange();
+      } finally {
+        this.historyLoaded = true;
+      }
     },
 
     async loadCurrentChange() {
@@ -1976,89 +2000,115 @@ export default {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.history-scroll-container {
-  padding: 8px 0;
+.history-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 4px;
+  margin-bottom: 38px;
 }
 
 .history-scroll-list {
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  padding: 8px;
-  background: #f9fafb;
   width: 100%;
-  display: inline-flex;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 4px 10px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
+  /* scroll: полоса всегда занимает место внизу */
   overflow-x: scroll;
   overflow-y: hidden;
   white-space: nowrap;
-  margin-bottom: 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
   scrollbar-width: auto;
+  /* Firefox: ползунок / дорожка (активное состояние ползунка там не стилизуется) */
   scrollbar-color: #9ca3af #e5e7eb;
 }
 
 .history-scroll-list::-webkit-scrollbar {
-  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 11px;
 }
 
 .history-scroll-list::-webkit-scrollbar-track {
+  margin: 0 2px;
   background: #e5e7eb;
   border-radius: 0;
+  border: 1px solid #d1d5db;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .history-scroll-list::-webkit-scrollbar-thumb {
-  background:rgb(130, 138, 151);
+  background: #9ca3af;
   border-radius: 0;
+  border: 1px solid #6b7280;
 }
 
 .history-scroll-list::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
+  border-color: #4b5563;
 }
 
-.history-date-list {
-  margin-bottom: 14px;
-}
-
-.history-time-list {
-  margin-bottom: 0;
+.history-scroll-list::-webkit-scrollbar-thumb:active {
+  background: #e54839;
+  border-color: #c73a2d;
 }
 
 .history-item {
-  padding: 6px 10px;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid transparent;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 7px 12px;
+  background: #fff;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
   border-radius: 999px;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-  font-size: 0.9rem;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  font-size: 0.875rem;
   font-weight: 200;
   line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.history-item:focus-visible {
+  outline: 2px solid #e54839;
+  outline-offset: 2px;
 }
 
 .history-item.active {
-  background: #e5e7eb;
-  border-color: transparent;
   font-weight: 300;
   color: #111827;
+}
+
+.history-date-list .history-item:hover:not(.active) {
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
 .history-date-list .history-item.active {
   background: #e54839;
   border-color: #e54839;
   color: #fff;
+  box-shadow: 0 1px 2px rgba(229, 72, 57, 0.25);
+}
+
+.history-time-list .history-item:hover:not(.active) {
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
 .history-time-list .history-item.active {
   background: #fff;
-  border: 2px solid #e54839;
+  border-color: #e54839;
   color: #111827;
-  padding: 5px 9px;
-}
-
-.history-item:hover {
-  background: #e5e7eb;
+  box-shadow: 0 0 0 1px #e54839;
 }
 
 .change-cards {
@@ -2071,6 +2121,18 @@ export default {
   align-items: start;
   gap: 12px;
   margin-bottom: 6px;
+}
+
+.history-empty-message {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 200;
+  line-height: 1.35;
 }
 
 .history-post-title {
