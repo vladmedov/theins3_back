@@ -105,6 +105,25 @@
                   <pre class="debug-html-pre" v-html="buildRawHtmlDiff(block)"></pre>
                 </div>
 
+                <details class="post-history-debug">
+                  <summary class="post-history-debug__summary">
+                    Отладочный дамп (для копирования в чат)
+                  </summary>
+                  <textarea
+                    class="post-history-debug__textarea"
+                    readonly
+                    rows="16"
+                    :value="buildDebugDump(block, blockId)"
+                    @focus="(e) => e.target.select()"
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="post-history-debug__copy"
+                    @click="copyPostHistoryDebug(block, blockId)"
+                  >
+                    {{ isDebugCopied(blockId) ? 'Скопировано' : 'Копировать дамп' }}
+                  </button>
+                </details>
               </div>
               <div v-else-if="isNonTextContentBlock(block)" class="plain-unified-wrapper">
                 <div
@@ -168,6 +187,26 @@
               <div v-else class="debug-html-block">
                 <pre class="debug-html-pre" v-html="buildRawHtmlDiff(toTextLikeBlock(change))"></pre>
               </div>
+
+              <details class="post-history-debug">
+                <summary class="post-history-debug__summary">
+                  Отладочный дамп (для копирования в чат)
+                </summary>
+                <textarea
+                  class="post-history-debug__textarea"
+                  readonly
+                  rows="16"
+                  :value="buildDebugDump(toTextLikeBlock(change), '__lead__')"
+                  @focus="(e) => e.target.select()"
+                ></textarea>
+                <button
+                  type="button"
+                  class="post-history-debug__copy"
+                  @click="copyPostHistoryDebug(toTextLikeBlock(change), '__lead__')"
+                >
+                  {{ isDebugCopied('__lead__') ? 'Скопировано' : 'Копировать дамп' }}
+                </button>
+              </details>
             </div>
           </div>
           <div class="change-content" v-else>
@@ -199,6 +238,7 @@ export default {
       blockViewModes: {},
       visualFrameHeights: {},
       copiedBlocks: {},
+      copiedDebugBlocks: {},
       selectedDate: '',
       emptyPostTitleLabel: '—',
     };
@@ -453,33 +493,58 @@ export default {
       return this.stripResidualHtmlTokens(doc.body?.textContent ?? '');
     },
 
-    htmlToVisualText(html) {
+    /**
+     * Top-level content blocks in document order for visual diff.
+     * Skips p/headings inside blockquote (blockquote carries full quote text once).
+     * diffKey includes structural kind so plain h3 vs outline-heading h3 split as different blocks.
+     */
+    htmlToVisualBlocks(html) {
       const decodedHtml = this.decodeHtmlEntitiesDeep(html);
       const parser = new DOMParser();
       const doc = parser.parseFromString(String(decodedHtml ?? ''), 'text/html');
       const body = doc.body;
-
       if (!body) {
-        return '';
+        return [];
       }
 
       const blockSelector = 'p, h1, h2, h3, h4, h5, h6, blockquote, li';
-      const blocks = Array.from(body.querySelectorAll(blockSelector));
+      const blocks = Array.from(body.querySelectorAll(blockSelector)).filter((node) => {
+        const t = node.tagName.toLowerCase();
+        if (t === 'blockquote') {
+          return true;
+        }
+        return !node.closest('blockquote');
+      });
 
+      const out = [];
+      for (const node of blocks) {
+        const withBreaks = (node.innerHTML || '').replace(/<br\s*\/?>/gi, '\n');
+        const tmp = parser.parseFromString(`<div>${withBreaks}</div>`, 'text/html');
+        const text = this.stripResidualHtmlTokens(tmp.body?.textContent ?? '').trim();
+        if (!text) {
+          continue;
+        }
+        const tag = node.tagName.toLowerCase();
+        let kind = tag;
+        if (tag === 'h3' && node.classList?.contains('outline-heading')) {
+          kind = 'h3-outline';
+        }
+        const diffKey = `${kind}\u001f${text}`;
+        out.push({ text, diffKey, kind });
+      }
+      return out;
+    },
+
+    htmlToVisualText(html) {
+      const blocks = this.htmlToVisualBlocks(html);
       if (blocks.length > 0) {
-        const parts = blocks
-          .map((node) => {
-            // Preserve manual line breaks inside block nodes.
-            const withBreaks = (node.innerHTML || '').replace(/<br\s*\/?>/gi, '\n');
-            const tmp = parser.parseFromString(`<div>${withBreaks}</div>`, 'text/html');
-            return this.stripResidualHtmlTokens(tmp.body?.textContent ?? '').trim();
-          })
-          .filter(Boolean);
-
-        return parts.join('\n\n');
+        return blocks.map((b) => b.text).join('\n\n');
       }
 
-      return this.stripResidualHtmlTokens(body.textContent ?? '');
+      const decodedHtml = this.decodeHtmlEntitiesDeep(html);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(String(decodedHtml ?? ''), 'text/html');
+      return this.stripResidualHtmlTokens(doc.body?.textContent ?? '');
     },
 
     escapeHtml(value) {
@@ -558,15 +623,24 @@ export default {
 
     tokenizeHtmlForDebugDiff(html) {
       const source = String(html ?? '');
-      // Keep URLs as single tokens so replaced links are shown whole.
-      const regex = /(https?:\/\/[^\s"'<>]+)|(\s+)|([^\s]+)/g;
+      // Keep whole tags as single tokens so character-level diff cannot glue
+      // e.g. "<h3 " + "data-id=..." into invalid "<h3data-id=...".
       const tokens = [];
-      let match;
-
-      while ((match = regex.exec(source)) !== null) {
-        tokens.push(match[0]);
+      const parts = source.split(/(<[^>]*>)/g);
+      for (const part of parts) {
+        if (part === '') {
+          continue;
+        }
+        if (part.startsWith('<') && part.endsWith('>')) {
+          tokens.push(part);
+          continue;
+        }
+        const urlRegex = /(https?:\/\/[^\s"'<>]+)|(\s+)|([^\s]+)/g;
+        let m;
+        while ((m = urlRegex.exec(part)) !== null) {
+          tokens.push(m[0]);
+        }
       }
-
       return tokens;
     },
 
@@ -857,8 +931,13 @@ export default {
       const doc = parser.parseFromString(String(decodedHtml ?? ''), 'text/html');
       let result = diffHtml;
 
+      // Same heading text can appear many times (e.g. several «Оглавление»). replaceFirstLiteral
+      // always hits the first substring, so after the first wrap the next pass would match inside
+      // the span and nest spans. Consume occurrences in document order via unique placeholders.
       const headingNodes = Array.from(doc.body?.querySelectorAll?.('h1, h2, h3, h4, h5, h6') || []);
-      for (const node of headingNodes) {
+      const headingPh = [];
+      for (let hi = 0; hi < headingNodes.length; hi += 1) {
+        const node = headingNodes[hi];
         const text = this.stripResidualHtmlTokens((node.textContent || '').replace(/\s+/g, ' ').trim());
         if (!text) {
           continue;
@@ -866,25 +945,40 @@ export default {
         const escapedText = this.escapeHtml(text);
         const isOutlineHeading = node.classList?.contains('outline-heading');
         const headingClass = isOutlineHeading ? 'is-heading is-outline-heading' : 'is-heading';
-        result = this.replaceFirstLiteral(
-          result,
-          escapedText,
-          `<span class="${headingClass}">${escapedText}</span>`
-        );
+        const ph = `\u2060POST_HISTORY_HEAD_${hi}_\u2060`;
+        const next = this.replaceFirstLiteral(result, escapedText, ph);
+        if (next === result) {
+          continue;
+        }
+        result = next;
+        headingPh.push({
+          ph,
+          html: `<span class="${headingClass}">${escapedText}</span>`,
+        });
+      }
+      for (const { ph, html } of headingPh) {
+        result = result.split(ph).join(html);
       }
 
       const quoteNodes = Array.from(doc.body?.querySelectorAll?.('blockquote') || []);
-      for (const node of quoteNodes) {
+      const quotePh = [];
+      for (let qi = 0; qi < quoteNodes.length; qi += 1) {
+        const node = quoteNodes[qi];
         const text = this.stripResidualHtmlTokens((node.textContent || '').replace(/\s+/g, ' ').trim());
         if (!text) {
           continue;
         }
         const escapedText = this.escapeHtml(text);
-        result = this.replaceFirstLiteral(
-          result,
-          escapedText,
-          `<span class="is-quote">${escapedText}</span>`
-        );
+        const ph = `\u2060POST_HISTORY_QUOTE_${qi}_\u2060`;
+        const next = this.replaceFirstLiteral(result, escapedText, ph);
+        if (next === result) {
+          continue;
+        }
+        result = next;
+        quotePh.push({ ph, html: `<span class="is-quote">${escapedText}</span>` });
+      }
+      for (const { ph, html } of quotePh) {
+        result = result.split(ph).join(html);
       }
 
       return result;
@@ -1069,8 +1163,10 @@ export default {
     buildRenderedDiffHtml(block) {
       const oldHtml = this.sanitizeHtmlForPreview(this.extractTextHtml(block.old));
       const newHtml = this.sanitizeHtmlForPreview(this.extractTextHtml(block.new));
-      const oldText = this.htmlToVisualText(oldHtml);
-      const newText = this.htmlToVisualText(newHtml);
+      const oldBlocks = this.htmlToVisualBlocks(oldHtml);
+      const newBlocks = this.htmlToVisualBlocks(newHtml);
+      const oldText = oldBlocks.map((b) => b.text).join('\n\n');
+      const newText = newBlocks.map((b) => b.text).join('\n\n');
       const rawNewHtml = this.debugHtml(block.new);
 
       // Entire text block was removed: render all content as removed.
@@ -1086,22 +1182,53 @@ export default {
       const strongTokenIndices = new Set();
       const headingTokenIndices = new Set();
       const quoteTokenIndices = new Set();
-      const oldParagraphs = String(oldText ?? '')
-        .split(/\n{2,}/)
-        .filter((p) => p.trim().length > 0);
-      const newParagraphs = String(newText ?? '')
-        .split(/\n{2,}/)
-        .filter((p) => p.trim().length > 0);
-      const paragraphOps = diffArrays(oldParagraphs, newParagraphs);
+
+      const oldKeys = oldBlocks.map((b) => b.diffKey);
+      const newKeys = newBlocks.map((b) => b.diffKey);
+      const paragraphOps = diffArrays(oldKeys, newKeys);
 
       let html = '';
       let newTokenIndex = 0;
+      let oi = 0;
+      let ni = 0;
+      const headingClassByKind = (kind) => {
+        if (kind === 'h3-outline') {
+          return 'is-heading is-outline-heading';
+        }
+        if (typeof kind === 'string' && /^h[1-6]$/.test(kind)) {
+          return 'is-heading';
+        }
+        return '';
+      };
+
+      // Keep added highlight for all inserted blocks (including <p> «Текст»).
+      // Headings get additional block-like styling via CSS rules for `.diff-added > .is-heading`.
+      const appendAddedBlock = (block) => {
+        const paragraph = block.text;
+        const tokens = this.tokenizeWithSpaces(paragraph);
+        for (let ti = 0; ti < tokens.length; ti += 1) {
+          html += this.renderTokenWithStyles(
+            tokens[ti],
+            newTokenIndex + ti,
+            changedMarkupTokenIndices,
+            strongTokenIndices,
+            headingTokenIndices,
+            quoteTokenIndices,
+            'diff-added'
+          );
+        }
+        newTokenIndex += tokens.length;
+        html += '\n\n';
+      };
+
       for (let i = 0; i < paragraphOps.length; i += 1) {
         const op = paragraphOps[i];
         const values = Array.isArray(op?.value) ? op.value : [];
+        const n = values.length;
 
         if (!op.added && !op.removed) {
-          for (const paragraph of values) {
+          for (let j = 0; j < n; j += 1) {
+            const paragraph = newBlocks[ni].text;
             const rendered = this.renderEqualChunkWithMarkupDiff(
               paragraph,
               changedMarkupTokenIndices,
@@ -1112,86 +1239,89 @@ export default {
             );
             html += rendered.html + '\n\n';
             newTokenIndex = rendered.nextIndex;
+            oi += 1;
+            ni += 1;
           }
         } else if (op.removed) {
           const nextOp = paragraphOps[i + 1];
           if (nextOp?.added) {
-            const oldParagraphsChunk = values;
-            const newParagraphsChunk = Array.isArray(nextOp.value) ? nextOp.value : [];
-            const pairedCount = Math.min(oldParagraphsChunk.length, newParagraphsChunk.length);
+            const newVals = Array.isArray(nextOp.value) ? nextOp.value : [];
+            const oldChunkLen = n;
+            const newChunkLen = newVals.length;
+            const pairedCount = Math.min(oldChunkLen, newChunkLen);
 
             for (let pi = 0; pi < pairedCount; pi += 1) {
-              const rendered = this.renderChangedParagraphDiff(
-                oldParagraphsChunk[pi],
-                newParagraphsChunk[pi],
-                changedMarkupTokenIndices,
-                strongTokenIndices,
-                headingTokenIndices,
-                quoteTokenIndices,
-                newTokenIndex
-              );
-              html += rendered.html + '\n\n';
-              newTokenIndex = rendered.nextIndex;
-            }
-
-            for (let pi = pairedCount; pi < oldParagraphsChunk.length; pi += 1) {
-              const paragraph = oldParagraphsChunk[pi];
-              if (paragraph) {
-                html += `<span class="diff-removed">${this.escapeHtml(paragraph)}</span>\n\n`;
-              }
-            }
-
-            for (let pi = pairedCount; pi < newParagraphsChunk.length; pi += 1) {
-              const paragraph = newParagraphsChunk[pi];
-              if (!paragraph) {
-                continue;
-              }
-              const tokens = this.tokenizeWithSpaces(paragraph);
-              for (let ti = 0; ti < tokens.length; ti += 1) {
-                html += this.renderTokenWithStyles(
-                  tokens[ti],
-                  newTokenIndex + ti,
+              const ob = oldBlocks[oi + pi];
+              const nb = newBlocks[ni + pi];
+              if (ob.diffKey === nb.diffKey) {
+                const rendered = this.renderChangedParagraphDiff(
+                  ob.text,
+                  nb.text,
                   changedMarkupTokenIndices,
                   strongTokenIndices,
                   headingTokenIndices,
                   quoteTokenIndices,
-                  'diff-added'
+                  newTokenIndex
                 );
+                html += rendered.html + '\n\n';
+                newTokenIndex = rendered.nextIndex;
+              } else if (ob.text === nb.text) {
+                // Same visible text, but different structural kind (e.g. h3 -> outline-heading):
+                // treat as formatting change, not remove/add.
+                const rendered = this.renderEqualChunkWithMarkupDiff(
+                  nb.text,
+                  changedMarkupTokenIndices,
+                  strongTokenIndices,
+                  headingTokenIndices,
+                  quoteTokenIndices,
+                  newTokenIndex
+                );
+                html += `<span class="diff-format-change">${rendered.html}</span>\n\n`;
+                newTokenIndex = rendered.nextIndex;
+              } else {
+                const oldHeadingClass = headingClassByKind(ob.kind);
+                const newHeadingClass = headingClassByKind(nb.kind);
+                if (oldHeadingClass && newHeadingClass) {
+                  html += `<span class="diff-removed"><span class="${oldHeadingClass}">${this.escapeHtml(ob.text)}</span></span>`;
+                  html += `<span class="diff-added"><span class="${newHeadingClass}">${this.escapeHtml(nb.text)}</span></span>\n\n`;
+                  newTokenIndex += this.tokenizeWithSpaces(nb.text).length;
+                  continue;
+                }
+                const rendered = this.renderChangedParagraphDiff(
+                  ob.text,
+                  nb.text,
+                  changedMarkupTokenIndices,
+                  strongTokenIndices,
+                  headingTokenIndices,
+                  quoteTokenIndices,
+                  newTokenIndex
+                );
+                html += rendered.html + '\n\n';
+                newTokenIndex = rendered.nextIndex;
               }
-              html += '\n\n';
-              newTokenIndex += tokens.length;
             }
 
+            for (let pi = pairedCount; pi < oldChunkLen; pi += 1) {
+              html += `<span class="diff-removed">${this.escapeHtml(oldBlocks[oi + pi].text)}</span>\n\n`;
+            }
+            for (let pi = pairedCount; pi < newChunkLen; pi += 1) {
+              appendAddedBlock(newBlocks[ni + pi]);
+            }
+
+            oi += oldChunkLen;
+            ni += newChunkLen;
             i += 1;
             continue;
           }
 
-          for (const paragraph of values) {
-            if (paragraph) {
-              html += `<span class="diff-removed">${this.escapeHtml(paragraph)}</span>\n\n`;
-            }
+          for (let j = 0; j < n; j += 1) {
+            html += `<span class="diff-removed">${this.escapeHtml(oldBlocks[oi].text)}</span>\n\n`;
+            oi += 1;
           }
         } else if (op.added) {
-          for (const paragraph of values) {
-            if (!paragraph) {
-              continue;
-            }
-
-            const tokens = this.tokenizeWithSpaces(paragraph);
-            for (let ti = 0; ti < tokens.length; ti += 1) {
-              const token = tokens[ti];
-              html += this.renderTokenWithStyles(
-                token,
-                newTokenIndex + ti,
-                changedMarkupTokenIndices,
-                strongTokenIndices,
-                headingTokenIndices,
-                quoteTokenIndices,
-                'diff-added'
-              );
-            }
-            html += '\n\n';
-            newTokenIndex += tokens.length;
+          for (let j = 0; j < n; j += 1) {
+            appendAddedBlock(newBlocks[ni]);
+            ni += 1;
           }
         }
       }
@@ -1271,6 +1401,118 @@ export default {
 
     buildVisualHtml(block) {
       return this.wrapDiffIntoParagraphs(this.buildRenderedDiffHtml(block));
+    },
+
+    buildDebugDump(block, blockLabel) {
+      const lines = [];
+      const push = (title, body) => {
+        lines.push(`\n--- ${title} ---\n`);
+        lines.push(body === undefined || body === null ? String(body) : String(body));
+      };
+
+      const changeId = this.currentChange?.id ?? '—';
+      const resource = `${this.resourceName ?? '—'} / ${this.resourceId ?? '—'}`;
+      push(
+        'Контекст',
+        [
+          `Время дампа: ${new Date().toISOString()}`,
+          `Ресурс: ${resource}`,
+          `change.id: ${changeId}`,
+          `Блок (ключ): ${blockLabel ?? '—'}`,
+          `block.type: ${block?.type ?? '—'}`,
+        ].join('\n')
+      );
+
+      const rawOld = this.extractTextHtml(block?.old);
+      const rawNew = this.extractTextHtml(block?.new);
+      push('extractTextHtml(block.old) — сырой JSON.text / до', rawOld);
+      push('extractTextHtml(block.new) — сырой JSON.text / после', rawNew);
+
+      const oldHtml = this.sanitizeHtmlForPreview(rawOld);
+      const newHtml = this.sanitizeHtmlForPreview(rawNew);
+      push('sanitizeHtmlForPreview(старое)', oldHtml);
+      push('sanitizeHtmlForPreview(новое)', newHtml);
+
+      let oldVis = '';
+      let newVis = '';
+      try {
+        oldVis = this.htmlToVisualText(oldHtml);
+        newVis = this.htmlToVisualText(newHtml);
+      } catch (e) {
+        oldVis = `[ошибка htmlToVisualText] ${e.message}`;
+        newVis = oldVis;
+      }
+      push('htmlToVisualText(старое) — плоский текст по блокам', oldVis);
+      push('htmlToVisualText(новое)', newVis);
+
+      let oldBlockDump = '';
+      let newBlockDump = '';
+      try {
+        oldBlockDump = JSON.stringify(this.htmlToVisualBlocks(oldHtml), null, 2);
+        newBlockDump = JSON.stringify(this.htmlToVisualBlocks(newHtml), null, 2);
+      } catch (e) {
+        oldBlockDump = `[ошибка] ${e.message}`;
+        newBlockDump = oldBlockDump;
+      }
+      push('htmlToVisualBlocks (старое) — text + kind + diffKey для LCS', oldBlockDump);
+      push('htmlToVisualBlocks (новое)', newBlockDump);
+
+      let renderedDiff = '';
+      let wrappedVisual = '';
+      try {
+        renderedDiff = this.buildRenderedDiffHtml(block);
+      } catch (e) {
+        renderedDiff = `[ошибка buildRenderedDiffHtml] ${e.message}\n${e.stack || ''}`;
+      }
+      try {
+        wrappedVisual = this.wrapDiffIntoParagraphs(renderedDiff);
+      } catch (e) {
+        wrappedVisual = `[ошибка wrapDiffIntoParagraphs] ${e.message}\n${e.stack || ''}`;
+      }
+      push('buildRenderedDiffHtml (внутренний HTML диффа, до обёртки в <p>)', renderedDiff);
+      push('wrapDiffIntoParagraphs(...) — то же, что уходит в v-html визуала', wrappedVisual);
+
+      let rawHtmlDiff = '';
+      try {
+        rawHtmlDiff = this.buildRawHtmlDiff(block);
+      } catch (e) {
+        rawHtmlDiff = `[ошибка buildRawHtmlDiff] ${e.message}`;
+      }
+      push('buildRawHtmlDiff — HTML-вкладка (escaped + diff)', rawHtmlDiff);
+
+      return lines.join('\n').trim();
+    },
+
+    isDebugCopied(blockId) {
+      return Boolean(this.copiedDebugBlocks[this.getBlockKey(blockId)]);
+    },
+
+    copyPostHistoryDebug(block, blockId) {
+      const text = this.buildDebugDump(block, blockId);
+      const key = this.getBlockKey(blockId);
+
+      const done = () => {
+        this.copiedDebugBlocks = { ...this.copiedDebugBlocks, [key]: Date.now() };
+        setTimeout(() => {
+          if (this.copiedDebugBlocks[key]) {
+            const next = { ...this.copiedDebugBlocks };
+            delete next[key];
+            this.copiedDebugBlocks = next;
+          }
+        }, 2500);
+      };
+
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => {
+          if (this.copyWithTextareaFallback(text)) {
+            done();
+          }
+        });
+        return;
+      }
+      if (this.copyWithTextareaFallback(text)) {
+        done();
+      }
     },
 
     buildPlainWordDiff(change) {
@@ -1491,14 +1733,18 @@ export default {
         line-height: 1.3;
       }
       h3.outline-heading {
+        display: block;
         position: relative;
-        padding-top: 1.25rem;
+        padding-top: 0.25rem;
         width: fit-content;
-        border-top: 0.625rem solid #333;
-        font-weight: 300 !important;
-        color: #333;
-        font-size: 1.125rem !important;
-        line-height: 1.35rem;
+        max-width: 100%;
+        margin-bottom: 1.5rem;
+        border-top: 0.5rem solid var(--gray-dark-color, #333);
+        font-weight: 700 !important;
+        color: var(--gray-dark-color, #333);
+        font-size: 1.625rem !important;
+        line-height: 1.875rem;
+        -webkit-font-smoothing: antialiased;
       }
       h4 {
         font-size: 1.125rem !important;
@@ -1589,10 +1835,24 @@ export default {
         padding: 0 1px;
       }
       .diff-added {
-        background: #d7ffe2;
-        color: #14532d;
+        background: #b8f0c8;
+        color: #333;
         border-radius: 2px;
         padding: 0 1px;
+      }
+      .diff-added .is-outline-heading,
+      .diff-added .is-heading {
+        color: #333 !important;
+      }
+      .diff-added .is-outline-heading {
+        border-top-color: #27ae60;
+      }
+      .diff-removed .is-outline-heading,
+      .diff-removed .is-heading {
+        color: inherit !important;
+      }
+      .diff-removed .is-outline-heading {
+        border-top-color: #e74c3c;
       }
       .diff-format-change {
         background: #e9dfd2;
@@ -1601,20 +1861,24 @@ export default {
         padding: 0 1px;
       }
       .is-heading {
-        font-weight: 300;
-        font-size: 1.02em;
-        line-height: 1.35;
+        font-weight: 700 !important;
+        color: var(--gray-dark-color, #333);
+        font-size: 1.625rem;
+        line-height: 1.875rem;
+        -webkit-font-smoothing: antialiased;
       }
       .is-outline-heading {
         display: inline-block;
         position: relative;
-        padding-top: 1.25rem;
+        padding-top: 0.25rem;
         width: fit-content;
-        border-top: 0.625rem solid #333;
-        font-weight: 300 !important;
-        color: #333;
-        font-size: 1.125rem !important;
-        line-height: 1.35rem;
+        max-width: 100%;
+        border-top: 0.5rem solid var(--gray-dark-color, #333);
+        font-weight: 700 !important;
+        color: var(--gray-dark-color, #333);
+        font-size: 1.625rem !important;
+        line-height: 1.875rem;
+        -webkit-font-smoothing: antialiased;
       }
       .is-quote {
         display: block;
@@ -2027,10 +2291,26 @@ export default {
 }
 
 .html-preview-render :deep(.diff-added) {
-  background: #d7ffe2;
-  color: #14532d;
+  background: #b8f0c8;
+  color: #333;
   border-radius: 2px;
   padding: 0 1px;
+}
+
+.html-preview-render :deep(.diff-added .is-outline-heading),
+.html-preview-render :deep(.diff-added .is-heading) {
+  color: #333 !important;
+}
+.html-preview-render :deep(.diff-added .is-outline-heading) {
+  border-top-color: #27ae60;
+}
+
+.html-preview-render :deep(.diff-removed .is-outline-heading),
+.html-preview-render :deep(.diff-removed .is-heading) {
+  color: inherit !important;
+}
+.html-preview-render :deep(.diff-removed .is-outline-heading) {
+  border-top-color: #e74c3c;
 }
 
 .html-preview-render :deep(.diff-format-change) {
@@ -2040,16 +2320,26 @@ export default {
   padding: 0 1px;
 }
 
+.html-preview-render :deep(.is-heading:not(.is-outline-heading)) {
+  font-weight: 700 !important;
+  color: var(--gray-dark-color, #333);
+  font-size: 1.625rem;
+  line-height: 1.875rem;
+  -webkit-font-smoothing: antialiased;
+}
+
 .html-preview-render :deep(.is-outline-heading) {
   display: inline-block;
   position: relative;
-  padding-top: 1.25rem;
+  padding-top: 0.25rem;
   width: fit-content;
-  border-top: 0.625rem solid #333;
-  font-weight: 300 !important;
-  color: #333;
-  font-size: 1.125rem !important;
-  line-height: 1.35rem;
+  max-width: 100%;
+  border-top: 0.5rem solid var(--gray-dark-color, #333);
+  font-weight: 700 !important;
+  color: var(--gray-dark-color, #333);
+  font-size: 1.625rem !important;
+  line-height: 1.875rem;
+  -webkit-font-smoothing: antialiased;
 }
 
 .html-preview-render :deep(.is-quote) {
@@ -2072,6 +2362,55 @@ export default {
   margin: 6px 0 4px;
 }
 
+.post-history-debug {
+  margin-top: 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.post-history-debug__summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: #475569;
+  user-select: none;
+}
+
+.post-history-debug__textarea {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #0f172a;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 200px;
+}
+
+.post-history-debug__copy {
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: #334155;
+  background: #e2e8f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.post-history-debug__copy:hover {
+  background: #cbd5e1;
+}
+
 .debug-html-pre {
   margin: 0;
   white-space: pre-wrap;
@@ -2092,8 +2431,8 @@ export default {
 }
 
 .debug-html-pre :deep(.debug-added) {
-  background: #d7ffe2;
-  color: #14532d;
+  background: #b8f0c8;
+  color: #333;
 }
 
 .text-muted {
@@ -2125,10 +2464,10 @@ export default {
 }
 
 .plain-diff-value :deep(.plain-diff-added) {
-  background: #d7ffe2;
-  color: #14532d;
-  border-radius: 2px;
-  padding: 0 1px;
+  background: #b8f0c8;
+  color: #333;
+  border-radius: 4px;
+  padding: 3px 6px;
 }
 
 .deleted-card {

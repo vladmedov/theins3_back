@@ -64,22 +64,24 @@ p, h1, h2, h3, h4, h5, h6, blockquote, ul, ol, hr
 
 // Headings
 h1, h2, h3, h4, h5, h6
-    color: #000
+    color: var(--gray-dark-color, #333)
 
 h3
-    font-size: 1.5rem !important
+    font-size: 1.625rem !important
     font-weight: 700 !important
     line-height: 1.2
 
 h3.outline-heading
+    margin-top: 3rem !important;
     position: relative
-    padding-top: 1.25rem
+    padding-top: 0.25rem
     width: fit-content
-    border-top: 0.625rem solid #333
+    border-top: 0.5rem solid var(--gray-dark-color, #333)
     font-weight: 700 !important
-    color: #333
-    font-size: 1.375rem !important
-    line-height: 1.5rem
+    color: var(--gray-dark-color, #333)
+    font-size: 1.625rem !important
+    line-height: 1.875rem
+    -webkit-font-smoothing: antialiased
 
 h4
     font-size: 1.25rem !important
@@ -94,6 +96,9 @@ h5
 // Bold
 b, strong
     font-weight: 300
+
+h3 b, h3 strong
+    font-weight: inherit
 
 // Links
 a

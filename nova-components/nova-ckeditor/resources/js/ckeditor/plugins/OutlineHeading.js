@@ -10,7 +10,7 @@ export default class OutlineHeading {
     }
 
     static get requires() {
-        return []
+        return ['Enter']
     }
 
     afterInit() {
@@ -72,5 +72,17 @@ export default class OutlineHeading {
 
             return view
         })
+
+        // Same as HeadingEditing: after Enter, the split creates a second block of the same type.
+        // outlineHeading is not in heading.options, so the empty block was not renamed to paragraph.
+        const enterCommand = editor.commands.get('enter')
+        if (enterCommand) {
+            enterCommand.on('afterExecute', (evt, data) => {
+                const parent = editor.model.document.selection.getFirstPosition()?.parent
+                if (parent && parent.is('element', 'outlineHeading') && parent.childCount === 0) {
+                    data.writer.rename(parent, 'paragraph')
+                }
+            })
+        }
     }
 }
