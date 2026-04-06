@@ -81,7 +81,7 @@ export default class ReplaceHyphenWithDash extends Plugin {
                 }
 
                 const originalText = item.data || ''
-                const updatedText = this._replaceHyphenSmart(originalText)
+                const updatedText = this._replaceHyphenSmart(originalText, { selectionMode: true })
 
                 if (updatedText === originalText) {
                     continue
@@ -114,8 +114,16 @@ export default class ReplaceHyphenWithDash extends Plugin {
         })
     }
 
-    _replaceHyphenSmart(text) {
+    /**
+     * @param {string} text
+     * @param {{ selectionMode?: boolean }} [options] — в выделении одиночный «-» без контекста тоже в «—» (явное намерение).
+     */
+    _replaceHyphenSmart(text, options = {}) {
         const chars = Array.from(text)
+
+        if (options.selectionMode && chars.length === 1 && chars[0] === '-') {
+            return '—'
+        }
 
         for (let i = 0; i < chars.length; i++) {
             if (chars[i] !== '-') {

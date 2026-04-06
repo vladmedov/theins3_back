@@ -1,6 +1,11 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin'
 import ButtonView from '@ckeditor/ckeditor5-ui/src/button/buttonview'
 
+/** U+201C LEFT DOUBLE QUOTATION MARK (“) */
+const DOUBLE_QUOTE_OPEN_TYPO = '\u201C'
+/** U+201D RIGHT DOUBLE QUOTATION MARK (”) */
+const DOUBLE_QUOTE_CLOSE_TYPO = '\u201D'
+
 export default class ReplaceQuotesWithGuillemets extends Plugin {
     static get pluginName() {
         return 'ReplaceQuotesWithGuillemets'
@@ -15,7 +20,7 @@ export default class ReplaceQuotesWithGuillemets extends Plugin {
             buttonView.set({
                 label: 'A(«»)',
                 withText: true,
-                tooltip: 'Заменить "..." на «...»',
+                tooltip: 'Заменить "..." / “...” на «...»',
             })
 
             buttonView.on('execute', () => {
@@ -219,6 +224,20 @@ export default class ReplaceQuotesWithGuillemets extends Plugin {
 
         for (let i = 0; i < flatChars.length; i++) {
             const current = flatChars[i]
+
+            if (current.char === DOUBLE_QUOTE_OPEN_TYPO) {
+                openQuoteStack.push(current)
+                continue
+            }
+
+            if (current.char === DOUBLE_QUOTE_CLOSE_TYPO) {
+                if (openQuoteStack.length > 0) {
+                    const openQuoteRef = openQuoteStack.pop()
+                    applyReplacement(openQuoteRef.node, openQuoteRef.offset, '«')
+                    applyReplacement(current.node, current.offset, '»')
+                }
+                continue
+            }
 
             if (current.char !== '"') {
                 continue
