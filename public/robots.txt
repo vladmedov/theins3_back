@@ -1,4 +1,2 @@
 User-agent: *
-Disallow:
-
-Sitemap: https://theins.ru/sitemap.xml
+Disallow: /
