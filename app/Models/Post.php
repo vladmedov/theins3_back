@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 use Whitecube\NovaFlexibleContent\Value\FlexibleCast;
@@ -442,25 +441,20 @@ class Post extends Model { //implements HasMedia {
 
     public function createImageVariants()
     {
-        $imagePath = $this->image;
+        $imagePath = ImageService::relocateOriginalIfNeeded(
+            $this->id,
+            $this->image,
+            ImageService::TYPE_POST_COVER,
+            $this->language_code
+        );
 
         if (empty($imagePath)) {
             return;
         }
 
-        // Nova uploads the image before the post ID is assigned during creation,
-        // resulting in a malformed path like "post_cover/original///filename.jpg".
-        // After the post is saved and the ID is available, move the file to the correct path.
-        $correctDir = ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL);
-        $filename = basename($imagePath);
-        $correctPath = $correctDir . '/' . $filename;
-
-        $disk = Storage::disk(ImageService::publicDiskForLanguage($this->language_code));
-        if ($imagePath !== $correctPath && $disk->exists($imagePath)) {
-            $disk->move($imagePath, $correctPath);
-            $this->image = $correctPath;
+        if ($imagePath !== $this->image) {
+            $this->image = $imagePath;
             $this->saveQuietly();
-            $imagePath = $correctPath;
         }
 
         ImageService::createImageVariants($this->id, $imagePath, ImageService::TYPE_POST_COVER, $this->language_code);

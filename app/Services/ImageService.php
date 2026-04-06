@@ -47,6 +47,39 @@ class ImageService
         return "{$type}/{$size}/{$prefix}/{$idStr}";
     }
 
+    /**
+     * Nova may upload before the numeric id exists, so the file lands outside {@see getImagePath()}.
+     * After save, move the original into the canonical directory for this entity id.
+     *
+     * @return string|null The path to use for variants (canonical); null if $currentPath was empty
+     */
+    public static function relocateOriginalIfNeeded(
+        $entityId,
+        ?string $currentPath,
+        string $type,
+        string $languageCode
+    ): ?string {
+        if ($currentPath === null || $currentPath === '') {
+            return null;
+        }
+        if ($entityId === null || $entityId === '') {
+            return $currentPath;
+        }
+
+        $correctDir = self::getImagePath($entityId, $type, self::SIZE_ORIGINAL);
+        $filename = basename($currentPath);
+        $correctPath = $correctDir . '/' . $filename;
+
+        $disk = Storage::disk(self::publicDiskForLanguage($languageCode));
+        if ($currentPath !== $correctPath && $disk->exists($currentPath)) {
+            $disk->move($currentPath, $correctPath);
+
+            return $correctPath;
+        }
+
+        return $currentPath;
+    }
+
     public static function createImageVariants(
         $id,
         ?string $imagePath,

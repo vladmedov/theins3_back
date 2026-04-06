@@ -68,19 +68,26 @@ class InvestigationTheme extends Model {
             }
         });
 
-        static::updated(function ($theme) {
-            if ($theme->wasChanged('cover_image') && !empty($theme->cover_image)) {
-                ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER, $theme->language_code);
-            }
-        });
-
-        static::created(function ($theme) {
-            if (!empty($theme->cover_image)) {
-                ImageService::createImageVariants($theme->id, $theme->cover_image, ImageService::TYPE_THEME_COVER, $theme->language_code);
-            }
-        });
-
         static::saved(function ($theme) {
+            $shouldProcessCover = !empty($theme->cover_image)
+                && ($theme->wasRecentlyCreated || $theme->wasChanged('cover_image'));
+
+            if ($shouldProcessCover) {
+                $path = ImageService::relocateOriginalIfNeeded(
+                    $theme->id,
+                    $theme->cover_image,
+                    ImageService::TYPE_THEME_COVER,
+                    $theme->language_code
+                );
+                if (!empty($path)) {
+                    if ($path !== $theme->cover_image) {
+                        $theme->cover_image = $path;
+                        $theme->saveQuietly();
+                    }
+                    ImageService::createImageVariants($theme->id, $path, ImageService::TYPE_THEME_COVER, $theme->language_code);
+                }
+            }
+
             $tagService = app(FrontendCacheTagService::class);
 
             app(FrontendRevalidationService::class)->queueTags(

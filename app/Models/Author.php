@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-
 use App\Enums\PostTypes;
 use App\Services\FrontendCacheTagService;
 use App\Services\FrontendRevalidationService;
@@ -56,19 +54,26 @@ class Author extends Model {
                 ->snapshotAuthor(static::find($author->getKey()));
         });
 
-        static::updated(function ($author) {
-            if ($author->wasChanged('avatar') && !empty($author->avatar)) {
-                ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO, $author->language_code);
-            }
-        });
-
-        static::created(function ($author) {
-            if (!empty($author->avatar)) {
-                ImageService::createImageVariants($author->id, $author->avatar, ImageService::TYPE_USER_PHOTO, $author->language_code);
-            }
-        });
-
         static::saved(function ($author) {
+            $shouldProcessAvatar = !empty($author->avatar)
+                && ($author->wasRecentlyCreated || $author->wasChanged('avatar'));
+
+            if ($shouldProcessAvatar) {
+                $path = ImageService::relocateOriginalIfNeeded(
+                    $author->id,
+                    $author->avatar,
+                    ImageService::TYPE_USER_PHOTO,
+                    $author->language_code
+                );
+                if (!empty($path)) {
+                    if ($path !== $author->avatar) {
+                        $author->avatar = $path;
+                        $author->saveQuietly();
+                    }
+                    ImageService::createImageVariants($author->id, $path, ImageService::TYPE_USER_PHOTO, $author->language_code);
+                }
+            }
+
             $tagService = app(FrontendCacheTagService::class);
 
             app(FrontendRevalidationService::class)->queueTags(
