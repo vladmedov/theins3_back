@@ -72,6 +72,7 @@ class NewsCalendarController extends Controller
         $query = $model::query();
 
         $query->where('language_code', app()->getLocale());
+        $query->where('status', Post::STATUS_PUBLISHED);
 
         if ($request->resource) {
             $query->where('type', $request->resource);
