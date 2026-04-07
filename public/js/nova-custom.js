@@ -207,15 +207,13 @@
         if (!input || input.dataset.counterAttached) return;
         input.dataset.counterAttached = '1';
 
-        input.setAttribute('maxlength', '140');
-        input.maxLength = 140;
-
         var counter = document.createElement('span');
         counter.className = 'nova-title-counter';
 
         function update() {
-            if (input.value.length > 140) input.value = input.value.slice(0, 140);
             counter.textContent = input.value.length + '/140';
+            counter.style.color = input.value.length > 140 ? '#dc2626' : '';
+            counter.style.borderColor = input.value.length > 140 ? '#fca5a5' : '';
         }
 
         input.addEventListener('input', update);

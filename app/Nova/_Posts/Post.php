@@ -294,7 +294,6 @@ abstract class Post extends Resource
                 ->help(__('Autosave is enabled for this field.'))
                 ->withMeta(['extraAttributes' => [
                     'data-char-counter' => 'title',
-                    'maxlength' => '140',
                     'data-post-autosave-field' => '1',
                 ]])
                 ->displayUsing(function ($title, $resource) use ($request) {

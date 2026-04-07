@@ -1590,6 +1590,62 @@
         return document.querySelector('form[data-form-unique-id]') || document.querySelector('form');
     }
 
+    /**
+     * FormActionBar рендерится внутри Heading (v-html). При клике из поля с фокусом:
+     *   pointerdown → blur → change → Vue ре-рендерит v-html → кнопка уничтожена →
+     *   click приходит на отсоединённый от DOM элемент → обработчик не срабатывает.
+     *
+     * Решение: ловим pointerdown (до blur/re-render), захватываем режим кнопки,
+     * выполняем действие через setTimeout(0) — после того как Vue закончит ре-рендер.
+     */
+    (function installFormActionBarClickDelegation() {
+        var pendingAction = null;
+
+        function findNovaSubmit() {
+            var form = findNovaResourceForm();
+            var sel = 'button[dusk=create-button],button[dusk=update-button]';
+            return (form && form.querySelector(sel)) || document.querySelector(sel);
+        }
+
+        function executeFabAction(mode, originButton) {
+            if (mode === 'native') {
+                var b = findNovaSubmit();
+                if (b) b.click();
+                return;
+            }
+            if (mode === 'custom-save') {
+                if (window.NovaCustomSave && typeof window.NovaCustomSave.saveWithoutReload === 'function') {
+                    window.NovaCustomSave.saveWithoutReload(originButton);
+                }
+            }
+        }
+
+        document.addEventListener('pointerdown', function (e) {
+            var btn = e.target && e.target.closest && e.target.closest('[data-nova-form-action-bar-click]');
+            if (!btn || btn.tagName !== 'BUTTON') return;
+            var mode = btn.getAttribute('data-nova-form-action-bar-click');
+            if (!mode) return;
+            pendingAction = { mode: mode, button: btn };
+            setTimeout(function () {
+                if (!pendingAction) return;
+                var action = pendingAction;
+                pendingAction = null;
+                executeFabAction(action.mode, action.button);
+            }, 0);
+        }, true);
+
+        document.addEventListener('click', function (e) {
+            var btn = e.target && e.target.closest && e.target.closest('[data-nova-form-action-bar-click]');
+            if (!btn || btn.tagName !== 'BUTTON') return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            if (pendingAction) return;
+            var mode = btn.getAttribute('data-nova-form-action-bar-click');
+            if (mode) executeFabAction(mode, btn);
+        }, true);
+    })();
+
     function triggerNovaSubmit(submitButton) {
         if (submitButton) {
             if (!submitButton.disabled) {

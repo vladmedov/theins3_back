@@ -9,7 +9,7 @@
         @if ($stayAction)
             <button
                 type="button"
-                onclick="{{ $stayAction['js'] }}"
+                data-nova-form-action-bar-click="{{ !empty($stayAction['js']) && str_contains($stayAction['js'], 'saveWithoutReload') ? 'custom-save' : 'native' }}"
                 data-saving-label="{{ $stayAction['savingLabel'] }}"
                 data-autosave-save-default-label="{{ e($stayAction['label']) }}"
                 @if (!is_null($stayAction['originalStatus']))
@@ -35,7 +35,7 @@
         @if ($saveAction)
             <button
                 type="button"
-                onclick="{{ $saveAction['js'] }}"
+                data-nova-form-action-bar-click="native"
                 style="{{ $saveButtonStyle }}"
             >{{ $saveAction['label'] }}</button>
         @endif
