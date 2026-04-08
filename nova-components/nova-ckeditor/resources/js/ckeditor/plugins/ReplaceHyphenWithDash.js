@@ -15,7 +15,7 @@ export default class ReplaceHyphenWithDash extends Plugin {
             buttonView.set({
                 label: 'A(—)',
                 withText: true,
-                tooltip: 'Заменить дефис на тире в тексте',
+                tooltip: 'Заменить дефис и минус на тире в тексте',
             })
 
             buttonView.on('execute', () => {
@@ -115,18 +115,25 @@ export default class ReplaceHyphenWithDash extends Plugin {
     }
 
     /**
+     * U+002D hyphen-minus, U+2212 minus sign, U+2010 hyphen, U+2011 non-breaking hyphen.
+     */
+    _isHyphenLike(char) {
+        return char === '-' || char === '\u2212' || char === '\u2010' || char === '\u2011'
+    }
+
+    /**
      * @param {string} text
-     * @param {{ selectionMode?: boolean }} [options] — в выделении одиночный «-» без контекста тоже в «—» (явное намерение).
+     * @param {{ selectionMode?: boolean }} [options] — в выделении одиночный дефис/минус без контекста тоже в «—» (явное намерение).
      */
     _replaceHyphenSmart(text, options = {}) {
         const chars = Array.from(text)
 
-        if (options.selectionMode && chars.length === 1 && chars[0] === '-') {
+        if (options.selectionMode && chars.length === 1 && this._isHyphenLike(chars[0])) {
             return '—'
         }
 
         for (let i = 0; i < chars.length; i++) {
-            if (chars[i] !== '-') {
+            if (!this._isHyphenLike(chars[i])) {
                 continue
             }
 
