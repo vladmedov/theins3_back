@@ -115,10 +115,16 @@ export default class ReplaceHyphenWithDash extends Plugin {
     }
 
     /**
-     * U+002D hyphen-minus, U+2212 minus sign, U+2010 hyphen, U+2011 non-breaking hyphen.
+     * U+002D hyphen-minus, U+2212 minus sign, U+2010 hyphen, U+2011 non-breaking hyphen, U+2013 en dash.
      */
     _isHyphenLike(char) {
-        return char === '-' || char === '\u2212' || char === '\u2010' || char === '\u2011'
+        return (
+            char === '-' ||
+            char === '\u2212' ||
+            char === '\u2010' ||
+            char === '\u2011' ||
+            char === '\u2013'
+        )
     }
 
     /**
