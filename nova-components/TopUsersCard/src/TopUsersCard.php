@@ -49,31 +49,34 @@ class TopUsersCard extends Card
     private function buildCardMeta(string $postType, string $mode): array
     {
         if ($mode === self::MODE_ARTICLE_VIEWS) {
-            $articleMonthFrom = now()->subDays(29)->startOfDay();
+            // Same windows as dashboard "news count" ranking (authors by posts).
+            $weekFrom = now()->subDays(6)->startOfDay();
+            $monthFrom = now()->subDays(29)->startOfDay();
+            $yearFrom = now()->subDays(364)->startOfDay();
 
             return [
                 'title' => __('top_users_card.titles.article_views'),
                 'periods' => [
                     [
-                        'key' => 'month',
-                        'label' => __('top_users_card.periods.month'),
-                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, $articleMonthFrom),
-                        'total' => $this->getArticleViewsTotalByPeriod($articleMonthFrom),
-                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, $articleMonthFrom),
+                        'key' => 'week',
+                        'label' => __('top_users_card.periods.week'),
+                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, $weekFrom),
+                        'total' => $this->getArticleViewsTotalByPeriod($weekFrom),
+                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, $weekFrom),
                     ],
                     [
-                        'key' => 'quarter',
-                        'label' => __('top_users_card.periods.quarter'),
-                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, now()->subMonths(3)),
-                        'total' => $this->getArticleViewsTotalByPeriod(now()->subMonths(3)),
-                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, now()->subMonths(3)),
+                        'key' => 'month',
+                        'label' => __('top_users_card.periods.month'),
+                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, $monthFrom),
+                        'total' => $this->getArticleViewsTotalByPeriod($monthFrom),
+                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, $monthFrom),
                     ],
                     [
                         'key' => 'year',
                         'label' => __('top_users_card.periods.year'),
-                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, now()->subYear()),
-                        'total' => $this->getArticleViewsTotalByPeriod(now()->subYear()),
-                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, now()->subYear()),
+                        'items' => $this->getTopAuthorsByViewsByPeriod(PostTypes::ARTICLE, $yearFrom),
+                        'total' => $this->getArticleViewsTotalByPeriod($yearFrom),
+                        'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, $yearFrom),
                     ],
                     [
                         'key' => 'always',
@@ -83,7 +86,7 @@ class TopUsersCard extends Card
                         'secondary_total' => $this->getPostsTotalByPeriod(PostTypes::ARTICLE, null),
                     ],
                 ],
-                'defaultPeriod' => 'month',
+                'defaultPeriod' => 'week',
                 'totalLabel' => __('top_users_card.totals.article_views'),
                 'secondaryLinePrefix' => __('top_users_card.secondary.on_posts_prefix'),
                 'secondaryLineSuffix' => __('top_users_card.secondary.on_posts_suffix'),
