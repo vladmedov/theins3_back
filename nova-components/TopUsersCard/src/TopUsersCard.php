@@ -22,7 +22,7 @@ class TopUsersCard extends Card
         parent::__construct();
 
         $cacheKey = sprintf(
-            'nova:top_users_card:%s:%s:%s:v2',
+            'nova:top_users_card:%s:%s:%s:v3',
             app()->getLocale(),
             (string) $postType,
             $mode
@@ -159,6 +159,8 @@ class TopUsersCard extends Card
             ->where('posts.status', Post::STATUS_PUBLISHED)
             ->groupBy('authors.id', 'authors.first_name', 'authors.last_name')
             ->orderByDesc('posts_count')
+            ->orderByDesc('views_sum')
+            ->orderBy('authors.id')
             ->limit($limit);
 
         if ($from) {
@@ -189,6 +191,8 @@ class TopUsersCard extends Card
             ->where('posts.status', Post::STATUS_PUBLISHED)
             ->groupBy('authors.id', 'authors.first_name', 'authors.last_name')
             ->orderByDesc('views_sum')
+            ->orderByDesc('posts_count')
+            ->orderBy('authors.id')
             ->limit($limit);
 
         if ($from) {
