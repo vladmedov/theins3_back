@@ -22,7 +22,7 @@ class TopUsersCard extends Card
         parent::__construct();
 
         $cacheKey = sprintf(
-            'nova:top_users_card:%s:%s:%s',
+            'nova:top_users_card:%s:%s:%s:v2',
             app()->getLocale(),
             (string) $postType,
             $mode
@@ -38,7 +38,6 @@ class TopUsersCard extends Card
             'title' => $meta['title'],
             'defaultPeriod' => $meta['defaultPeriod'],
             'totalLabel' => $meta['totalLabel'],
-            'secondaryLinePrefix' => $meta['secondaryLinePrefix'],
             'secondaryLineSuffix' => $meta['secondaryLineSuffix'],
             'locale' => app()->getLocale(),
             'emptyLabel' => __('top_users_card.empty'),
@@ -87,9 +86,8 @@ class TopUsersCard extends Card
                     ],
                 ],
                 'defaultPeriod' => 'week',
-                'totalLabel' => __('top_users_card.totals.article_views'),
-                'secondaryLinePrefix' => __('top_users_card.secondary.on_posts_prefix'),
-                'secondaryLineSuffix' => __('top_users_card.secondary.on_posts_suffix'),
+                'totalLabel' => __('top_users_card.totals.period_views'),
+                'secondaryLineSuffix' => __('top_users_card.secondary.publications_suffix'),
             ];
         }
 
@@ -111,35 +109,34 @@ class TopUsersCard extends Card
                     'key' => 'week',
                     'label' => __('top_users_card.periods.week'),
                     'items' => $this->getTopAuthorsByPeriod($postType, $weekFrom),
-                    'total' => $this->getPostsTotalByPeriod($postType, $weekFrom),
-                    'secondary_total' => $this->getViewsTotalByPeriod($postType, $weekFrom),
+                    'total' => $this->getViewsTotalByPeriod($postType, $weekFrom),
+                    'secondary_total' => $this->getPostsTotalByPeriod($postType, $weekFrom),
                 ],
                 [
                     'key' => 'month',
                     'label' => __('top_users_card.periods.month'),
                     'items' => $this->getTopAuthorsByPeriod($postType, $monthFrom),
-                    'total' => $this->getPostsTotalByPeriod($postType, $monthFrom),
-                    'secondary_total' => $this->getViewsTotalByPeriod($postType, $monthFrom),
+                    'total' => $this->getViewsTotalByPeriod($postType, $monthFrom),
+                    'secondary_total' => $this->getPostsTotalByPeriod($postType, $monthFrom),
                 ],
                 [
                     'key' => 'year',
                     'label' => __('top_users_card.periods.year'),
                     'items' => $this->getTopAuthorsByPeriod($postType, $yearFrom),
-                    'total' => $this->getPostsTotalByPeriod($postType, $yearFrom),
-                    'secondary_total' => $this->getViewsTotalByPeriod($postType, $yearFrom),
+                    'total' => $this->getViewsTotalByPeriod($postType, $yearFrom),
+                    'secondary_total' => $this->getPostsTotalByPeriod($postType, $yearFrom),
                 ],
                 [
                     'key' => 'always',
                     'label' => __('top_users_card.periods.always'),
                     'items' => $this->getTopAuthorsByPeriod($postType, null),
-                    'total' => $this->getPostsTotalByPeriod($postType, null),
-                    'secondary_total' => $this->getViewsTotalByPeriod($postType, null),
+                    'total' => $this->getViewsTotalByPeriod($postType, null),
+                    'secondary_total' => $this->getPostsTotalByPeriod($postType, null),
                 ],
             ],
             'defaultPeriod' => 'week',
-            'totalLabel' => __('top_users_card.totals.news_total'),
-            'secondaryLinePrefix' => __('top_users_card.secondary.brought_views_prefix'),
-            'secondaryLineSuffix' => __('top_users_card.secondary.brought_views_suffix'),
+            'totalLabel' => __('top_users_card.totals.period_views'),
+            'secondaryLineSuffix' => __('top_users_card.secondary.publications_suffix'),
         ];
     }
 
@@ -153,6 +150,7 @@ class TopUsersCard extends Card
         $query = Author::query()
             ->select(['authors.id', 'authors.first_name', 'authors.last_name'])
             ->selectRaw('COUNT(DISTINCT posts.id) as posts_count')
+            ->selectRaw('COALESCE(SUM(posts.views_count), 0) as views_sum')
             ->join('post_authors', 'post_authors.author_id', '=', 'authors.id')
             ->join('posts', 'posts.id', '=', 'post_authors.post_id')
             ->where('authors.language_code', app()->getLocale())
@@ -171,7 +169,8 @@ class TopUsersCard extends Card
             ->map(fn (Author $author): array => [
                 'id' => $author->id,
                 'name' => trim($author->first_name . ' ' . ($author->last_name ?? '')),
-                'value' => (int) $author->posts_count,
+                'posts_count' => (int) $author->posts_count,
+                'views_count' => (int) $author->views_sum,
             ])
             ->all();
     }
@@ -180,6 +179,7 @@ class TopUsersCard extends Card
     {
         $query = Author::query()
             ->select(['authors.id', 'authors.first_name', 'authors.last_name'])
+            ->selectRaw('COUNT(DISTINCT posts.id) as posts_count')
             ->selectRaw('COALESCE(SUM(posts.views_count), 0) as views_sum')
             ->join('post_authors', 'post_authors.author_id', '=', 'authors.id')
             ->join('posts', 'posts.id', '=', 'post_authors.post_id')
@@ -199,7 +199,8 @@ class TopUsersCard extends Card
             ->map(fn (Author $author): array => [
                 'id' => $author->id,
                 'name' => trim($author->first_name . ' ' . ($author->last_name ?? '')),
-                'value' => (int) $author->views_sum,
+                'posts_count' => (int) $author->posts_count,
+                'views_count' => (int) $author->views_sum,
             ])
             ->all();
     }

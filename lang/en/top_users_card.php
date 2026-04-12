@@ -19,14 +19,12 @@ return [
         'always' => 'Always',
     ],
     'totals' => [
+        'period_views' => 'Total views:',
         'article_views' => 'Total views:',
         'news_total' => 'Total news:',
     ],
     'secondary' => [
-        'on_posts_prefix' => 'across',
-        'on_posts_suffix' => 'posts',
-        'brought_views_prefix' => 'brought',
-        'brought_views_suffix' => 'views',
+        'publications_suffix' => 'posts',
     ],
     'empty' => 'No data',
 ];

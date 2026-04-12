@@ -37,11 +37,11 @@
                                 :key="`${activePeriod.key}-${writer.id}`"
                                 class="flex items-center justify-between border-b border-gray-100 pb-2"
                             >
-                                <div class="flex items-center space-x-3">
+                                <div class="flex items-center space-x-1">
                                     <span class="text-sm font-bold text-gray-900 w-5">{{ index + 1 }}</span>
                                     <span class="text-base font-medium text-gray-800">{{ writer.name }}</span>
                                 </div>
-                                <span class="text-sm font-semibold text-gray-700">{{ formatNumber(writer.value) }}</span>
+                                <span class="text-xs font-semibold text-gray-700 tabular-nums">{{ writerStatsLine(writer) }}</span>
                             </li>
                             <li v-if="activePeriod.items.length === 0" class="text-sm text-gray-500">
                                 {{ emptyLabel }}
@@ -116,12 +116,41 @@ export default {
                 return String(value ?? 0);
             }
         },
+        /**
+         * ≥ 1 000 000 → 1M, 1.5M, 10M (Latin M).
+         * ≥ 1 000 → 1K, 1.5K, 10K (Latin K).
+         */
+        formatCompact(value) {
+            const n = Math.floor(Number(value) || 0);
+            if (n < 1000) {
+                return this.formatNumber(n);
+            }
+            if (n >= 1_000_000) {
+                const m = n / 1_000_000;
+                const s = m < 10
+                    ? m.toFixed(1).replace(/\.0$/, '')
+                    : String(Math.round(m));
+
+                return `${s}M`;
+            }
+            const k = n / 1000;
+            const s = k < 10
+                ? k.toFixed(1).replace(/\.0$/, '')
+                : String(Math.round(k));
+
+            return `${s}K`;
+        },
         secondaryLine(period) {
-            const prefix = this.card.secondaryLinePrefix || '';
             const suffix = this.card.secondaryLineSuffix || '';
             const value = this.formatNumber(period?.secondary_total || 0);
 
-            return `${prefix} ${value} ${suffix}`.trim();
+            return `${value} ${suffix}`.trim();
+        },
+        writerStatsLine(writer) {
+            const posts = writer.posts_count ?? writer.value ?? 0;
+            const views = writer.views_count ?? 0;
+
+            return `${this.formatCompact(posts)} • ${this.formatCompact(views)}`;
         }
     }
 }

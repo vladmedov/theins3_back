@@ -19,14 +19,12 @@ return [
         'always' => 'Всегда',
     ],
     'totals' => [
+        'period_views' => 'Всего просмотров:',
         'article_views' => 'Всего просмотров:',
         'news_total' => 'Всего новостей:',
     ],
     'secondary' => [
-        'on_posts_prefix' => 'на',
-        'on_posts_suffix' => 'публикаций',
-        'brought_views_prefix' => 'дали',
-        'brought_views_suffix' => 'просмотров',
+        'publications_suffix' => 'публикаций',
     ],
     'empty' => 'Нет данных',
 ];
