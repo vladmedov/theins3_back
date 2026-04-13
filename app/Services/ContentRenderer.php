@@ -14,6 +14,8 @@ class ContentRenderer
             return '';
         }
 
+        $content = app(ContentInsertionCodeService::class)->expand($content);
+
         $html = '';
 
         foreach ($content as $block) {
@@ -28,6 +30,8 @@ class ContentRenderer
                 'subtitle' => self::renderSubtitle($attrs),
                 'video' => self::renderVideo($attrs),
                 'embed' => self::renderEmbed($attrs),
+                'outline' => self::renderOutline($attrs),
+                'related' => self::renderRelated($attrs),
                 default => '',
             };
         }
@@ -92,7 +96,11 @@ class ContentRenderer
     private static function renderImages(array $attrs, Post $post): string
     {
         $images = $attrs['images'] ?? [];
-        if (empty($images)) {
+        if (is_string($images)) {
+            $decoded = json_decode($images, true);
+            $images = is_array($decoded) ? $decoded : [];
+        }
+        if (! is_array($images) || $images === []) {
             return '';
         }
 
@@ -102,6 +110,13 @@ class ContentRenderer
 
         $html = '';
         foreach ($images as $image) {
+            if (is_object($image)) {
+                $image = (array) $image;
+            }
+            if (! is_array($image)) {
+                continue;
+            }
+
             $link = $image['link'] ?? null;
             $imageId = $image['id'] ?? null;
             $description = $image['description'] ?? '';
@@ -112,11 +127,17 @@ class ContentRenderer
                     $link,
                     ImageService::TYPE_CONTENT_IMAGE,
                     ImageService::SIZE_ORIGINAL,
-                    false
+                    true,
+                    $post->language_code
                 );
             } elseif ($link) {
                 $url = $link;
             } else {
+                continue;
+            }
+
+            $url = self::canonicalizeMediaUrlForFeed($url, $post);
+            if ($url === null || $url === '') {
                 continue;
             }
 
@@ -129,6 +150,33 @@ class ContentRenderer
         }
 
         return $html;
+    }
+
+    /**
+     * Feeds and external readers need absolute URLs; remap APP_URL storage links to edition canonical host.
+     */
+    private static function canonicalizeMediaUrlForFeed(?string $url, Post $post): ?string
+    {
+        if ($url === null || $url === '') {
+            return $url;
+        }
+
+        $siteUrl = self::canonicalBaseUrl($post->language_code);
+        $appUrl = rtrim((string) config('app.url'), '/');
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            if ($appUrl !== '' && $appUrl !== $siteUrl && str_starts_with($url, $appUrl)) {
+                return $siteUrl . substr($url, strlen($appUrl));
+            }
+
+            return $url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return $siteUrl . $url;
+        }
+
+        return $siteUrl . '/' . ltrim($url, '/');
     }
 
     private static function renderTitle(array $attrs): string
@@ -171,6 +219,55 @@ class ContentRenderer
         return '<div>' . $code . '</div>';
     }
 
+    /**
+     * Emitted by ContentInsertionCodeService::expand() from outline-heading h3 tags in text.
+     */
+    private static function renderOutline(array $attrs): string
+    {
+        $outline = $attrs['outline'] ?? '';
+        if ($outline === '') {
+            return '';
+        }
+
+        return '<h3 class="outline-heading">' . e($outline) . '</h3>';
+    }
+
+    /**
+     * Inserted when {{ related_idKEY }} references a related block with show_insertion_code.
+     *
+     * @param  array<string, mixed>  $attrs
+     */
+    private static function renderRelated(array $attrs): string
+    {
+        $ids = $attrs['related_posts'] ?? [];
+        if (! is_array($ids) || $ids === []) {
+            return '';
+        }
+
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if ($ids === []) {
+            return '';
+        }
+
+        $relatedPosts = Post::whereIn('id', $ids)
+            ->where('status', Post::STATUS_PUBLISHED)
+            ->get()
+            ->sortBy(fn (Post $p) => array_search($p->id, $ids, true));
+
+        if ($relatedPosts->isEmpty()) {
+            return '';
+        }
+
+        $html = '<aside class="related-posts"><ul>';
+        foreach ($relatedPosts as $relatedPost) {
+            $url = self::getPostUrl($relatedPost);
+            $html .= '<li><a href="' . e($url) . '">' . e($relatedPost->title) . '</a></li>';
+        }
+        $html .= '</ul></aside>';
+
+        return $html;
+    }
+
     public static function getAuthorName(Post $post): string
     {
         if ($post->columnist) {
@@ -202,6 +299,10 @@ class ContentRenderer
 
         if ($appUrl !== $siteUrl && str_starts_with($localUrl, $appUrl)) {
             return $siteUrl . substr($localUrl, strlen($appUrl));
+        }
+
+        if (str_starts_with($localUrl, '/')) {
+            return $siteUrl . $localUrl;
         }
 
         return $localUrl;

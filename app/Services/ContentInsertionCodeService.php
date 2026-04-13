@@ -29,7 +29,7 @@ class ContentInsertionCodeService
             $attributes = $block['attributes'] ?? [];
 
             // Blocks with show_insertion_code true are not rendered in their position; they only appear when referenced in text
-            if ($this->isInsertionType($type) && ($attributes['show_insertion_code'] ?? false)) {
+            if ($this->isInsertionType($type) && $this->isTruthyInsertionFlag($attributes['show_insertion_code'] ?? false)) {
                 continue;
             }
 
@@ -64,7 +64,9 @@ class ContentInsertionCodeService
      */
     private function expandTextBlock(string $textBlockKey, string $html, array $content): array
     {
-        $pattern = '/\{\{\s*(\w+)_id([a-zA-Z0-9_-]+)\s*\}\}/';
+        $html = $this->normalizeHtmlForInsertionTags($html);
+        $insertionTagMap = $this->buildInsertionTagMap($content);
+        $pattern = '/\{\{[\s\S]*?\}\}/u';
 
         if (!preg_match_all($pattern, $html, $matches, PREG_OFFSET_CAPTURE)) {
             return [$textBlockKey => [
@@ -77,11 +79,10 @@ class ContentInsertionCodeService
         $index = 0;
         $lastEnd = 0;
 
-        foreach ($matches[0] as $i => $fullMatch) {
-            $type = $matches[1][$i][0];
-            $refKey = $matches[2][$i][0];
+        foreach ($matches[0] as $fullMatch) {
+            $fullTag = $fullMatch[0];
             $tagStart = $fullMatch[1];
-            $tagLength = strlen($fullMatch[0]);
+            $tagLength = strlen($fullTag);
             $tagEnd = $tagStart + $tagLength;
 
             // Replace the whole enclosing <p>...</p> with the block so no empty paragraph remains
@@ -97,14 +98,16 @@ class ContentInsertionCodeService
                 $index++;
             }
 
-            // Referenced block: only substitute if exists, is same type, and has show_insertion_code true
-            $refBlock = $content[$refKey] ?? null;
+            // Referenced block: exact match by full insertion tag ({{ type_idKEY }}) only.
+            $resolved = $insertionTagMap[$this->normalizeInsertionTag($fullTag)] ?? null;
+            $refBlock = $resolved['block'] ?? null;
+            $resolvedKey = $resolved['key'] ?? null;
             if (
                 $refBlock !== null
-                && ($refBlock['type'] ?? '') === $type
-                && ($refBlock['attributes']['show_insertion_code'] ?? false)
+                && $resolvedKey !== null
+                && $this->isRenderableInsertionBlock($refBlock)
             ) {
-                $result[$refKey] = $refBlock;
+                $result[$resolvedKey] = $refBlock;
             } else {
                 // Leave whole segment as literal (tag or paragraph containing tag)
                 $segmentHtml = substr($html, $segmentStart, $segmentEnd - $segmentStart);
@@ -130,6 +133,106 @@ class ContentInsertionCodeService
         }
 
         return $result;
+    }
+
+    /**
+     * @param  array<string, array{type: string, attributes: array}>  $content
+     * @return array<string, array{key: string, block: array}>
+     */
+    private function buildInsertionTagMap(array $content): array
+    {
+        $tagMap = [];
+
+        foreach ($content as $blockKey => $block) {
+            if (!is_string($blockKey)) {
+                continue;
+            }
+
+            $type = (string) ($block['type'] ?? '');
+            $attrs = $block['attributes'] ?? [];
+
+            if (!$this->isInsertionType($type)) {
+                continue;
+            }
+            if (!$this->isTruthyInsertionFlag($attrs['show_insertion_code'] ?? false)) {
+                continue;
+            }
+
+            $tag = '{{ ' . $type . '_id' . $blockKey . ' }}';
+            $tagMap[$this->normalizeInsertionTag($tag)] = [
+                'key' => $blockKey,
+                'block' => $block,
+            ];
+        }
+
+        return $tagMap;
+    }
+
+    /**
+     * Decode entities (&#123; → {) so tags pasted/saved via CKEditor still match; strip invisible chars.
+     */
+    private function normalizeHtmlForInsertionTags(string $html): string
+    {
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $html = preg_replace('/[\x{200B}-\x{200D}\x{FEFF}]/u', '', $html) ?? $html;
+
+        return $html;
+    }
+
+    private function normalizeInsertionTag(string $tag): string
+    {
+        $tag = $this->normalizeHtmlForInsertionTags($tag);
+        $tag = preg_replace('/\s+/u', '', $tag) ?? $tag;
+
+        return strtolower($tag);
+    }
+
+    private function isRenderableInsertionBlock(array $block): bool
+    {
+        $type = (string) ($block['type'] ?? '');
+        $attrs = $block['attributes'] ?? [];
+
+        if ($type === 'images') {
+            $images = $attrs['images'] ?? [];
+            if (!is_array($images) || $images === []) {
+                return false;
+            }
+            if (isset($images['link'])) {
+                $images = [$images];
+            }
+            foreach ($images as $image) {
+                if (is_array($image) && !empty($image['link'])) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Nova saves "1"/"0"; avoid treating non-boolean strings like "false" as true.
+     */
+    private function isTruthyInsertionFlag(mixed $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_int($value)) {
+            return $value === 1;
+        }
+        if (is_string($value)) {
+            $v = strtolower(trim($value));
+
+            return $v === '1' || $v === 'true' || $v === 'yes' || $v === 'on';
+        }
+
+        return false;
     }
 
     /**
