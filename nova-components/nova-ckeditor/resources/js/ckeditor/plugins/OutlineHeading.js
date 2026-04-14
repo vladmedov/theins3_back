@@ -50,12 +50,26 @@ export default class OutlineHeading {
             })
 
             const updateState = () => {
-                const block = editor.model.document.selection.getFirstPosition()?.parent
-                view.isOn = block?.is('element') && block.name === 'outlineHeading'
+                const sel = editor.model.document.selection
+                const block = sel.getFirstPosition()?.parent
+                const isOutlineBlock = block?.is('element') && block.name === 'outlineHeading'
+                view.isOn = isOutlineBlock
+
+                const hasTermin = sel.hasAttribute('terminId')
+                const hasHint = sel.hasAttribute('terminHintHtml')
+                const canUse =
+                    !editor.config.get('isReadOnly') &&
+                    !hasHint &&
+                    !hasTermin &&
+                    (isOutlineBlock || !sel.isCollapsed)
+                view.set('isEnabled', canUse)
             }
 
             editor.model.document.selection.on('change:range', updateState)
+            editor.model.document.selection.on('change:attribute', updateState)
             editor.model.document.on('change:data', updateState)
+
+            updateState()
 
             view.on('execute', () => {
                 editor.model.change(writer => {

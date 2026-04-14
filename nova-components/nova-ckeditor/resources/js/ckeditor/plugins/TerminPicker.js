@@ -147,9 +147,14 @@ export default class TerminPicker {
 
         const updateState = () => {
             const sel = editor.model.document.selection
-            view.isOn = sel.hasAttribute('terminId')
+            const hasTermin = sel.hasAttribute('terminId')
             const hasHint = sel.hasAttribute('terminHintHtml')
-            view.set('isEnabled', !this.config.get('isReadOnly') && !hasHint)
+            view.isOn = hasTermin
+            const canUse =
+                !this.config.get('isReadOnly') &&
+                !hasHint &&
+                (hasTermin || !sel.isCollapsed)
+            view.set('isEnabled', canUse)
         }
         editor.model.document.selection.on('change:range', updateState)
         editor.model.document.selection.on('change:attribute', updateState)
