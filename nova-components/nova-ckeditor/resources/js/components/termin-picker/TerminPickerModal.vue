@@ -13,21 +13,6 @@
 
                     <!-- Body: search view -->
                     <div v-if="!creating" class="ck-termin-modal__body">
-                        <!-- Display word -->
-                        <div class="ck-termin-field">
-                            <label class="ck-termin-label">
-                                Слово в тексте
-                                <span class="ck-termin-hint">(склонённая форма)</span>
-                            </label>
-                            <input
-                                ref="displayInput"
-                                v-model="displayText"
-                                type="text"
-                                class="ck-termin-input"
-                                placeholder="например: реформе"
-                            />
-                        </div>
-
                         <!-- Term search -->
                         <div class="ck-termin-field">
                             <label class="ck-termin-label">
@@ -111,12 +96,17 @@
 
                     <!-- Footer: search view -->
                     <div v-if="!creating" class="ck-termin-modal__footer">
-                        <span v-if="selectedTermin" class="ck-termin-selected-label">
-                            Термин: <strong>{{ selectedTermin.termin }}</strong>
-                        </span>
-                        <span v-else class="ck-termin-selected-label ck-termin-selected-label--empty">
-                            Выберите термин из списка
-                        </span>
+                        <div class="ck-termin-footer-summary">
+                            <span class="ck-termin-selected-label">
+                                В тексте: <strong>{{ displayText || '—' }}</strong>
+                            </span>
+                            <span v-if="selectedTermin" class="ck-termin-selected-label">
+                                Термин: <strong>{{ selectedTermin.termin }}</strong>
+                            </span>
+                            <span v-else class="ck-termin-selected-label ck-termin-selected-label--empty">
+                                Выберите термин из списка
+                            </span>
+                        </div>
                         <div class="ck-termin-actions">
                             <button type="button" class="ck-termin-btn ck-termin-btn--cancel" @click="close">
                                 Отмена
@@ -262,7 +252,7 @@ export default {
             } else {
                 // New termin: use selected text as initial search query
                 this.$nextTick(() => {
-                    this.$refs.displayInput?.focus()
+                    this.$refs.searchInput?.focus()
                     if (this.displayText) {
                         this.searchQuery = this.displayText
                         this.search()
@@ -332,9 +322,6 @@ export default {
 
         selectTermin(termin) {
             this.selectedTermin = termin
-            if (!this.displayText.trim()) {
-                this.displayText = termin.termin
-            }
         },
 
         confirm() {
@@ -475,9 +462,6 @@ export default {
                 this.termins        = [data]
                 this.selectedTermin = data
                 this.creating       = false
-                if (!this.displayText.trim()) {
-                    this.displayText = data.termin
-                }
             } catch (e) {
                 console.error('[TerminPicker] create error:', e)
                 this.creating = 'form'
@@ -698,6 +682,23 @@ export default {
     gap: 12px;
 }
 
+.ck-termin-footer-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ck-termin-footer-summary .ck-termin-selected-label {
+    flex: none;
+}
+
+.ck-termin-footer-summary .ck-termin-selected-label:first-child {
+    white-space: normal;
+    word-break: break-word;
+}
+
 .ck-termin-selected-label {
     font-size: 13px;
     color: #374151;
@@ -713,12 +714,17 @@ export default {
 
 .ck-termin-actions {
     display: flex;
+    align-items: center;
     gap: 8px;
     flex-shrink: 0;
 }
 
 .ck-termin-btn {
-    padding: 7px 16px 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    line-height: 1.25;
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 200;

@@ -16,7 +16,12 @@
                         </div>
                     </div>
                     <div class="ck-termin-modal__footer">
-                        <div class="ck-termin-actions" style="margin-left: auto">
+                        <div class="ck-termin-footer-summary">
+                            <span class="ck-termin-selected-label">
+                                В тексте: <strong>{{ displayText || '—' }}</strong>
+                            </span>
+                        </div>
+                        <div class="ck-termin-actions">
                             <button type="button" class="ck-termin-btn ck-termin-btn--cancel" @click="close">
                                 Отмена
                             </button>
@@ -262,6 +267,77 @@ export default {
     flex: 1;
     overflow: auto;
 }
+
+/* Согласовано с футером модалки термина */
+.ck-termin-modal__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid #e0e0e0;
+    background: #f5f5f5;
+    gap: 12px;
+}
+.ck-termin-footer-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+.ck-termin-footer-summary .ck-termin-selected-label {
+    flex: none;
+    white-space: normal;
+    word-break: break-word;
+}
+.ck-termin-selected-label {
+    font-size: 13px;
+    color: #374151;
+    min-width: 0;
+}
+.ck-termin-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.ck-termin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    line-height: 1.25;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 200;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, color 0.15s;
+}
+.ck-termin-btn--cancel {
+    background: #fff;
+    color: #666;
+    border: 1px solid #d0d0d0;
+}
+.ck-termin-btn--cancel:hover {
+    background: #ebebeb;
+    color: #333;
+}
+.ck-termin-btn--confirm {
+    background: #000;
+    color: #fff;
+}
+.ck-termin-btn--confirm:hover:not(:disabled) {
+    background: #333;
+}
+.ck-termin-btn--confirm:disabled {
+    background: #999;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 .ck-termin-field {
     margin-bottom: 0;
 }
