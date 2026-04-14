@@ -22,7 +22,6 @@ class PostController extends Controller
                 'translation.authors',
                 'translation.columnist',
                 'tags',
-                'termins',
                 'authors',
                 'columnist',
             ])
@@ -60,7 +59,6 @@ class PostController extends Controller
             'translation.authors',
             'translation.columnist',
             'tags',
-            'termins',
             'authors',
             'columnist',
         ])->find($postId);
@@ -96,7 +94,6 @@ class PostController extends Controller
             'translation.authors',
             'translation.columnist',
             'tags',
-            'termins',
             'authors',
             'columnist',
         ])->where('slug', $slug)->where('status', Post::STATUS_PUBLISHED)->firstOrFail();

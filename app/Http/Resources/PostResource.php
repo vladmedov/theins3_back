@@ -9,6 +9,7 @@ use App\Enums\PostTypes;
 use App\Models\Post;
 use App\Services\ContentInsertionCodeService;
 use App\Services\ImageService;
+use App\Services\TerminSpanPublicTransformer;
 
 use App\Traits\HasWidgets;
 
@@ -68,9 +69,6 @@ class PostResource extends JsonResource
             }),
             'lead' => $this->lead ?? "",
             'content' => $this->getBlocks(),
-            'termins' => $this->whenLoaded('termins', function () use ($request) {
-                return (TerminResource::collection($this->termins))->toArray($request);
-            }),
             'seo_title' => $this->seo_title ?? "",
             'seo_description' => $this->seo_description ?? "",
             'seo_keywords' => $this->seo_keywords ?? "",
@@ -112,7 +110,7 @@ class PostResource extends JsonResource
                 $blocks[$key] = $block;
             }
         }
-        return $blocks;
+        return app(TerminSpanPublicTransformer::class)->transformContentBlocks($blocks);
     }
 
     private function shouldShowColumnist(): bool

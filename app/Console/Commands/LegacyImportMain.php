@@ -284,6 +284,9 @@ class LegacyImportMain extends Command
                         Post::withoutEvents(fn () => Post::where('id', $post->id)->update(
                             $this->buildPostAttributes($post, $languageCode, $imagePath)
                         ));
+                        // Keep cache in sync with DB so relation helpers do not call save() on a stale
+                        // model (published + empty image in memory → ValidationException).
+                        $this->postModelCache[$post->id] = Post::find($post->id);
                         $this->syncPostCoverImages($post->id, $imagePath, $languageCode);
 
                         $this->syncPostRelations($post, $regionId, $languageCode);

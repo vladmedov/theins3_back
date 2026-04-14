@@ -41,7 +41,7 @@ return [
      | Image Quality
      |--------------------------------------------------------------------------
      |
-     | Max Intervention Image Output Quality
+     | Max Intervention Image Resizing Quality
      | before Image Optimizer is run.
      | @docs http://image.intervention.io/api/save
      |
@@ -147,6 +147,7 @@ return [
                 'removeFormat',
                 '|',
                 'terminPicker',
+                'hintPicker',
                 'outlineHeading',
                 '|',
                 'heading',
@@ -177,7 +178,7 @@ return [
                     [
                         'name'       => 'span',
                         'classes'    => ['termin'],
-                        'attributes' => ['data-id' => true],
+                        'attributes' => ['data-id' => true, 'data-description' => true],
                     ],
                     [
                         'name'    => 'h3',

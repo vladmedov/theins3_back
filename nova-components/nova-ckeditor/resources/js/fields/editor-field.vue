@@ -27,6 +27,8 @@
                 :resource-name="resourceName"
                 :resource-id="resourceId"
             />
+            <hint-picker-modal :field-key="$options[editorUUID]" />
+            <hint-tooltip :field-key="$options[editorUUID]" />
             <termin-tooltip :field-key="$options[editorUUID]" />
         </template>
     </default-field>
@@ -38,6 +40,8 @@ import {sanitizePastedHtml} from '../utils/sanitizePastedHtml'
 import SnippetBrowser from "../components/snippet-browser/SnippetBrowser.vue"
 import MediaBrowser from '../components/media-browser/MediaBrowser.vue'
 import TerminPickerModal from '../components/termin-picker/TerminPickerModal.vue'
+import HintPickerModal from '../components/hint-picker/HintPickerModal.vue'
+import HintTooltip from '../components/hint-picker/HintTooltip.vue'
 import TerminTooltip from '../components/termin-picker/TerminTooltip.vue'
 import HasUUID from "../components/mixins/hasUUID"
 import {DependentFormField, HandlesValidationErrors, FormEvents} from 'laravel-nova'
@@ -48,7 +52,7 @@ import RegexParser from 'regex-parser'
 export default {
     mixins: [DependentFormField, HandlesValidationErrors, FormEvents, HasUUID],
     props: ['resourceName', 'resourceId', 'field', 'toolbar', 'formUniqueId'],
-    components: {SnippetBrowser, MediaBrowser, TerminPickerModal, TerminTooltip},
+    components: {SnippetBrowser, MediaBrowser, TerminPickerModal, HintPickerModal, HintTooltip, TerminTooltip},
     data() {
         return {
             mounted: false,

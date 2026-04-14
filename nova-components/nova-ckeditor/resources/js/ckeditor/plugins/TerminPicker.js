@@ -24,6 +24,7 @@ export default class TerminPicker {
     init() {
         this._defineSchema()
         this._defineConverters()
+        this._registerMutualExclusionPostFixer()
         this.ui.componentFactory.add('terminPicker', this.createButton.bind(this))
         Nova.$on(`ckeditor:termin:${this.attribute}:insert`,       this.insertTermin.bind(this))
         Nova.$on(`ckeditor:termin:${this.attribute}:trigger-open`, this.openModal.bind(this))
@@ -84,6 +85,7 @@ export default class TerminPicker {
                 key: 'terminId',
                 value: viewElement => viewElement.getAttribute('data-id'),
             },
+            converterPriority: 'high',
         })
 
         // Model → Editing view (what the editor shows, with visual highlight)
@@ -111,6 +113,26 @@ export default class TerminPicker {
         })
     }
 
+    _registerMutualExclusionPostFixer() {
+        this.editor.model.document.registerPostFixer((writer) => {
+            let changed = false
+            for (const root of this.editor.model.document.getRoots()) {
+                const range = writer.createRangeIn(root)
+                for (const item of range.getItems()) {
+                    if (
+                        item.is('$text') &&
+                        item.hasAttribute('terminId') &&
+                        item.hasAttribute('terminHintHtml')
+                    ) {
+                        writer.removeAttribute('terminHintHtml', item)
+                        changed = true
+                    }
+                }
+            }
+            return changed
+        })
+    }
+
     createButton(locale) {
         const { t } = locale
         const view = new ButtonView(locale)
@@ -124,7 +146,10 @@ export default class TerminPicker {
         })
 
         const updateState = () => {
-            view.isOn = editor.model.document.selection.hasAttribute('terminId')
+            const sel = editor.model.document.selection
+            view.isOn = sel.hasAttribute('terminId')
+            const hasHint = sel.hasAttribute('terminHintHtml')
+            view.set('isEnabled', !this.config.get('isReadOnly') && !hasHint)
         }
         editor.model.document.selection.on('change:range', updateState)
         editor.model.document.selection.on('change:attribute', updateState)
@@ -138,13 +163,18 @@ export default class TerminPicker {
             }
         })
 
-        view.set('isEnabled', !this.config.get('isReadOnly'))
+        updateState()
 
         return view
     }
 
     openModal() {
         const selection = this.model.document.selection
+
+        if (selection.hasAttribute('terminHintHtml')) {
+            return
+        }
+
         let terminId = null
 
         // If cursor is collapsed inside an existing termin span — expand the
@@ -227,6 +257,10 @@ export default class TerminPicker {
         this.model.change(writer => {
             const selection = this.model.document.selection
             const range = selection.getFirstRange()
+
+            if (selection.hasAttribute('terminHintHtml')) {
+                writer.removeAttribute('terminHintHtml', range)
+            }
 
             if (!range.isCollapsed) {
                 writer.remove(range)

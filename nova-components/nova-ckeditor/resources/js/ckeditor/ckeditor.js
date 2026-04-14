@@ -61,6 +61,7 @@ import {SimpleUploadAdapter} from '@ckeditor/ckeditor5-upload'
 import MediaBrowser from './plugins/MediaBrowser'
 import SnippetBrowser from './plugins/SnippetBrowser'
 import TerminPicker from './plugins/TerminPicker'
+import HintPicker from './plugins/HintPicker'
 import OutlineHeading from './plugins/OutlineHeading'
 
 // Video
@@ -107,6 +108,7 @@ export default class CkEditor extends ClassicEditorBase {
             MediaBrowser,
             SnippetBrowser,
             TerminPicker,
+            HintPicker,
             OutlineHeading,
             Video,
             Audio,

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Services\ImageService;
+use App\Services\TerminDescriptionAttributeCodec;
 use App\Models\SyncLog;
 use App\Models\Category;
 use App\Models\Author;
@@ -662,8 +663,10 @@ trait LegacyImportHelpersTrait
                 }
             }
             if ($post->type === 'opinion') {
+                // Avoid $post->save(): model may be stale after bulk update, and published posts
+                // without image trigger Post::saving validation ("Image is required to publish").
+                Post::where('id', $postId)->update(['columnist_id' => $personId]);
                 $post->columnist_id = $personId;
-                $post->save();
             } else {
                 PostAuthor::updateOrCreate(['post_id' => $postId, 'author_id' => $personId]);
             }
@@ -692,8 +695,8 @@ trait LegacyImportHelpersTrait
 
         $post = $this->findCachedPost($postId);
         if ($post) {
+            Post::where('id', $postId)->update(['investigation_theme_id' => $themeId]);
             $post->investigation_theme_id = $themeId;
-            $post->save();
         }
     }
 
@@ -1010,7 +1013,7 @@ trait LegacyImportHelpersTrait
                 }
                 $text = $blockContent->text;
 
-                $text = preg_replace_callback('/<a\s+href="\{\{term_([^}]+)\}\}"[^>]*>(.*?)<\/a\s*>/is', function ($matches) use ($termins, $currentPost) {
+                $text = preg_replace_callback('/<a\s+href="\{\{term_([^}]+)\}\}"[^>]*>(.*?)<\/a\s*>/is', function ($matches) use ($termins) {
                     $terminCode        = "{{term_" . $matches[1] . "}}";
                     $terminDescription = $termins[$terminCode] ?? '';
                     $displayWord       = trim(preg_replace('/\s+/', ' ', strip_tags($matches[2])));
@@ -1019,12 +1022,9 @@ trait LegacyImportHelpersTrait
                         return $matches[0];
                     }
 
-                    $termin = $this->resolveTermin($displayWord, $terminDescription, $currentPost);
-                    if (!$termin) {
-                        return $matches[0];
-                    }
-
-                    return '<span class="termin" data-id="' . $termin->id . '">' . e($displayWord) . '</span>';
+                    return '<span class="termin" data-description="'
+                        . TerminDescriptionAttributeCodec::encode($terminDescription)
+                        . '">' . e($displayWord) . '</span>';
                 }, $text);
 
                 $matches = [];
@@ -1449,7 +1449,7 @@ trait LegacyImportHelpersTrait
                 $languageCode
             );
 
-            Post::updateOrCreate(
+            Post::withoutEvents(fn () => Post::updateOrCreate(
                 ['id' => $post->id],
                 [
                     'language_code' => $languageCode,
@@ -1477,7 +1477,7 @@ trait LegacyImportHelpersTrait
                     'is_super_news' => $post->super_news,
                     'views_count' => $post->viewed,
                 ]
-            );
+            ));
 
             $this->line("  → Post ID: {$post->id} - {$post->title}");
 
