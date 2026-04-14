@@ -188,7 +188,7 @@ export default {
 }
 
 .ck-hint-tooltip__desc a {
-    color: #2563eb;
+    color: #000;
 }
 
 .ck-hint-tooltip__desc a:hover {

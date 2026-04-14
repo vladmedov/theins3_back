@@ -806,12 +806,13 @@ export default {
     min-height: 80px;
 }
 
-/* Visual highlight of termin spans inside the CKEditor editing area */
+/* Вложенный редактор описания: подсветка терминов как в основном тексте */
 .ck-content .ck-termin-highlight {
-    background: #dbeafe;
-    border-bottom: 2px solid #3b82f6;
+    background-color: #ebebeb;
+    color: #e54839;
+    border-bottom: 2px dotted #e54839;
     border-radius: 2px;
-    padding: 0 1px;
+    padding: 0 0.375rem 0.125rem 0.375rem;
     cursor: default;
 }
 
