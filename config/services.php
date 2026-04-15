@@ -62,4 +62,8 @@ return [
         'api_token' => env('OILPRICE_API_TOKEN'),
     ],
 
+    'google_news' => [
+        'publication_name' => env('GOOGLE_NEWS_PUBLICATION_NAME', 'The Insider'),
+    ],
+
 ];
