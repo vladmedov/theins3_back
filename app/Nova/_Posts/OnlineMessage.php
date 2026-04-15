@@ -180,6 +180,7 @@ class OnlineMessage extends Resource
             Panel::make(__('Images'), [
                 ImageGallery::make(__('Image list'), 'images')
                     ->storageDisk($localeDisk)
+                    ->withMeta(['imageType' => ImageService::TYPE_ONLINE_IMAGE])
                     ->onlyOnForms()
                     ->fullWidth()
                     ->stacked()

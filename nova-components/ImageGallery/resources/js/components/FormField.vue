@@ -282,6 +282,9 @@ export default {
           if (this.field?.storageDisk) {
             formData.append("storage_disk", this.field.storageDisk);
           }
+          if (this.field?.imageType) {
+            formData.append("image_type", this.field.imageType);
+          }
           if (csrf) formData.append("_token", csrf);
 
           try {
@@ -292,6 +295,8 @@ export default {
             this.value.push({
               id: response.data.id,
               link: response.data.link,
+              width: Number(response.data.width),
+              height: Number(response.data.height),
               author: "",
               description: "",
             });

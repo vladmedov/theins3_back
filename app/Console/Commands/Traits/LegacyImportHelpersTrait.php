@@ -1373,7 +1373,7 @@ trait LegacyImportHelpersTrait
                     'is_key_event' => $online->key_point,
                     'outline' => $this->cleanOutline($online->title ?? ''),
                     'text' => $online->text ?? '',
-                    'images' => $online->image ? [
+                    'images' => $online->image ? [[
                         'id' => (string) $online->id,
                         'link' => $this->downloadLegacyImage(
                             $online->id,
@@ -1384,7 +1384,7 @@ trait LegacyImportHelpersTrait
                         ),
                         'author' => '',
                         'description' => '',
-                    ] : [],
+                    ]] : [],
                     'video_url' => $online->video_embed ?? '',
                     'video_description' => '',
                     'video_author' => '',

@@ -456,6 +456,7 @@ abstract class Post extends Resource
                         ->default(true),
                     ImageGallery::make(__('Image list'), 'images')
                         ->storageDisk($localeDisk)
+                        ->withMeta(['imageType' => ImageService::TYPE_CONTENT_IMAGE])
                         ->fullWidth()
                         ->stacked()
                         ->rules('nullable'),
