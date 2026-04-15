@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 class FillGalleryImageDimensions extends Command
 {
+    /** @var list<string> */
+    protected $aliases = ['gallery:fill-image-dimension'];
+
     protected $signature = 'gallery:fill-image-dimensions
                             {--dry-run : Show counts without writing}
                             {--post-id= : Process only this post id (gallery content, online messages, cover)}
@@ -31,6 +34,8 @@ class FillGalleryImageDimensions extends Command
         $postsSkipped = 0;
         $messagesSkipped = 0;
         $coversSkipped = 0;
+        /** @var list<int> */
+        $unreadableCoverPostIds = [];
 
         $postsQuery = DB::table('posts')
             ->where('type', '!=', PostTypes::ONLINE)
@@ -203,6 +208,7 @@ class FillGalleryImageDimensions extends Command
             $touchUpdatedAt,
             &$coversUpdated,
             &$coversSkipped,
+            &$unreadableCoverPostIds,
             $bar
         ) {
             foreach ($rows as $row) {
@@ -211,6 +217,7 @@ class FillGalleryImageDimensions extends Command
                     $dims = ImageService::getImageDimensions($row->image, $languageCode);
                     if ($dims === null) {
                         $coversSkipped++;
+                        $unreadableCoverPostIds[] = (int) $row->id;
 
                         continue;
                     }
@@ -250,6 +257,11 @@ class FillGalleryImageDimensions extends Command
         $this->info("Posts skipped (gallery, no change): {$postsSkipped}");
         $this->info("Messages skipped (no change): {$messagesSkipped}");
         $this->info("Post covers skipped (no file / unreadable): {$coversSkipped}");
+
+        if ($unreadableCoverPostIds !== []) {
+            sort($unreadableCoverPostIds);
+            $this->warn('Post ids (cover file missing or unreadable): ' . implode(', ', $unreadableCoverPostIds));
+        }
 
         return self::SUCCESS;
     }
