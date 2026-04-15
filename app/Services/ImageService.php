@@ -101,8 +101,9 @@ class ImageService
             }
             
             $filename = basename($imagePath);
-            $originalWidth = self::getImageWidth($originalPath);
-            
+            $dims = self::getImageDimensionsFromAbsolutePath($originalPath);
+            $originalWidth = $dims['width'] ?? null;
+
             if ($originalWidth === null) {
                 return false;
             }
@@ -122,20 +123,51 @@ class ImageService
         }
     }
     
-    private static function getImageWidth(string $imagePath): ?int
+    /**
+     * Width and height of a stored image (relative path on ru_public/en_public).
+     *
+     * @return array{width: int, height: int}|null
+     */
+    public static function getImageDimensions(?string $relativePath, ?string $languageCode): ?array
     {
+        if ($relativePath === null || $relativePath === '') {
+            return null;
+        }
+
+        $disk = Storage::disk(self::publicDiskForLanguage($languageCode));
+        if (!$disk->exists($relativePath)) {
+            return null;
+        }
+
+        $absolutePath = $disk->path($relativePath);
+
+        return self::getImageDimensionsFromAbsolutePath($absolutePath);
+    }
+
+    /**
+     * @return array{width: int, height: int}|null
+     */
+    public static function getImageDimensionsFromAbsolutePath(string $absolutePath): ?array
+    {
+        if (!is_readable($absolutePath)) {
+            return null;
+        }
+
         try {
-            $imagick = new Imagick($imagePath);
+            $imagick = new Imagick($absolutePath);
             $width = $imagick->getImageWidth();
+            $height = $imagick->getImageHeight();
             $imagick->clear();
             $imagick->destroy();
-            return $width;
+
+            return ['width' => $width, 'height' => $height];
         } catch (Exception $e) {
             Log::error('Ошибка при определении размеров изображения: ' . $e->getMessage());
+
             return null;
         }
     }
-    
+
     private static function createResizedImage(
         string $originalPath,
         $id,

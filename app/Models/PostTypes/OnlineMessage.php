@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 use App\Models\User;
+use App\Services\FrontendRevalidationService;
 
 class OnlineMessage extends Model
 {
@@ -40,6 +41,32 @@ class OnlineMessage extends Model
         'is_key_event' => 'boolean',
         'images' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $message): void {
+            $service = app(FrontendRevalidationService::class);
+
+            if ($message->wasChanged('post_id')) {
+                $originalPostId = (int) ($message->getOriginal('post_id') ?? 0);
+                if ($originalPostId > 0) {
+                    $service->queuePostChange($originalPostId);
+                }
+            }
+
+            $currentPostId = (int) ($message->post_id ?? 0);
+            if ($currentPostId > 0) {
+                $service->queuePostChange($currentPostId);
+            }
+        });
+
+        static::deleted(function (self $message): void {
+            $postId = (int) ($message->post_id ?? 0);
+            if ($postId > 0) {
+                app(FrontendRevalidationService::class)->queuePostChange($postId);
+            }
+        });
+    }
 
     public function online() {
         return $this->belongsTo(PostOnline::class, 'post_id');
