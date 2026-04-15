@@ -7,6 +7,10 @@ return [
     'indices' => [
         'settings' => [
             'default' => [
+                // Required when ngram min_gram/max_gram span more than the cluster default (usually 1).
+                'index' => [
+                    'max_ngram_diff' => 12,
+                ],
                 'analysis' => [
                     'filter' => [
                         'ti_ngram_filter' => [
