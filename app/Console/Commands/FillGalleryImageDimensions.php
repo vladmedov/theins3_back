@@ -11,11 +11,11 @@ class FillGalleryImageDimensions extends Command
 {
     protected $signature = 'gallery:fill-image-dimensions
                             {--dry-run : Show counts without writing}
-                            {--post-id= : Process only this post id (content + its online messages)}
+                            {--post-id= : Process only this post id (gallery content, online messages, cover)}
                             {--chunk=100 : Chunk size for posts query}
                             {--touch-updated-at : Set updated_at when updating posts}';
 
-    protected $description = 'Backfill width/height on gallery images in posts.content (non-online) and online_messages.images';
+    protected $description = 'Backfill width/height: gallery in posts.content (non-online), online_messages.images, and post cover (posts.image_width/height)';
 
     public function handle(): int
     {
@@ -27,8 +27,10 @@ class FillGalleryImageDimensions extends Command
 
         $postsUpdated = 0;
         $messagesUpdated = 0;
+        $coversUpdated = 0;
         $postsSkipped = 0;
         $messagesSkipped = 0;
+        $coversSkipped = 0;
 
         $postsQuery = DB::table('posts')
             ->where('type', '!=', PostTypes::ONLINE)
@@ -57,9 +59,23 @@ class FillGalleryImageDimensions extends Command
             $messagesQuery->where('online_messages.post_id', $postId);
         }
 
+        $coversQuery = DB::table('posts')
+            ->select(['id', 'image', 'language_code'])
+            ->whereNotNull('image')
+            ->where('image', '!=', '')
+            ->where(function ($q) {
+                $q->whereNull('image_width')->orWhereNull('image_height');
+            })
+            ->orderBy('id');
+
+        if ($postId !== null) {
+            $coversQuery->where('id', $postId);
+        }
+
         $postsTotal = (clone $postsQuery)->count();
         $messagesTotal = (clone $messagesQuery)->count();
-        $totalSteps = $postsTotal + $messagesTotal;
+        $coversTotal = (clone $coversQuery)->count();
+        $totalSteps = $postsTotal + $messagesTotal + $coversTotal;
 
         $bar = null;
         if ($totalSteps > 0) {
@@ -68,7 +84,7 @@ class FillGalleryImageDimensions extends Command
             $bar->setMessage('posts');
             $bar->start();
         } else {
-            $this->comment('No rows to scan (posts with content + online_messages with images).');
+            $this->comment('No rows to scan (gallery content, online_messages images, or cover dimensions).');
         }
 
         $postsQuery->chunkById($chunk, function ($rows) use (
@@ -179,14 +195,61 @@ class FillGalleryImageDimensions extends Command
         });
 
         if ($bar !== null) {
+            $bar->setMessage('post covers');
+        }
+
+        $coversQuery->chunkById($chunk, function ($rows) use (
+            $dryRun,
+            $touchUpdatedAt,
+            &$coversUpdated,
+            &$coversSkipped,
+            $bar
+        ) {
+            foreach ($rows as $row) {
+                try {
+                    $languageCode = $row->language_code ?? 'ru';
+                    $dims = ImageService::getImageDimensions($row->image, $languageCode);
+                    if ($dims === null) {
+                        $coversSkipped++;
+
+                        continue;
+                    }
+
+                    if ($dryRun) {
+                        $coversUpdated++;
+
+                        continue;
+                    }
+
+                    $update = [
+                        'image_width' => $dims['width'],
+                        'image_height' => $dims['height'],
+                    ];
+                    if ($touchUpdatedAt) {
+                        $update['updated_at'] = now();
+                    }
+
+                    DB::table('posts')->where('id', $row->id)->update($update);
+                    $coversUpdated++;
+                } finally {
+                    if ($bar !== null) {
+                        $bar->advance();
+                    }
+                }
+            }
+        }, 'id');
+
+        if ($bar !== null) {
             $bar->finish();
             $this->newLine(2);
         }
 
-        $this->info("Posts updated: {$postsUpdated}" . ($dryRun ? ' (dry-run)' : ''));
+        $this->info("Posts updated (gallery in content): {$postsUpdated}" . ($dryRun ? ' (dry-run)' : ''));
         $this->info("Online messages updated: {$messagesUpdated}" . ($dryRun ? ' (dry-run)' : ''));
-        $this->info("Posts skipped (no change): {$postsSkipped}");
+        $this->info("Post covers updated (image_width/height): {$coversUpdated}" . ($dryRun ? ' (dry-run)' : ''));
+        $this->info("Posts skipped (gallery, no change): {$postsSkipped}");
         $this->info("Messages skipped (no change): {$messagesSkipped}");
+        $this->info("Post covers skipped (no file / unreadable): {$coversSkipped}");
 
         return self::SUCCESS;
     }

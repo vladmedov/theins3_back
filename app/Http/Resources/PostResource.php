@@ -41,6 +41,8 @@ class PostResource extends JsonResource
             }),
             'title' => $this->title,
             'image' => $this->image_url ?? "",
+            'image_width' => $this->image_width,
+            'image_height' => $this->image_height,
             'image_description' => $this->image_description ?? "",
             'is_super_news' => $this->is_super_news,
             'language_code' => $this->language_code,

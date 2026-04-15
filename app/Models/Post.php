@@ -64,6 +64,8 @@ class Post extends Model { //implements HasMedia {
         'lead',
         'content',
         'image',
+        'image_width',
+        'image_height',
         'image_description',
         'title_feature',
         'is_super_news',
@@ -77,6 +79,8 @@ class Post extends Model { //implements HasMedia {
         'updated_at' => 'datetime:Y-m-d\TH:i:s.u\Z',
         'published_at' => 'datetime:Y-m-d\TH:i:s.u\Z',
         'views_count' => 'integer',
+        'image_width' => 'integer',
+        'image_height' => 'integer',
         'content' => CompactFlexibleCast::class,
         'author_visibility' => 'string',
         'auto_publish_pending' => 'boolean',
@@ -91,6 +95,13 @@ class Post extends Model { //implements HasMedia {
 
     public static function boot() {
         parent::boot();
+
+        static::saving(function (Post $post) {
+            if ($post->isDirty('image') && empty($post->image)) {
+                $post->image_width = null;
+                $post->image_height = null;
+            }
+        });
 
         static::saving(function (Post $post) {
             $publishClickAction = app()->bound('request')
@@ -459,6 +470,13 @@ class Post extends Model { //implements HasMedia {
 
         ImageService::createImageVariants($this->id, $imagePath, ImageService::TYPE_POST_COVER, $this->language_code);
         ShareImageService::generate($this);
+
+        $dims = ImageService::getImageDimensions($imagePath, $this->language_code);
+        if ($dims !== null) {
+            $this->image_width = $dims['width'];
+            $this->image_height = $dims['height'];
+            $this->saveQuietly();
+        }
     }
 
     public function getImageUrl($size = ImageService::SIZE_ORIGINAL, bool $includeDomain = false)
