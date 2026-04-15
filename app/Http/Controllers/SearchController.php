@@ -83,16 +83,45 @@ class SearchController extends Controller
                 "tags.$langSuffix^5",
             ];
 
+            // Partial-match fields are kept lower-weighted than the normal language analyzers.
+            $ngramFields = [
+                "title.{$langSuffix}_ngram^2",
+                "lead.{$langSuffix}_ngram^0.8",
+                "content.{$langSuffix}_ngram^0.4",
+                "authors.{$langSuffix}_ngram^1",
+                "columnist.{$langSuffix}_ngram^1",
+                "tags.{$langSuffix}_ngram^1",
+            ];
+
             // Базовый query
             $baseQuery = [
                 'bool' => [
                     'must' => [
-                        ['multi_match' => [
-                            'query' => $query,
-                            'fields' => $fields,
-                            'type' => 'most_fields', // Аналог word_start - поиск с начала слов
-                            'operator' => 'and',
-                        ]]
+                        [
+                            'bool' => [
+                                'should' => [
+                                    [
+                                        'multi_match' => [
+                                            'query' => $query,
+                                            'fields' => $fields,
+                                            'type' => 'most_fields',
+                                            'operator' => 'and',
+                                            'boost' => 5,
+                                        ],
+                                    ],
+                                    [
+                                        'multi_match' => [
+                                            'query' => $query,
+                                            'fields' => $ngramFields,
+                                            'type' => 'most_fields',
+                                            'operator' => 'or',
+                                            'boost' => 1,
+                                        ],
+                                    ],
+                                ],
+                                'minimum_should_match' => 1,
+                            ],
+                        ],
                     ],
                     'filter' => $filters
                 ]
