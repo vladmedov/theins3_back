@@ -130,11 +130,11 @@ class VerifyPostOriginalImages extends Command
         if (!is_array($images) || $images === []) {
             return [];
         }
-        if (isset($images['link'])) {
-            return [$images];
+        if (!array_is_list($images)) {
+            return [];
         }
 
-        return $images;
+        return array_values(array_filter($images, 'is_array'));
     }
 
     /**

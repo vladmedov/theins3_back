@@ -192,13 +192,15 @@ class FillGalleryImageDimensions extends Command
     }
 
     /**
-     * @param  array<string, mixed>|list<array<string, mixed>>  $images
-     * @return array<string, mixed>|list<array<string, mixed>>
+     * @param  list<array<string, mixed>>  $images
+     * @return list<array<string, mixed>>
      */
     private function enrichGalleryImages(array $images, string $languageCode, bool &$changed): array
     {
-        $isSingleObject = isset($images['link']);
-        $list = $isSingleObject ? [$images] : $images;
+        if (!array_is_list($images)) {
+            return [];
+        }
+        $list = $images;
 
         foreach ($list as $i => $img) {
             if (!is_array($img)) {
@@ -222,10 +224,6 @@ class FillGalleryImageDimensions extends Command
             $list[$i]['width'] = $dims['width'];
             $list[$i]['height'] = $dims['height'];
             $changed = true;
-        }
-
-        if ($isSingleObject) {
-            return $list[0] ?? $images;
         }
 
         return $list;
