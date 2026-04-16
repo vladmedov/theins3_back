@@ -31,7 +31,7 @@ Route::post('/upload-image', function (Request $request) {
     return response()->json([
         'id' => $imageId,
         'link' => $path,
-        'width' => $dimensions['width'],
-        'height' => $dimensions['height'],
+        'width' => (int) $dimensions['width'],
+        'height' => (int) $dimensions['height'],
     ]);
 });

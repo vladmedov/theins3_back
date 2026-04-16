@@ -95,6 +95,10 @@ class CompactFlexibleCast implements CastsAttributes
             $layout = $block['layout'];
             $attributes = $block['attributes'];
 
+            if (in_array($layout, ['images', 'online'], true)) {
+                $attributes = static::normalizeImageDimensions($attributes);
+            }
+
             // Do not persist computed/UI-only attributes (e.g. _insertion_code)
             $attributes = array_filter(
                 $attributes,
@@ -109,5 +113,47 @@ class CompactFlexibleCast implements CastsAttributes
         }
 
         return json_encode($formattedBlock);
+    }
+
+    /**
+     * Normalize width/height in images payload to integers.
+     */
+    private static function normalizeImageDimensions(array $attributes): array
+    {
+        $images = $attributes['images'] ?? null;
+        if (!is_array($images)) {
+            return $attributes;
+        }
+
+        if (!array_is_list($images)) {
+            return $attributes;
+        }
+
+        foreach ($images as $index => $image) {
+            if (!is_array($image)) {
+                continue;
+            }
+            $images[$index] = static::normalizeSingleImageDimensions($image);
+        }
+
+        $attributes['images'] = $images;
+
+        return $attributes;
+    }
+
+    /**
+     * @param array<string, mixed> $image
+     * @return array<string, mixed>
+     */
+    private static function normalizeSingleImageDimensions(array $image): array
+    {
+        if (array_key_exists('width', $image) && is_numeric($image['width'])) {
+            $image['width'] = (int) $image['width'];
+        }
+        if (array_key_exists('height', $image) && is_numeric($image['height'])) {
+            $image['height'] = (int) $image['height'];
+        }
+
+        return $image;
     }
 }

@@ -285,9 +285,23 @@ class FillGalleryImageDimensions extends Command
             if ($link === null || $link === '' || !is_string($link)) {
                 continue;
             }
-            if (isset($img['width'], $img['height'])
+            $hasValidDims = isset($img['width'], $img['height'])
+                && is_numeric($img['width'])
+                && is_numeric($img['height'])
                 && (int) $img['width'] > 0
-                && (int) $img['height'] > 0) {
+                && (int) $img['height'] > 0;
+
+            if ($hasValidDims) {
+                $widthInt = (int) $img['width'];
+                $heightInt = (int) $img['height'];
+
+                // Normalize legacy string numbers ("1200") to ints (1200).
+                if (($img['width'] !== $widthInt) || ($img['height'] !== $heightInt)) {
+                    $list[$i]['width'] = $widthInt;
+                    $list[$i]['height'] = $heightInt;
+                    $changed = true;
+                }
+
                 continue;
             }
 
@@ -296,8 +310,8 @@ class FillGalleryImageDimensions extends Command
                 continue;
             }
 
-            $list[$i]['width'] = $dims['width'];
-            $list[$i]['height'] = $dims['height'];
+            $list[$i]['width'] = (int) $dims['width'];
+            $list[$i]['height'] = (int) $dims['height'];
             $changed = true;
         }
 

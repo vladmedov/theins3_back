@@ -41,8 +41,8 @@ class PostResource extends JsonResource
             }),
             'title' => $this->title,
             'image' => $this->image_url ?? "",
-            'image_width' => $this->image_width,
-            'image_height' => $this->image_height,
+            'image_width' => $this->image_width !== null ? (int) $this->image_width : null,
+            'image_height' => $this->image_height !== null ? (int) $this->image_height : null,
             'image_description' => $this->image_description ?? "",
             'is_super_news' => $this->is_super_news,
             'language_code' => $this->language_code,
@@ -106,6 +106,12 @@ class PostResource extends JsonResource
                         $images[$i]['link'] = ImageService::getImageUrl(
                             $imageId, $link, $imageType, ImageService::SIZE_ORIGINAL, false
                         );
+                    }
+                    if (isset($image['width']) && is_numeric($image['width'])) {
+                        $images[$i]['width'] = (int) $image['width'];
+                    }
+                    if (isset($image['height']) && is_numeric($image['height'])) {
+                        $images[$i]['height'] = (int) $image['height'];
                     }
                 }
                 $block['attributes']['images'] = $images;
