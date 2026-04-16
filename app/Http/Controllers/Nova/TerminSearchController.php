@@ -39,7 +39,13 @@ class TerminSearchController extends Controller
 
         $termins = Termin::query()
             ->where('language_code', $languageCode)
-            ->when($query !== '', fn ($q) => $q->where('termin', 'like', "%{$query}%"))
+            ->when(
+                $query !== '',
+                fn ($q) => $q->whereRaw(
+                    'LOWER(termin) LIKE ?',
+                    ['%' . mb_strtolower($query, 'UTF-8') . '%'],
+                ),
+            )
             ->orderBy('termin')
             ->limit(20)
             ->get(['id', 'termin', 'description']);
