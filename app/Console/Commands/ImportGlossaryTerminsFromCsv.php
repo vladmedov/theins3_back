@@ -15,7 +15,7 @@ class ImportGlossaryTerminsFromCsv extends Command
                             {csv? : Path to CSV or Google Sheets HTML; default: database/data/glossary.html (project path or /var/www/html/… in Docker)}
                             {--language=ru : language_code for imported rows}';
 
-    protected $description = 'Delete all termins and re-import glossary from CSV or Google Sheets HTML (cols B = termin, C = description). Default file: database/data/glossary.html';
+    protected $description = 'Delete all termins and re-import glossary from CSV or Google Sheets HTML. CSV: comma or semicolon; 2 cols (termin;description) or 3 cols with empty first (;termin;description) or glossary (cols B+C). Default: database/data/glossary.html';
 
     public function handle(): int
     {
@@ -45,9 +45,8 @@ class ImportGlossaryTerminsFromCsv extends Command
         DB::transaction(function () use ($rows, $language) {
             Termin::query()->delete();
             $n = 0;
-            foreach ($rows as $i => $row) {
-                $termin = trim((string) ($row[1] ?? ''));
-                $description = (string) ($row[2] ?? '');
+            foreach ($rows as $row) {
+                [$termin, $description] = $this->terminDescriptionFromCsvRow($row);
                 if ($termin === '') {
                     continue;
                 }
@@ -101,13 +100,14 @@ class ImportGlossaryTerminsFromCsv extends Command
      */
     private function readCsvRows(string $path): array
     {
+        $delimiter = $this->detectCsvDelimiter($path);
         $fp = fopen($path, 'rb');
         if ($fp === false) {
             return [];
         }
         $rows = [];
         $first = true;
-        while (($data = fgetcsv($fp)) !== false) {
+        while (($data = fgetcsv($fp, 0, $delimiter, '"', '\\')) !== false) {
             if ($first) {
                 $first = false;
                 if (isset($data[0]) && str_starts_with($data[0], "\xEF\xBB\xBF")) {
@@ -121,6 +121,55 @@ class ImportGlossaryTerminsFromCsv extends Command
         fclose($fp);
 
         return $rows;
+    }
+
+    /**
+     * Detect `;` vs `,` from the first line (supports UTF-8 BOM).
+     */
+    private function detectCsvDelimiter(string $path): string
+    {
+        $fp = fopen($path, 'rb');
+        if ($fp === false) {
+            return ',';
+        }
+        $line = fgets($fp);
+        fclose($fp);
+        if ($line === false || $line === '') {
+            return ',';
+        }
+        if (str_starts_with($line, "\xEF\xBB\xBF")) {
+            $line = substr($line, 3);
+        }
+        $byComma = str_getcsv($line, ',', '"', '\\');
+        $bySemi = str_getcsv($line, ';', '"', '\\');
+
+        return count($bySemi) > count($byComma) ? ';' : ',';
+    }
+
+    /**
+     * @param  array<int, string|null>  $row
+     * @return array{0: string, 1: string} [termin, description]
+     */
+    private function terminDescriptionFromCsvRow(array $row): array
+    {
+        $n = count($row);
+        if ($n >= 3 && trim((string) ($row[0] ?? '')) === '') {
+            return [
+                trim((string) ($row[1] ?? '')),
+                (string) ($row[2] ?? ''),
+            ];
+        }
+        if ($n >= 3) {
+            return [
+                trim((string) ($row[1] ?? '')),
+                (string) ($row[2] ?? ''),
+            ];
+        }
+
+        return [
+            trim((string) ($row[0] ?? '')),
+            (string) ($row[1] ?? ''),
+        ];
     }
 
     /**
