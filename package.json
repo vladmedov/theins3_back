@@ -4,7 +4,7 @@
     "scripts": {
         "dc": "./dev.sh",
         "logs": "tail -f storage/logs/laravel.log",
-        "artisan": "./dev.sh exec backend php artisan",
+        "artisan": "./scripts/run-artisan.sh",
         "scout:reindex": "./dev.sh exec backend php artisan scout:import \"App\\\\Models\\\\Post\"",
         "scout:indices": "./dev.sh exec elasticsearch curl -s \"http://localhost:9200/_cat/indices?v\"",
         "scout:aliases": "./dev.sh exec elasticsearch curl -s \"http://localhost:9200/_cat/aliases?v\"",

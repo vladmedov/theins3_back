@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Routing\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\Post;
-use App\Models\Category;
 use App\Http\Resources\PostResource;
+use App\Models\Category;
+use App\Models\Post;
+use App\Services\LemmatizerService;
 use Elastic\Elasticsearch\Client as ElasticsearchClient;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 
 class SearchController extends Controller
 {
     public function search(Request $request, $language_code)
     {
         $query = $request->input('query');
-        
+
         // Если нет поискового запроса, возвращаем пустой результат
         if (empty($query)) {
             return [
@@ -29,11 +29,11 @@ class SearchController extends Controller
         try {
             // Используем прямой запрос к Elasticsearch через клиент
             $client = app(ElasticsearchClient::class);
-            
+
             $perPage = 36;
             $page = $request->input('page', 1);
             $from = ($page - 1) * $perPage;
-            
+
             // Готовим фильтры
             $filters = [
                 ['term' => ['language_code' => $language_code]],
@@ -41,11 +41,11 @@ class SearchController extends Controller
             ];
 
             // Фильтр по категории
-            if ($request->has('category') && !empty($request->input('category'))) {
+            if ($request->has('category') && ! empty($request->input('category'))) {
                 $category = Category::where('slug', $request->input('category'))
                     ->where('language_code', $language_code)
                     ->first();
-                
+
                 if ($category) {
                     $filters[] = ['term' => ['category_id' => $category->id]];
                 }
@@ -54,15 +54,15 @@ class SearchController extends Controller
             // Фильтр по дате
             if ($request->has('from') || $request->has('to')) {
                 $dateRange = [];
-                if ($request->has('from') && !empty($request->input('from'))) {
+                if ($request->has('from') && ! empty($request->input('from'))) {
                     // Начало дня для from (00:00:00)
-                    $dateRange['gte'] = strtotime($request->input('from') . ' 00:00:00');
+                    $dateRange['gte'] = strtotime($request->input('from').' 00:00:00');
                 }
-                if ($request->has('to') && !empty($request->input('to'))) {
+                if ($request->has('to') && ! empty($request->input('to'))) {
                     // Конец дня для to (23:59:59)
-                    $dateRange['lte'] = strtotime($request->input('to') . ' 23:59:59');
+                    $dateRange['lte'] = strtotime($request->input('to').' 23:59:59');
                 }
-                if (!empty($dateRange)) {
+                if (! empty($dateRange)) {
                     $filters[] = ['range' => ['published_at' => $dateRange]];
                 }
             }
@@ -70,61 +70,102 @@ class SearchController extends Controller
             // Определяем тип сортировки
             $sort = $request->input('sort', 'relevant');
 
-            // Pick language-specific field analyzers (ru/en) defined in Elasticsearch mapping.
-            $languageCodeLower = mb_strtolower((string) $language_code);
-            $langSuffix = $languageCodeLower === 'ru' ? 'ru' : 'en';
-
-            $fields = [
-                "title.$langSuffix^10",
-                "lead.$langSuffix^3",
-                "content.$langSuffix",
-                "authors.$langSuffix^5",
-                "columnist.$langSuffix^5",
-                "tags.$langSuffix^5",
+            // Strict token search (no stemming) to avoid false positives like "Грузия" -> "Груз".
+            $strictFields = [
+                'title.exact^10',
+                'lead.exact^3',
+                'content.exact',
+                'authors.exact^5',
+                'columnist.exact^5',
+                'tags.exact^5',
+            ];
+            $lemmaFields = [
+                'title_lemma^8',
+                'lead_lemma^2.5',
+                'content_lemma^1.2',
+                'authors_lemma^4',
+                'columnist_lemma^4',
+                'tags_lemma^4',
             ];
 
-            // Partial-match fields are kept lower-weighted than the normal language analyzers.
-            $ngramFields = [
-                "title.{$langSuffix}_ngram^2",
-                "lead.{$langSuffix}_ngram^0.8",
-                "content.{$langSuffix}_ngram^0.4",
-                "authors.{$langSuffix}_ngram^1",
-                "columnist.{$langSuffix}_ngram^1",
-                "tags.{$langSuffix}_ngram^1",
+            $lemmatizedQuery = app(LemmatizerService::class)->lemmatizeText((string) $query, (string) $language_code);
+            $lemmaQuery = $lemmatizedQuery !== '' ? $lemmatizedQuery : (string) $query;
+
+            $ordinarySearchQuery = [
+                'multi_match' => [
+                    'query' => $query,
+                    'fields' => $strictFields,
+                    'type' => 'most_fields',
+                    'operator' => 'and',
+                    'boost' => 1,
+                ],
             ];
+
+            $lemmaSearchQuery = [
+                'multi_match' => [
+                    'query' => $lemmaQuery,
+                    'fields' => $lemmaFields,
+                    'type' => 'most_fields',
+                    'operator' => 'and',
+                    'boost' => 0.9,
+                ],
+            ];
+
+            $normalizedQuery = trim((string) $query);
+            $queryWords = preg_split('/\s+/u', $normalizedQuery) ?: [];
+            $contentInclusionMust = [];
+
+            foreach ($queryWords as $word) {
+                $word = mb_strtolower(trim((string) $word));
+                if ($word === '') {
+                    continue;
+                }
+                $contentInclusionMust[] = [
+                    'wildcard' => [
+                        'content.exact' => [
+                            'value' => '*'.$word.'*',
+                        ],
+                    ],
+                ];
+            }
+
+            $isRelevanceSort = $sort === 'relevant';
+
+            if ($isRelevanceSort) {
+                $shouldQueries = [
+                    $ordinarySearchQuery,
+                    $lemmaSearchQuery,
+                ];
+
+                if (! empty($contentInclusionMust)) {
+                    $shouldQueries[] = [
+                        'bool' => [
+                            'must' => $contentInclusionMust,
+                            'boost' => 5,
+                        ],
+                    ];
+                }
+
+                $searchMustClause = [
+                    'bool' => [
+                        'should' => $shouldQueries,
+                        'minimum_should_match' => 1,
+                    ],
+                ];
+            } else {
+                // For date/popularity sorts we need stable result sets across inflections,
+                // so use lemma-only matching as the inclusion criterion.
+                $searchMustClause = $lemmaSearchQuery;
+            }
 
             // Базовый query
             $baseQuery = [
                 'bool' => [
                     'must' => [
-                        [
-                            'bool' => [
-                                'should' => [
-                                    [
-                                        'multi_match' => [
-                                            'query' => $query,
-                                            'fields' => $fields,
-                                            'type' => 'most_fields',
-                                            'operator' => 'and',
-                                            'boost' => 5,
-                                        ],
-                                    ],
-                                    [
-                                        'multi_match' => [
-                                            'query' => $query,
-                                            'fields' => $ngramFields,
-                                            'type' => 'most_fields',
-                                            'operator' => 'or',
-                                            'boost' => 1,
-                                        ],
-                                    ],
-                                ],
-                                'minimum_should_match' => 1,
-                            ],
-                        ],
+                        $searchMustClause,
                     ],
-                    'filter' => $filters
-                ]
+                    'filter' => $filters,
+                ],
             ];
 
             // Базовое тело запроса
@@ -133,7 +174,7 @@ class SearchController extends Controller
                 'from' => $from,
                 'size' => $perPage,
             ];
-            
+
             // Добавляем сортировку
             if ($sort === 'new') {
                 $body['sort'] = [['published_at' => 'desc']];
@@ -145,7 +186,7 @@ class SearchController extends Controller
             // Добавляем подсветку
             $body['highlight'] = [
                 'fields' => [
-                    'title' => new \stdClass(), // Подсветка найденных слов в title
+                    'title' => new \stdClass, // Подсветка найденных слов в title
                 ],
                 'pre_tags' => ['<mark>'],
                 'post_tags' => ['</mark>'],
@@ -159,7 +200,7 @@ class SearchController extends Controller
 
             $hits = $response['hits']['hits'] ?? [];
             $total = $response['hits']['total']['value'] ?? 0;
-            $postIds = array_map(function($hit) {
+            $postIds = array_map(function ($hit) {
                 return $hit['_id'];
             }, $hits);
 
@@ -176,7 +217,7 @@ class SearchController extends Controller
             $posts = Post::with(['category', 'authors', 'columnist'])
                 ->whereIn('id', $postIds)
                 ->get()
-                ->sortBy(function($post) use ($postIds) {
+                ->sortBy(function ($post) use ($postIds) {
                     return array_search($post->id, $postIds);
                 });
 
@@ -188,7 +229,8 @@ class SearchController extends Controller
             ];
 
         } catch (\Exception $e) {
-            \Log::error('Search error: ' . $e->getMessage());
+            \Log::error('Search error: '.$e->getMessage());
+
             return [
                 'data' => [],
                 'total' => 0,
@@ -199,4 +241,3 @@ class SearchController extends Controller
         }
     }
 }
-

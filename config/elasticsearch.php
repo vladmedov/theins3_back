@@ -7,27 +7,9 @@ return [
     'indices' => [
         'settings' => [
             'default' => [
-                // Required when ngram min_gram/max_gram span more than the cluster default (usually 1).
-                'index' => [
-                    'max_ngram_diff' => 12,
-                ],
                 'analysis' => [
-                    'filter' => [
-                        'ti_ngram_filter' => [
-                            'type' => 'ngram',
-                            'min_gram' => 3,
-                            'max_gram' => 12,
-                        ],
-                    ],
                     'analyzer' => [
-                        'ti_ngram_index' => [
-                            'tokenizer' => 'standard',
-                            'filter' => [
-                                'lowercase',
-                                'ti_ngram_filter',
-                            ],
-                        ],
-                        'ti_ngram_search' => [
+                        'ti_exact_text' => [
                             'tokenizer' => 'standard',
                             'filter' => [
                                 'lowercase',
@@ -56,15 +38,10 @@ return [
                                 'analyzer' => 'english',
                                 'search_analyzer' => 'english',
                             ],
-                            'ru_ngram' => [
+                            'exact' => [
                                 'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
-                            ],
-                            'en_ngram' => [
-                                'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
+                                'analyzer' => 'ti_exact_text',
+                                'search_analyzer' => 'ti_exact_text',
                             ],
                         ],
                     ],
@@ -81,15 +58,10 @@ return [
                                 'analyzer' => 'english',
                                 'search_analyzer' => 'english',
                             ],
-                            'ru_ngram' => [
+                            'exact' => [
                                 'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
-                            ],
-                            'en_ngram' => [
-                                'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
+                                'analyzer' => 'ti_exact_text',
+                                'search_analyzer' => 'ti_exact_text',
                             ],
                         ],
                     ],
@@ -106,15 +78,10 @@ return [
                                 'analyzer' => 'english',
                                 'search_analyzer' => 'english',
                             ],
-                            'ru_ngram' => [
+                            'exact' => [
                                 'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
-                            ],
-                            'en_ngram' => [
-                                'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
+                                'analyzer' => 'ti_exact_text',
+                                'search_analyzer' => 'ti_exact_text',
                             ],
                         ],
                     ],
@@ -131,15 +98,10 @@ return [
                                 'analyzer' => 'english',
                                 'search_analyzer' => 'english',
                             ],
-                            'ru_ngram' => [
+                            'exact' => [
                                 'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
-                            ],
-                            'en_ngram' => [
-                                'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
+                                'analyzer' => 'ti_exact_text',
+                                'search_analyzer' => 'ti_exact_text',
                             ],
                         ],
                     ],
@@ -156,15 +118,10 @@ return [
                                 'analyzer' => 'english',
                                 'search_analyzer' => 'english',
                             ],
-                            'ru_ngram' => [
+                            'exact' => [
                                 'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
-                            ],
-                            'en_ngram' => [
-                                'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
+                                'analyzer' => 'ti_exact_text',
+                                'search_analyzer' => 'ti_exact_text',
                             ],
                         ],
                     ],
@@ -181,21 +138,45 @@ return [
                                 'analyzer' => 'english',
                                 'search_analyzer' => 'english',
                             ],
-                            'ru_ngram' => [
+                            'exact' => [
                                 'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
-                            ],
-                            'en_ngram' => [
-                                'type' => 'text',
-                                'analyzer' => 'ti_ngram_index',
-                                'search_analyzer' => 'ti_ngram_search',
+                                'analyzer' => 'ti_exact_text',
+                                'search_analyzer' => 'ti_exact_text',
                             ],
                         ],
+                    ],
+                    'title_lemma' => [
+                        'type' => 'text',
+                        'analyzer' => 'ti_exact_text',
+                        'search_analyzer' => 'ti_exact_text',
+                    ],
+                    'lead_lemma' => [
+                        'type' => 'text',
+                        'analyzer' => 'ti_exact_text',
+                        'search_analyzer' => 'ti_exact_text',
+                    ],
+                    'content_lemma' => [
+                        'type' => 'text',
+                        'analyzer' => 'ti_exact_text',
+                        'search_analyzer' => 'ti_exact_text',
+                    ],
+                    'authors_lemma' => [
+                        'type' => 'text',
+                        'analyzer' => 'ti_exact_text',
+                        'search_analyzer' => 'ti_exact_text',
+                    ],
+                    'columnist_lemma' => [
+                        'type' => 'text',
+                        'analyzer' => 'ti_exact_text',
+                        'search_analyzer' => 'ti_exact_text',
+                    ],
+                    'tags_lemma' => [
+                        'type' => 'text',
+                        'analyzer' => 'ti_exact_text',
+                        'search_analyzer' => 'ti_exact_text',
                     ],
                 ],
             ],
         ],
     ],
 ];
-

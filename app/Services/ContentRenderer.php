@@ -41,32 +41,60 @@ class ContentRenderer
 
     public static function renderToPlainText(Post $post): string
     {
-        $content = $post->content;
-
-        if (empty($content) || !is_array($content)) {
+        if (empty($post->content) || !is_array($post->content)) {
             return '';
         }
 
+        return self::extractPlainTextFromContentBlocks($post->content);
+    }
+
+    /**
+     * Shared plain-text extraction logic for flexible content blocks.
+     *
+     * @param array<int|string, array<string, mixed>> $content
+     */
+    public static function extractPlainTextFromContentBlocks(array $content): string
+    {
         $text = '';
 
         foreach ($content as $block) {
             $attrs = $block['attributes'] ?? [];
 
             if (isset($attrs['text'])) {
-                $text .= strip_tags($attrs['text']) . ' ';
+                $text .= self::plainTextFromBlockHtml((string) $attrs['text']) . ' ';
             }
             if (isset($attrs['quote'])) {
-                $text .= strip_tags($attrs['quote']) . ' ';
+                $text .= self::plainTextFromBlockHtml((string) $attrs['quote']) . ' ';
             }
             if (isset($attrs['title'])) {
-                $text .= strip_tags($attrs['title']) . ' ';
+                $text .= self::plainTextFromBlockHtml((string) $attrs['title']) . ' ';
             }
             if (isset($attrs['subtitle'])) {
-                $text .= strip_tags($attrs['subtitle']) . ' ';
+                $text .= self::plainTextFromBlockHtml((string) $attrs['subtitle']) . ' ';
+            }
+            if (isset($attrs['outline'])) {
+                $text .= trim((string) $attrs['outline']) . ' ';
             }
         }
 
         return trim($text);
+    }
+
+    /**
+     * Plain text from block HTML for search/feeds: inserts a space between adjacent tags so
+     * strip_tags() does not concatenate the last word of one element with the first of the next.
+     */
+    public static function plainTextFromBlockHtml(string $html): string
+    {
+        if (trim($html) === '') {
+            return '';
+        }
+
+        $html = preg_replace('/>\s*</u', '> <', $html) ?? $html;
+        $plain = strip_tags($html);
+        $plain = preg_replace('/\s+/u', ' ', trim($plain)) ?? trim($plain);
+
+        return $plain;
     }
 
     private static function renderText(array $attrs): string

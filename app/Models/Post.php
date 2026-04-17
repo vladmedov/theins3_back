@@ -16,9 +16,11 @@ use \App\Enums\PostTypes;
 use \App\Models\PostTypes\OnlineMessage;
 
 use App\Services\ChangeDetectorService;
+use App\Services\ContentRenderer;
 use App\Services\FrontendCacheTagService;
 use App\Services\FrontendRevalidationService;
 use App\Services\ImageService;
+use App\Services\LemmatizerService;
 use App\Services\SearchIndexManager;
 use App\Services\ShareImageService;
 
@@ -64,6 +66,8 @@ class Post extends Model { //implements HasMedia {
         'lead',
         'content',
         'image',
+        'image_width',
+        'image_height',
         'image_description',
         'title_feature',
         'is_super_news',
@@ -77,6 +81,8 @@ class Post extends Model { //implements HasMedia {
         'updated_at' => 'datetime:Y-m-d\TH:i:s.u\Z',
         'published_at' => 'datetime:Y-m-d\TH:i:s.u\Z',
         'views_count' => 'integer',
+        'image_width' => 'integer',
+        'image_height' => 'integer',
         'content' => CompactFlexibleCast::class,
         'author_visibility' => 'string',
         'auto_publish_pending' => 'boolean',
@@ -91,6 +97,13 @@ class Post extends Model { //implements HasMedia {
 
     public static function boot() {
         parent::boot();
+
+        static::saving(function (Post $post) {
+            if ($post->isDirty('image') && empty($post->image)) {
+                $post->image_width = null;
+                $post->image_height = null;
+            }
+        });
 
         static::saving(function (Post $post) {
             $publishClickAction = app()->bound('request')
@@ -459,6 +472,13 @@ class Post extends Model { //implements HasMedia {
 
         ImageService::createImageVariants($this->id, $imagePath, ImageService::TYPE_POST_COVER, $this->language_code);
         ShareImageService::generate($this);
+
+        $dims = ImageService::getImageDimensions($imagePath, $this->language_code);
+        if ($dims !== null) {
+            $this->image_width = $dims['width'];
+            $this->image_height = $dims['height'];
+            $this->saveQuietly();
+        }
     }
 
     public function getImageUrl($size = ImageService::SIZE_ORIGINAL, bool $includeDomain = false)
@@ -494,6 +514,18 @@ class Post extends Model { //implements HasMedia {
     {
         // Извлекаем текстовое содержимое из flexible content
         $contentText = $this->extractTextFromContent($this->content);
+        $lemmatizer = app(LemmatizerService::class);
+        $authors = $this->authorsForSearchIndex()->pluck('fullname')->values()->all();
+        $columnist = $this->columnistNameForSearchIndex();
+        $tags = $this->tags->pluck('title')->toArray();
+        $lemmaFields = $lemmatizer->lemmatizeManyTexts([
+            'title_lemma' => (string) $this->title,
+            'lead_lemma' => (string) ($this->lead ?? ''),
+            'content_lemma' => $contentText,
+            'authors_lemma' => implode(' ', $authors),
+            'columnist_lemma' => $columnist,
+            'tags_lemma' => implode(' ', $tags),
+        ], (string) $this->language_code);
 
         return [
             'id' => $this->id,
@@ -508,9 +540,15 @@ class Post extends Model { //implements HasMedia {
             'status' => $this->status,
             'published_at' => $this->published_at?->timestamp,
             'views_count' => $this->views_count ?? 0,
-            'authors' => $this->authorsForSearchIndex()->pluck('fullname')->values()->all(),
-            'columnist' => $this->columnistNameForSearchIndex(),
-            'tags' => $this->tags->pluck('title')->toArray(),
+            'authors' => $authors,
+            'columnist' => $columnist,
+            'tags' => $tags,
+            'title_lemma' => $lemmaFields['title_lemma'] ?? '',
+            'lead_lemma' => $lemmaFields['lead_lemma'] ?? '',
+            'content_lemma' => $lemmaFields['content_lemma'] ?? '',
+            'authors_lemma' => $lemmaFields['authors_lemma'] ?? '',
+            'columnist_lemma' => $lemmaFields['columnist_lemma'] ?? '',
+            'tags_lemma' => $lemmaFields['tags_lemma'] ?? '',
         ];
     }
 
@@ -535,42 +573,11 @@ class Post extends Model { //implements HasMedia {
      */
     private function extractTextFromContent($content): string
     {
-        if (empty($content)) {
+        if (empty($content) || !is_array($content)) {
             return '';
         }
 
-        $text = '';
-        
-        if (is_array($content)) {
-            foreach ($content as $block) {
-                if (isset($block['attributes'])) {
-                    $attrs = $block['attributes'];
-                    
-                    // Text блоки
-                    if (isset($attrs['text'])) {
-                        $text .= strip_tags($attrs['text']) . ' ';
-                    }
-                    
-                    // Quote блоки
-                    if (isset($attrs['quote'])) {
-                        $text .= strip_tags($attrs['quote']) . ' ';
-                    }
-                    
-                    // Title блоки
-                    if (isset($attrs['title'])) {
-                        $text .= strip_tags($attrs['title']) . ' ';
-                    }
-                    
-                    // Subtitle блоки
-                    if (isset($attrs['subtitle'])) {
-                        $text .= strip_tags($attrs['subtitle']) . ' ';
-                    }
-                }
-            }
-        }
-        
-        // Возвращаем весь контент без ограничений
-        return trim($text);
+        return ContentRenderer::extractPlainTextFromContentBlocks($content);
     }
 
     /**

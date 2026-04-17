@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
     unzip \
     curl \
+    python3 \
+    python3-pip \
+    python3-venv \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
     libpng-dev \
@@ -29,6 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pecl config-set preferred_state beta \
     && pecl install imagick redis \
     && docker-php-ext-enable imagick redis \
+    && python3 -m venv /opt/pymorphy-venv \
+    && /opt/pymorphy-venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/pymorphy-venv/bin/pip install --no-cache-dir pymorphy3 pymorphy3-dicts-ru \
     && rm -rf /var/lib/apt/lists/*
 
 # Загрузки и тяжёлые операции (как на бою)
@@ -51,6 +57,7 @@ RUN { \
     } > /usr/local/etc/php/conf.d/opcache.ini
 
 WORKDIR /var/www/html
+ENV PYMORPHY2_PYTHON_BIN=/opt/pymorphy-venv/bin/python
 
 # ——— Composer: ставим зависимости (в образ попадёт только vendor) ———
 FROM php-base AS vendor
