@@ -1,5 +1,6 @@
 <rss version="2.0"
      xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:dc="http://purl.org/dc/elements/1.1/"
      xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
     <title>THE INSIDER</title>
@@ -12,6 +13,7 @@
 @php
     $postUrl = App\Services\ContentRenderer::getPostUrl($post);
     $imageUrl = App\Services\ContentRenderer::getPostImageUrl($post);
+    $authorName = App\Services\ContentRenderer::getAuthorName($post);
 @endphp
     <item>
       <title><![CDATA[{{ $post->title }}]]></title>
@@ -20,6 +22,7 @@
       <pubDate>{{ $post->published_at->toRssString() }}</pubDate>
       <guid isPermaLink="true">{{ $postUrl }}</guid>
       <source url="{{ $siteUrl }}">The Insider</source>
+      <dc:creator><![CDATA[{{ $authorName }}]]></dc:creator>
       <category><![CDATA[{{ $post->category->title }}]]></category>
 @if($imageUrl)
       <enclosure url="{{ $imageUrl }}" type="image/jpeg" length="0"/>

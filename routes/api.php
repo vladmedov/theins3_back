@@ -42,5 +42,6 @@ Route::prefix('{language_code}')->where(['language_code' => 'en|ru'])->group(fun
         Route::get('/dzen', [FeedController::class, 'dzen']);
         Route::get('/google-news', [FeedController::class, 'googleNews']);
         Route::get('/facebook-instant', [FeedController::class, 'facebookInstant']);
+        Route::get('/export', [FeedController::class, 'export']);
     });
 });

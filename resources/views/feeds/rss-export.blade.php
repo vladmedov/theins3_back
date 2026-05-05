@@ -15,6 +15,14 @@
     </image>
     <lastBuildDate>{{ now()->toRssString() }}</lastBuildDate>
     <atom:link href="{{ $selfUrl }}" rel="self" type="application/rss+xml"/>
+    <atom:link href="{{ $pageUrl(1) }}" rel="first" type="application/rss+xml"/>
+@if($page > 1)
+    <atom:link href="{{ $pageUrl($page - 1) }}" rel="prev" type="application/rss+xml"/>
+@endif
+@if($page < $totalPages)
+    <atom:link href="{{ $pageUrl($page + 1) }}" rel="next" type="application/rss+xml"/>
+@endif
+    <atom:link href="{{ $pageUrl($totalPages) }}" rel="last" type="application/rss+xml"/>
 @foreach($posts as $post)
 @php
     $postUrl = App\Services\ContentRenderer::getPostUrl($post);

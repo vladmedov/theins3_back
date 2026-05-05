@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Post;
@@ -104,6 +105,41 @@ class FeedController extends Controller
         return $this->xmlResponse($content);
     }
 
+    public function export(Request $request, string $language_code = 'ru'): Response
+    {
+        $perPageDefault = (int) config('feed.export_per_page_default', 50);
+        $perPageMax     = (int) config('feed.export_per_page_max', 200);
+
+        $perPage = max(1, min($perPageMax, (int) $request->query('per_page', $perPageDefault)));
+        $page    = max(1, (int) $request->query('page', 1));
+
+        $cacheKey = "feed:export:{$language_code}:p{$page}:pp{$perPage}";
+        $ttl      = (int) config('feed.export_cache_ttl', 300);
+
+        $content = Cache::remember($cacheKey, $ttl, function () use ($language_code, $page, $perPage, $perPageDefault) {
+            [$posts, $totalPages, $page] = $this->getExportPosts($language_code, $page, $perPage);
+
+            $perPageInUrl = $perPage !== $perPageDefault ? $perPage : null;
+            $pageUrl = fn (int $p) =>
+                $this->getSiteUrl($language_code)
+                . $this->feedPath($language_code, '/export', $p, $perPageInUrl);
+
+            return view('feeds.rss-export', [
+                'posts'       => $posts,
+                'language'    => $language_code,
+                'siteUrl'     => $this->getSiteUrl($language_code),
+                'selfUrl'     => $pageUrl($page),
+                'description' => $this->getSiteDescription($language_code),
+                'page'        => $page,
+                'perPage'     => $perPage,
+                'totalPages'  => $totalPages,
+                'pageUrl'     => $pageUrl,
+            ])->render();
+        });
+
+        return $this->xmlResponse($content);
+    }
+
     private function getLatestPosts(string $languageCode, int $limit)
     {
         return Post::where('status', Post::STATUS_PUBLISHED)
@@ -112,6 +148,25 @@ class FeedController extends Controller
             ->orderBy('published_at', 'desc')
             ->limit($limit)
             ->get();
+    }
+
+    private function getExportPosts(string $languageCode, int $page, int $perPage): array
+    {
+        $base = Post::where('status', Post::STATUS_PUBLISHED)
+            ->where('language_code', $languageCode);
+
+        $total      = (clone $base)->count();
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page       = min($page, $totalPages);
+
+        $posts = $base
+            ->with(['category', 'authors', 'columnist'])
+            ->orderBy('published_at')
+            ->orderBy('id')
+            ->forPage($page, $perPage)
+            ->get();
+
+        return [$posts, $totalPages, $page];
     }
 
     private function xmlResponse(string $content): Response
@@ -139,13 +194,27 @@ class FeedController extends Controller
         };
     }
 
-    private function feedPath(string $lang, string $suffix): string
-    {
+    private function feedPath(
+        string $lang,
+        string $suffix,
+        ?int $page = null,
+        ?int $perPage = null
+    ): string {
         $defaultLang = substr((string) config('app.locale'), 0, 2);
         $lang = $lang ?: $defaultLang;
 
-        return $lang === $defaultLang
+        $path = $lang === $defaultLang
             ? '/feed' . $suffix
             : "/{$lang}/feed" . $suffix;
+
+        $query = [];
+        if ($page !== null && $page > 1) {
+            $query['page'] = $page;
+        }
+        if ($perPage !== null && $perPage > 0) {
+            $query['per_page'] = $perPage;
+        }
+
+        return $query ? $path . '?' . http_build_query($query) : $path;
     }
 }
