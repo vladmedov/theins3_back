@@ -10,7 +10,7 @@ namespace App\Services;
 class ContentInsertionCodeService
 {
     /** Block types that can be referenced by insertion code and hidden from their position when show_insertion_code is true */
-    private const INSERTION_TYPES = ['images', 'video', 'embed', 'quote', 'related'];
+    private const INSERTION_TYPES = ['images', 'video', 'embed', 'quote', 'related', 'accordion'];
 
     /**
      * @param array<string, array{type: string, attributes: array}> $content Key => block (type, attributes)
@@ -46,6 +46,11 @@ class ContentInsertionCodeService
 
         // Second pass: extract <h3 class="outline-heading">...</h3> from text blocks into outline blocks
         $result = $this->extractOutlineHeadings($result);
+
+        // Third pass: split accordion items' raw HTML `content` into a list of structured `blocks`
+        // (text fragments + referenced renderable blocks) — same insertion-code semantics as for
+        // top-level text blocks, but kept inside each item so the accordion structure is preserved.
+        $result = $this->expandAccordionItemsToBlocks($result, $content);
 
         return $result;
     }
@@ -209,6 +214,25 @@ class ContentInsertionCodeService
             return false;
         }
 
+        if ($type === 'accordion') {
+            $items = $attrs['items'] ?? [];
+            if (!is_array($items) || $items === []) {
+                return false;
+            }
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $title = (string) ($item['title'] ?? '');
+                $content = (string) ($item['content'] ?? '');
+                if (trim($title) !== '' || trim(strip_tags($content)) !== '') {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         return true;
     }
 
@@ -354,5 +378,115 @@ class ContentInsertionCodeService
             return true;
         }
         return false;
+    }
+
+    /**
+     * Walk over the expanded blocks; for every accordion block convert each item's raw HTML
+     * `content` field to a structured `blocks` list (text fragments + referenced blocks).
+     * Recurses into nested accordion references so a token-resolved accordion is also expanded.
+     *
+     * @param  array<int|string, array{type: string, attributes: array}>  $blocks
+     * @param  array<string, array{type: string, attributes: array}>      $sourceContent
+     * @return array<int|string, array{type: string, attributes: array}>
+     */
+    private function expandAccordionItemsToBlocks(array $blocks, array $sourceContent): array
+    {
+        foreach ($blocks as $key => $block) {
+            if (($block['type'] ?? '') !== 'accordion') {
+                continue;
+            }
+
+            $items = $block['attributes']['items'] ?? null;
+            if (! is_array($items)) {
+                continue;
+            }
+
+            foreach ($items as $i => $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                if (! isset($item['blocks']) || ! is_array($item['blocks'])) {
+                    $itemContent = (string) ($item['content'] ?? '');
+                    $itemBlocks = $this->splitItemContentIntoBlocks($itemContent, $sourceContent);
+                } else {
+                    $itemBlocks = $item['blocks'];
+                }
+
+                // Token-resolved blocks are inserted as-is; if any of them is itself an accordion,
+                // recurse so its items also get the structured `blocks` representation.
+                $itemBlocks = $this->expandAccordionItemsToBlocks($itemBlocks, $sourceContent);
+
+                $items[$i]['blocks'] = $itemBlocks;
+                unset($items[$i]['content']);
+            }
+
+            $blocks[$key]['attributes']['items'] = $items;
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * Split accordion item HTML by {{ type_idKEY }} tokens into an ordered list of blocks.
+     * Mirrors the paragraph-replacement semantics of {@see expandTextBlock()}: when a tag is
+     * the only content of its enclosing <p>...</p>, the whole paragraph is replaced by the
+     * referenced block (no empty <p></p> remains).
+     *
+     * @param  array<string, array{type: string, attributes: array}>  $sourceContent
+     * @return list<array{type: string, attributes: array}>
+     */
+    private function splitItemContentIntoBlocks(string $html, array $sourceContent): array
+    {
+        if ($html === '') {
+            return [];
+        }
+
+        $html = $this->normalizeHtmlForInsertionTags($html);
+        $pattern = '/\{\{[\s\S]*?\}\}/u';
+
+        if (! preg_match_all($pattern, $html, $matches, PREG_OFFSET_CAPTURE)) {
+            return $this->isBlankHtml($html)
+                ? []
+                : [['type' => 'text', 'attributes' => ['text' => $html]]];
+        }
+
+        $insertionTagMap = $this->buildInsertionTagMap($sourceContent);
+        $result = [];
+        $lastEnd = 0;
+
+        foreach ($matches[0] as $fullMatch) {
+            $fullTag = $fullMatch[0];
+            $tagStart = $fullMatch[1];
+            $tagEnd = $tagStart + strlen($fullTag);
+
+            [$segmentStart, $segmentEnd] = $this->findEnclosingParagraph($html, $tagStart, $tagEnd);
+
+            $before = substr($html, $lastEnd, $segmentStart - $lastEnd);
+            if (! $this->isBlankHtml($before)) {
+                $result[] = ['type' => 'text', 'attributes' => ['text' => $before]];
+            }
+
+            $resolved = $insertionTagMap[$this->normalizeInsertionTag($fullTag)] ?? null;
+            $refBlock = $resolved['block'] ?? null;
+
+            if ($refBlock !== null && $this->isRenderableInsertionBlock($refBlock)) {
+                $result[] = $refBlock;
+            } else {
+                $segmentHtml = substr($html, $segmentStart, $segmentEnd - $segmentStart);
+                if (! $this->isBlankHtml($segmentHtml)) {
+                    $result[] = ['type' => 'text', 'attributes' => ['text' => $segmentHtml]];
+                }
+            }
+
+            $lastEnd = $segmentEnd;
+        }
+
+        $after = substr($html, $lastEnd);
+        if (! $this->isBlankHtml($after)) {
+            $result[] = ['type' => 'text', 'attributes' => ['text' => $after]];
+        }
+
+        return $result;
     }
 }

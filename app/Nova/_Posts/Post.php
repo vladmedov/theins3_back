@@ -46,6 +46,7 @@ use Laravel\Nova\Nova;
 use Laravel\Nova\Panel;
 use Laravel\Nova\Resource as NovaResource;
 use Laravel\Nova\Tabs\Tab;
+use Medov\AccordionItems\AccordionItems;
 use Medov\DateTimeSplit\DateTimeSplit;
 use Medov\ImageGallery\ImageGallery;
 use Medov\InsertionCode\InsertionCode;
@@ -531,6 +532,22 @@ abstract class Post extends Resource
                         ->saveAsJSON()
                         ->reorderable()
                         ->asyncResource(PostRelated::class),
+                ])
+
+                ->addLayout(__('Accordion'), 'accordion', [
+                    InsertionCode::make(__('insertion_code.label'), 'show_insertion_code')
+                        ->forLayout('accordion')
+                        ->default(true),
+
+                    Text::make(__('Accordion title'), 'accordion_title')
+                        ->fullWidth()
+                        ->stacked()
+                        ->nullable(),
+
+                    AccordionItems::make(__('Accordion items'), 'items')
+                        ->fullWidth()
+                        ->stacked()
+                        ->rules('nullable'),
                 ]),
         ];
 

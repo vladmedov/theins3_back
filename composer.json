@@ -19,6 +19,7 @@
         "mailchimp/marketing": "^3.0",
         "matchish/laravel-scout-elasticsearch": "^8.0@alpha",
         "mateusjunges/laravel-trackable-jobs": "^2.1",
+        "medov/accordion-items": "@dev",
         "medov/custom-flexible-menu": "@dev",
         "medov/date-time-split": "@dev",
         "medov/image-gallery": "@dev",
@@ -115,10 +116,6 @@
             "type": "path",
             "url": "./nova-components/ImageGallery"
         },
-        "7": {
-            "type": "path",
-            "url": "./nova-components/InsertionCode"
-        },
         "4": {
             "type": "path",
             "url": "./nova-components/PostHistory"
@@ -133,6 +130,14 @@
             "options": {
                 "symlink": true
             }
+        },
+        "7": {
+            "type": "path",
+            "url": "./nova-components/InsertionCode"
+        },
+        "8": {
+            "type": "path",
+            "url": "./nova-components/AccordionItems"
         }
     }
 }

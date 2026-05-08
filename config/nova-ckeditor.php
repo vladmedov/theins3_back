@@ -217,6 +217,81 @@ return [
             ],
         ],
 
+        'toolbar-theins-medium' => [
+            'height' => 200,
+            'content-lang' => 'en',
+            'force-paste-as-plain-text' => false,
+            'strip-inline-styles-on-paste' => true,
+            'alert-before-unsaved-changes' => true,
+            'should-not-group-when-full' => false,
+
+            'browser' => [
+                'image' => false,
+                'video' => false,
+                'audio' => false,
+                'file'  => false
+            ],
+
+            'snippets' => [],
+
+            'items' => [
+                'undo',
+                'redo',
+                '|',
+                'removeFormat',
+                '|',
+                'heading',
+                '|',
+                'bold',
+                'italic',
+                'underline',
+                'strikethrough',
+                'subscript',
+                'superscript',
+                '|',
+                'link',
+                'blockQuote',
+                'bulletedList',
+                'numberedList',
+                'alignment',
+                '|',
+                'specialCharacters',
+                'replaceQuotesWithGuillemets',
+                'replaceHyphenWithDash',
+                '|',
+                'showBlocks',
+                'sourceEditing',
+            ],
+
+            'options' => [
+                'headings' => [
+                    [
+                        'model' => 'paragraph',
+                        'title' => 'Обычный текст',
+                        'class' => 'ck-heading_paragraph',
+                    ],
+                    [
+                        'model' => 'heading3',
+                        'view'  => 'h3',
+                        'title' => 'Заголовок 3',
+                        'class' => 'ck-heading_heading1',
+                    ],
+                    [
+                        'model' => 'heading4',
+                        'view'  => 'h4',
+                        'title' => 'Заголовок 4',
+                        'class' => 'ck-heading_heading2',
+                    ],
+                    [
+                        'model' => 'heading5',
+                        'view'  => 'h5',
+                        'title' => 'Заголовок 5',
+                        'class' => 'ck-heading_heading3',
+                    ],
+                ],
+            ],
+        ],
+
         'toolbar-theins-small' => [
             'height' => 200,
             'content-lang' => 'en',

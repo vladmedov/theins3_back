@@ -1,0 +1,36 @@
+{
+    "name": "medov/accordion-items",
+    "description": "A Laravel Nova field for accordion content blocks (title + CKEditor body).",
+    "keywords": [
+        "laravel",
+        "nova"
+    ],
+    "license": "MIT",
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^12.0"
+    },
+    "require-dev": {
+        "laravel/nova-devtool": "^1.5"
+    },
+    "repositories": [
+        { "type": "composer", "url": "https://nova.laravel.com" }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Medov\\AccordionItems\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Medov\\AccordionItems\\FieldServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

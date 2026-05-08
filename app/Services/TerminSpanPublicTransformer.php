@@ -18,14 +18,37 @@ final class TerminSpanPublicTransformer
     public function transformContentBlocks(array $blocks): array
     {
         foreach ($blocks as $key => $block) {
-            if (($block['type'] ?? '') !== 'text') {
+            $type = $block['type'] ?? '';
+
+            if ($type === 'text') {
+                $text = $block['attributes']['text'] ?? '';
+                if ($text === '' || ! str_contains($text, 'data-id')) {
+                    continue;
+                }
+                $blocks[$key]['attributes']['text'] = $this->transformTextHtml($text);
                 continue;
             }
-            $text = $block['attributes']['text'] ?? '';
-            if ($text === '' || ! str_contains($text, 'data-id')) {
+
+            if ($type === 'accordion') {
+                $items = $block['attributes']['items'] ?? null;
+                if (! is_array($items) || $items === []) {
+                    continue;
+                }
+                foreach ($items as $i => $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+                    $itemBlocks = $item['blocks'] ?? null;
+                    if (! is_array($itemBlocks) || $itemBlocks === []) {
+                        continue;
+                    }
+                    // Recursive: handles termin spans within nested text blocks (and any
+                    // future nested accordion structures by symmetry).
+                    $items[$i]['blocks'] = $this->transformContentBlocks($itemBlocks);
+                }
+                $blocks[$key]['attributes']['items'] = $items;
                 continue;
             }
-            $blocks[$key]['attributes']['text'] = $this->transformTextHtml($text);
         }
 
         return $blocks;

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "96dbb283337a277d08f33b81a05a83b0",
+    "content-hash": "afcb65642a53439b620d27e93af9f641",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3663,8 +3663,48 @@
             "time": "2025-08-29T13:39:45+00:00"
         },
         {
+            "name": "medov/accordion-items",
+            "version": "dev-feat/guideon",
+            "dist": {
+                "type": "path",
+                "url": "./nova-components/AccordionItems",
+                "reference": "b4e7fbf1059c83f2022040552d234575bef4f4f9"
+            },
+            "require": {
+                "illuminate/support": "^12.0",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "laravel/nova-devtool": "^1.5"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Medov\\AccordionItems\\FieldServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Medov\\AccordionItems\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A Laravel Nova field for accordion content blocks (title + CKEditor body).",
+            "keywords": [
+                "laravel",
+                "nova"
+            ],
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "medov/custom-flexible-menu",
-            "version": "dev-master",
+            "version": "dev-feat/guideon",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/CustomFlexibleMenu",
@@ -3705,7 +3745,7 @@
         },
         {
             "name": "medov/date-time-split",
-            "version": "dev-master",
+            "version": "dev-feat/guideon",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/DateTimeSplit",
@@ -3746,7 +3786,7 @@
         },
         {
             "name": "medov/image-gallery",
-            "version": "dev-master",
+            "version": "dev-feat/guideon",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/ImageGallery",
@@ -3787,7 +3827,7 @@
         },
         {
             "name": "medov/insertion-code",
-            "version": "dev-master",
+            "version": "dev-feat/guideon",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/InsertionCode",
@@ -3828,7 +3868,7 @@
         },
         {
             "name": "medov/news-calendar",
-            "version": "dev-master",
+            "version": "dev-feat/guideon",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/NewsCalendar",
@@ -3869,7 +3909,7 @@
         },
         {
             "name": "medov/post-history",
-            "version": "dev-master",
+            "version": "dev-feat/guideon",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/PostHistory",
@@ -3910,7 +3950,7 @@
         },
         {
             "name": "medov/top-users-card",
-            "version": "dev-master",
+            "version": "dev-feat/guideon",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/TopUsersCard",
@@ -12605,6 +12645,7 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "matchish/laravel-scout-elasticsearch": 15,
+        "medov/accordion-items": 20,
         "medov/custom-flexible-menu": 20,
         "medov/date-time-split": 20,
         "medov/image-gallery": 20,

@@ -84,41 +84,84 @@ class PostResource extends JsonResource
         $blocks = app(ContentInsertionCodeService::class)->expand($this->content);
 
         foreach ($blocks as $key => $block) {
-            if ($block['type'] === 'related') {
-                $ids = $block['attributes']['related_posts'];
-                $posts = PostResource::collection(Post::whereIn('id', $ids)->where('status', Post::STATUS_PUBLISHED)->get());
-                $block['attributes']['related_posts'] = $posts;
-                $blocks[$key] = $block;
-            }
+            $blocks[$key] = $this->transformPublicBlock($block);
+        }
 
-            if (in_array($block['type'], ['images', 'online']) && !empty($block['attributes']['images'])) {
-                $images = $block['attributes']['images'];
-                if (isset($images['link'])) {
-                    $images = [$images];
-                }
-                foreach ($images as $i => $image) {
-                    $imageId = $image['id'] ?? null;
-                    $link = $image['link'] ?? null;
-                    if ($link && $imageId) {
-                        $imageType = $block['type'] === 'online'
-                            ? ImageService::TYPE_ONLINE_IMAGE
-                            : ImageService::TYPE_CONTENT_IMAGE;
-                        $images[$i]['link'] = ImageService::getImageUrl(
-                            $imageId, $link, $imageType, ImageService::SIZE_ORIGINAL, false
-                        );
-                    }
-                    if (isset($image['width']) && is_numeric($image['width'])) {
-                        $images[$i]['width'] = (int) $image['width'];
-                    }
-                    if (isset($image['height']) && is_numeric($image['height'])) {
-                        $images[$i]['height'] = (int) $image['height'];
-                    }
-                }
-                $block['attributes']['images'] = $images;
-                $blocks[$key] = $block;
+        return app(TerminSpanPublicTransformer::class)->transformContentBlocks($blocks);
+    }
+
+    /**
+     * Public-shape transformations for a single block: image link → /storage/... URL,
+     * related posts → loaded resources. Recurses into accordion items' nested blocks
+     * so images / related referenced via insertion-code inside an accordion item also
+     * get the same treatment.
+     *
+     * @param  array<string, mixed>  $block
+     * @return array<string, mixed>
+     */
+    private function transformPublicBlock(array $block): array
+    {
+        $type = $block['type'] ?? '';
+
+        if ($type === 'related') {
+            $ids = $block['attributes']['related_posts'] ?? [];
+            if (is_array($ids) && $ids !== []) {
+                $posts = PostResource::collection(
+                    Post::whereIn('id', $ids)->where('status', Post::STATUS_PUBLISHED)->get()
+                );
+                $block['attributes']['related_posts'] = $posts;
             }
         }
-        return app(TerminSpanPublicTransformer::class)->transformContentBlocks($blocks);
+
+        if (in_array($type, ['images', 'online'], true) && !empty($block['attributes']['images'])) {
+            $images = $block['attributes']['images'];
+            if (isset($images['link'])) {
+                $images = [$images];
+            }
+            foreach ($images as $i => $image) {
+                $imageId = $image['id'] ?? null;
+                $link = $image['link'] ?? null;
+                if ($link && $imageId) {
+                    $imageType = $type === 'online'
+                        ? ImageService::TYPE_ONLINE_IMAGE
+                        : ImageService::TYPE_CONTENT_IMAGE;
+                    $images[$i]['link'] = ImageService::getImageUrl(
+                        $imageId, $link, $imageType, ImageService::SIZE_ORIGINAL, false
+                    );
+                }
+                if (isset($image['width']) && is_numeric($image['width'])) {
+                    $images[$i]['width'] = (int) $image['width'];
+                }
+                if (isset($image['height']) && is_numeric($image['height'])) {
+                    $images[$i]['height'] = (int) $image['height'];
+                }
+            }
+            $block['attributes']['images'] = $images;
+        }
+
+        if ($type === 'accordion' && !empty($block['attributes']['items'])) {
+            $items = $block['attributes']['items'];
+            if (is_array($items)) {
+                foreach ($items as $i => $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+                    $itemBlocks = $item['blocks'] ?? null;
+                    if (! is_array($itemBlocks)) {
+                        continue;
+                    }
+                    foreach ($itemBlocks as $j => $sub) {
+                        if (is_array($sub)) {
+                            $itemBlocks[$j] = $this->transformPublicBlock($sub);
+                        }
+                    }
+                    $items[$i]['blocks'] = $itemBlocks;
+                }
+                $block['attributes']['items'] = $items;
+            }
+        }
+
+        return $block;
     }
 
     private function shouldShowColumnist(): bool

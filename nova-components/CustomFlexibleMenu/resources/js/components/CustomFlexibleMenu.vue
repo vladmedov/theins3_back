@@ -28,7 +28,8 @@ import {
     CodeBracketIcon, 
     CalendarIcon,
     ListBulletIcon, // Иконка для "Оглавления"
-    LinkIcon
+    LinkIcon,
+    QueueListIcon // Иконка для "Аккордеона"
 } from '@heroicons/vue/24/outline'; // Nova использует Heroicons
 
 export default {
@@ -44,7 +45,8 @@ export default {
                 embed: CodeBracketIcon, // Встраиваемый код
                 online: CalendarIcon, // Онлайн-событие
                 outline: ListBulletIcon, // Оглавление
-                related: LinkIcon // Связанные публикации
+                related: LinkIcon, // Связанные публикации
+                accordion: QueueListIcon // Аккордеон
             },
         };
     },

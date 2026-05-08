@@ -97,6 +97,8 @@ class CompactFlexibleCast implements CastsAttributes
 
             if (in_array($layout, ['images', 'online'], true)) {
                 $attributes = static::normalizeImageDimensions($attributes);
+            } elseif ($layout === 'accordion') {
+                $attributes = static::normalizeAccordionItems($attributes);
             }
 
             // Do not persist computed/UI-only attributes (e.g. _insertion_code)
@@ -155,5 +157,48 @@ class CompactFlexibleCast implements CastsAttributes
         }
 
         return $image;
+    }
+
+    /**
+     * Normalize accordion `items` payload: coerce title/content to strings, drop fully empty items
+     * and re-index the array so it's a clean list.
+     */
+    private static function normalizeAccordionItems(array $attributes): array
+    {
+        $items = $attributes['items'] ?? null;
+
+        if ($items === null || $items === '') {
+            $attributes['items'] = [];
+
+            return $attributes;
+        }
+
+        if (!is_array($items)) {
+            $attributes['items'] = [];
+
+            return $attributes;
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $title = isset($item['title']) ? (string) $item['title'] : '';
+            $content = isset($item['content']) ? (string) $item['content'] : '';
+
+            if (trim($title) === '' && trim(strip_tags($content)) === '') {
+                continue;
+            }
+
+            $normalized[] = [
+                'title' => $title,
+                'content' => $content,
+            ];
+        }
+
+        $attributes['items'] = $normalized;
+
+        return $attributes;
     }
 }

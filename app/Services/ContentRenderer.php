@@ -32,6 +32,7 @@ class ContentRenderer
                 'embed' => self::renderEmbed($attrs),
                 'outline' => self::renderOutline($attrs),
                 'related' => self::renderRelated($attrs),
+                'accordion' => self::renderAccordion($attrs, $post),
                 default => '',
             };
         }
@@ -74,6 +75,22 @@ class ContentRenderer
             }
             if (isset($attrs['outline'])) {
                 $text .= trim((string) $attrs['outline']) . ' ';
+            }
+            if (isset($attrs['accordion_title'])) {
+                $text .= trim((string) $attrs['accordion_title']) . ' ';
+            }
+            if (isset($attrs['items']) && is_array($attrs['items'])) {
+                foreach ($attrs['items'] as $item) {
+                    if (!is_array($item)) {
+                        continue;
+                    }
+                    if (!empty($item['title'])) {
+                        $text .= trim((string) $item['title']) . ' ';
+                    }
+                    if (!empty($item['content'])) {
+                        $text .= self::plainTextFromBlockHtml((string) $item['content']) . ' ';
+                    }
+                }
             }
         }
 
@@ -294,6 +311,92 @@ class ContentRenderer
         $html .= '</ul></aside>';
 
         return $html;
+    }
+
+    /**
+     * Flatten accordion items into <h2>section title</h2> + <h3>item title</h3><div>body</div> for
+     * feeds (RSS/Google News/Yandex/Dzen/FB Instant) since these consumers don't render real
+     * expandable accordions.
+     *
+     * After {@see ContentInsertionCodeService::expand()} each item's body is a structured
+     * `blocks` list (text fragments + referenced renderable blocks); each sub-block is rendered
+     * via the same per-type renderers used at top level. For backwards safety raw `content` HTML
+     * is still accepted when an item bypassed the expansion.
+     *
+     * @param  array<string, mixed>  $attrs
+     */
+    private static function renderAccordion(array $attrs, Post $post): string
+    {
+        $items = $attrs['items'] ?? [];
+        if (!is_array($items) || $items === []) {
+            return '';
+        }
+
+        $accordionTitle = trim((string) ($attrs['accordion_title'] ?? ''));
+
+        $itemsHtml = '';
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $title = trim((string) ($item['title'] ?? ''));
+            $body = self::renderAccordionItemBody($item, $post);
+
+            if ($title === '' && trim(strip_tags($body)) === '') {
+                continue;
+            }
+
+            if ($title !== '') {
+                $itemsHtml .= '<h3>' . e($title) . '</h3>';
+            }
+            if ($body !== '') {
+                $itemsHtml .= '<div>' . $body . '</div>';
+            }
+        }
+
+        if ($itemsHtml === '') {
+            return '';
+        }
+
+        $html = '';
+        if ($accordionTitle !== '') {
+            $html .= '<h2>' . e($accordionTitle) . '</h2>';
+        }
+        $html .= $itemsHtml;
+
+        return $html;
+    }
+
+    /**
+     * Render one accordion item's body. Prefers the expanded `blocks` list (post-expand shape);
+     * falls back to raw `content` HTML for safety in code paths that bypass expansion.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private static function renderAccordionItemBody(array $item, Post $post): string
+    {
+        $blocks = $item['blocks'] ?? null;
+        if (is_array($blocks) && $blocks !== []) {
+            $html = '';
+            foreach ($blocks as $sub) {
+                if (! is_array($sub)) {
+                    continue;
+                }
+                $type = $sub['type'] ?? null;
+                $attrs = $sub['attributes'] ?? [];
+                $html .= match ($type) {
+                    'text' => self::renderText($attrs),
+                    'quote' => self::renderQuote($attrs),
+                    'images' => self::renderImages($attrs, $post),
+                    'video' => self::renderVideo($attrs),
+                    'embed' => self::renderEmbed($attrs),
+                    default => '',
+                };
+            }
+            return $html;
+        }
+
+        return (string) ($item['content'] ?? '');
     }
 
     public static function getAuthorName(Post $post): string
