@@ -16,6 +16,12 @@ class MailchimpNewsletterService
         return $ids;
     }
 
+    /** @return list<string> */
+    public function allowedListIdsForLocale(string $locale): array
+    {
+        return array_column($this->publicListsForLocale($locale), 'list_id');
+    }
+
     public function resolveMailchimpId(string $listId): ?string
     {
         foreach ($this->allLists() as $list) {

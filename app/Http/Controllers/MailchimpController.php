@@ -30,16 +30,22 @@ class MailchimpController extends Controller
         ]);
     }
 
-    public function subscribe(Request $request)
+    public function subscribe(Request $request, string $language_code)
     {
         $validated = $request->validate([
             'email' => 'required|email',
-            'list_id' => ['required', 'string', Rule::in($this->newsletterService->allowedListIds())],
+            'list_ids' => ['required', 'array', 'min:1'],
+            'list_ids.*' => [
+                'required',
+                'string',
+                'distinct',
+                Rule::in($this->newsletterService->allowedListIdsForLocale($language_code)),
+            ],
             'recaptcha_token' => 'required|string',
         ]);
 
         $email = $validated['email'];
-        $listId = $validated['list_id'];
+        $listIds = $validated['list_ids'];
 
         \Log::debug('Received reCAPTCHA token', [
             'token_length' => strlen($validated['recaptcha_token']),
@@ -49,7 +55,7 @@ class MailchimpController extends Controller
         if (!$this->verifyRecaptcha($validated['recaptcha_token'])) {
             \Log::warning('reCAPTCHA verification failed', [
                 'email' => $email,
-                'list_id' => $listId,
+                'list_ids' => $listIds,
                 'ip' => $request->ip(),
             ]);
             return response()->json([
@@ -58,39 +64,40 @@ class MailchimpController extends Controller
             ], 400);
         }
 
-        $mailchimpAudienceId = $this->newsletterService->resolveMailchimpId($listId);
+        $subscriberData = [
+            'email_address' => $email,
+            'status' => 'subscribed',
+        ];
 
-        if (!$mailchimpAudienceId) {
-            \Log::error('Mailchimp audience id not configured', ['list_id' => $listId]);
+        foreach ($listIds as $listId) {
+            $mailchimpAudienceId = $this->newsletterService->resolveMailchimpId($listId);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Newsletter list is not available',
-            ], 422);
-        }
+            if (!$mailchimpAudienceId) {
+                \Log::error('Mailchimp audience id not configured', ['list_id' => $listId]);
 
-        try {
-            $subscriberData = [
-                'email_address' => $email,
-                'status' => 'subscribed',
-            ];
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Newsletter list is not available',
+                ], 422);
+            }
 
-            $this->mailchimp->lists->addListMember($mailchimpAudienceId, $subscriberData);
-            \Log::info('Newsletter subscription successful', ['email' => $email, 'list_id' => $listId]);
-
-        } catch (\MailchimpMarketing\ApiException $e) {
-            $errorBody = json_decode($e->getMessage(), true);
-            \Log::warning('Newsletter subscription Mailchimp error', [
-                'email' => $email,
-                'list_id' => $listId,
-                'error' => $errorBody['detail'] ?? $e->getMessage(),
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Newsletter subscription unexpected error', [
-                'email' => $email,
-                'list_id' => $listId,
-                'error' => $e->getMessage(),
-            ]);
+            try {
+                $this->mailchimp->lists->addListMember($mailchimpAudienceId, $subscriberData);
+                \Log::info('Newsletter subscription successful', ['email' => $email, 'list_id' => $listId]);
+            } catch (\MailchimpMarketing\ApiException $e) {
+                $errorBody = json_decode($e->getMessage(), true);
+                \Log::warning('Newsletter subscription Mailchimp error', [
+                    'email' => $email,
+                    'list_id' => $listId,
+                    'error' => $errorBody['detail'] ?? $e->getMessage(),
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Newsletter subscription unexpected error', [
+                    'email' => $email,
+                    'list_id' => $listId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json(['success' => true]);
