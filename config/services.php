@@ -39,8 +39,25 @@ return [
         'api_key' => env('MAILCHIMP_API_KEY'),
         'server_prefix' => env('MAILCHIMP_SERVER_PREFIX'),
         'lists' => [
-            'ru' => env('MAILCHIMP_LIST_RU'),
-            'en' => env('MAILCHIMP_LIST_EN'),
+            'ru' => [
+                [
+                    'list_id' => 'digest.ru.daily',
+                    'name' => 'Ежедневный дайджест',
+                    'mailchimp_id' => env('MAILCHIMP_LIST_DIGEST_RU_DAILY', '2fdb95d056'),
+                ],
+                [
+                    'list_id' => 'digest.ru.weekly',
+                    'name' => 'Еженедельный дайджест',
+                    'mailchimp_id' => env('MAILCHIMP_LIST_DIGEST_RU_WEEKLY', '122bc4ada7'),
+                ],
+            ],
+            'en' => [
+                [
+                    'list_id' => 'digest.en.weekly',
+                    'name' => 'Weekly Digest',
+                    'mailchimp_id' => env('MAILCHIMP_LIST_DIGEST_EN_WEEKLY', '2afe810bd4'),
+                ],
+            ],
         ],
     ],
 

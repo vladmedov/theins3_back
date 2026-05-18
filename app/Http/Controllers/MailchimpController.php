@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\MailchimpNewsletterService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\Rule;
 use MailchimpMarketing\ApiClient;
 
 class MailchimpController extends Controller
 {
     private ApiClient $mailchimp;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly MailchimpNewsletterService $newsletterService,
+    ) {
         $this->mailchimp = new ApiClient();
         $this->mailchimp->setConfig([
             'apiKey' => config('services.mailchimp.api_key'),
@@ -20,16 +23,23 @@ class MailchimpController extends Controller
         ]);
     }
 
+    public function lists(string $language_code)
+    {
+        return response()->json([
+            'lists' => $this->newsletterService->publicListsForLocale($language_code),
+        ]);
+    }
+
     public function subscribe(Request $request)
     {
         $validated = $request->validate([
             'email' => 'required|email',
-            'language_code' => 'required|in:ru,en',
+            'list_id' => ['required', 'string', Rule::in($this->newsletterService->allowedListIds())],
             'recaptcha_token' => 'required|string',
         ]);
 
         $email = $validated['email'];
-        $languageCode = $validated['language_code'];
+        $listId = $validated['list_id'];
 
         \Log::debug('Received reCAPTCHA token', [
             'token_length' => strlen($validated['recaptcha_token']),
@@ -39,6 +49,7 @@ class MailchimpController extends Controller
         if (!$this->verifyRecaptcha($validated['recaptcha_token'])) {
             \Log::warning('reCAPTCHA verification failed', [
                 'email' => $email,
+                'list_id' => $listId,
                 'ip' => $request->ip(),
             ]);
             return response()->json([
@@ -46,12 +57,16 @@ class MailchimpController extends Controller
                 'message' => 'reCAPTCHA verification failed',
             ], 400);
         }
-        
-        $listId = config("services.mailchimp.lists.{$languageCode}");
 
-        if (!$listId) {
-            \Log::error('Mailchimp list not found', ['lang' => $languageCode]);
-            return response()->json(['success' => true]);
+        $mailchimpAudienceId = $this->newsletterService->resolveMailchimpId($listId);
+
+        if (!$mailchimpAudienceId) {
+            \Log::error('Mailchimp audience id not configured', ['list_id' => $listId]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Newsletter list is not available',
+            ], 422);
         }
 
         try {
@@ -60,18 +75,20 @@ class MailchimpController extends Controller
                 'status' => 'subscribed',
             ];
 
-            $this->mailchimp->lists->addListMember($listId, $subscriberData);
-            \Log::info('Newsletter subscription successful', ['email' => $email, 'lang' => $languageCode]);
+            $this->mailchimp->lists->addListMember($mailchimpAudienceId, $subscriberData);
+            \Log::info('Newsletter subscription successful', ['email' => $email, 'list_id' => $listId]);
 
         } catch (\MailchimpMarketing\ApiException $e) {
             $errorBody = json_decode($e->getMessage(), true);
             \Log::warning('Newsletter subscription Mailchimp error', [
                 'email' => $email,
+                'list_id' => $listId,
                 'error' => $errorBody['detail'] ?? $e->getMessage(),
             ]);
         } catch (\Exception $e) {
             \Log::error('Newsletter subscription unexpected error', [
                 'email' => $email,
+                'list_id' => $listId,
                 'error' => $e->getMessage(),
             ]);
         }
@@ -157,4 +174,3 @@ class MailchimpController extends Controller
         }
     }
 }
-
