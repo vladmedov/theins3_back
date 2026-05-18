@@ -34,6 +34,7 @@ Route::prefix('{language_code}')->where(['language_code' => 'en|ru'])->group(fun
     
     Route::post('/track-view', [TrackingPixelController::class, 'trackView']);
     
+    Route::get('/newsletter/lists', [MailchimpController::class, 'lists']);
     Route::post('/newsletter/subscribe', [MailchimpController::class, 'subscribe']);
 
     Route::prefix('feed')->group(function () {
