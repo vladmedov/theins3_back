@@ -6,6 +6,14 @@
     :full-width-content="fullWidthContent"
   >
     <template #field>
+      <textarea
+        :name="field.attribute + '__accordion_state'"
+        :value="accordionStateJson"
+        class="accordion-items-state-field"
+        aria-hidden="true"
+        tabindex="-1"
+      ></textarea>
+
       <div class="accordion-items-list">
         <div
           v-for="(item, index) in value"
@@ -54,9 +62,10 @@
             </div>
 
             <AccordionEditor
-              v-model="item.content"
+              :model-value="item.content"
               :toolbar-config="toolbarConfig"
               :ui-language="uiLanguage"
+              @update:model-value="onItemContentChange(index, $event)"
             />
           </div>
         </div>
@@ -115,6 +124,9 @@ export default {
     },
     dragHint() {
       return this.isRussian ? 'Перетащить' : 'Drag to reorder'
+    },
+    accordionStateJson() {
+      return JSON.stringify(this.serializableValue())
     },
   },
   created() {
@@ -176,16 +188,27 @@ export default {
       this.value.splice(index, 1)
     },
 
+    onItemContentChange(index, html) {
+      const item = this.value[index]
+      if (!item) return
+      item.content = typeof html === 'string' ? html : ''
+      if (this.scheduleAutosave) this.scheduleAutosave()
+    },
+
     runAutosave() {
       if (this.autosavePaused) return
       if (typeof this.emitFieldValueChange === 'function') {
         this.emitFieldValueChange(this.fieldAttribute, this.serializableValue())
       }
-      if (typeof document !== 'undefined') {
-        document.dispatchEvent(new CustomEvent('nova-autosave:change', {
-          detail: { attribute: this.field.attribute, source: 'accordion-items' },
-        }))
-      }
+      this.notifyAutosaveChange('accordion-items')
+    },
+
+    notifyAutosaveChange(source) {
+      if (typeof document === 'undefined') return
+
+      document.dispatchEvent(new CustomEvent('nova-autosave:change', {
+        detail: { attribute: this.field.attribute, source: source || 'accordion-items' },
+      }))
     },
 
     serializableValue() {
@@ -347,5 +370,17 @@ export default {
 
 .accordion-items-add-btn:hover {
   background: rgba(25, 118, 210, 0.08);
+}
+
+.accordion-items-state-field {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  margin: -1px;
 }
 </style>
