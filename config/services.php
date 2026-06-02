@@ -42,7 +42,7 @@ return [
             'ru' => [
                 [
                     'list_id' => 'digest.ru.daily',
-                    'name' => 'Ежедневный дайджест',
+                    'name' => 'Утренний бриф',
                     'mailchimp_id' => env('MAILCHIMP_LIST_DIGEST_RU_DAILY', '2fdb95d056'),
                 ],
                 [
