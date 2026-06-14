@@ -6,6 +6,7 @@ use App\Http\Resources\PostResource;
 use App\Models\Category;
 use App\Models\Post;
 use App\Services\LemmatizerService;
+use App\Services\SearchQueryParser;
 use Elastic\Elasticsearch\Client as ElasticsearchClient;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -15,9 +16,11 @@ class SearchController extends Controller
     public function search(Request $request, $language_code)
     {
         $query = $request->input('query');
+        $queryParser = app(SearchQueryParser::class);
+        $exactPhrase = $queryParser->resolveExactPhrase((string) $query, $request->boolean('strict'));
 
         // Если нет поискового запроса, возвращаем пустой результат
-        if (empty($query)) {
+        if (empty($query) || $exactPhrase === '') {
             return [
                 'data' => [],
                 'total' => 0,
@@ -70,103 +73,123 @@ class SearchController extends Controller
             // Определяем тип сортировки
             $sort = $request->input('sort', 'relevant');
 
-            // Strict token search (no stemming) to avoid false positives like "Грузия" -> "Груз".
-            $strictFields = [
-                'title.exact^10',
-                'lead.exact^3',
-                'content.exact',
-                'authors.exact^5',
-                'columnist.exact^5',
-                'tags.exact^5',
-            ];
-            $lemmaFields = [
-                'title_lemma^8',
-                'lead_lemma^2.5',
-                'content_lemma^1.2',
-                'authors_lemma^4',
-                'columnist_lemma^4',
-                'tags_lemma^4',
-            ];
+            if ($exactPhrase !== null) {
+                $searchMustClause = $queryParser->buildExactSubstringClause($exactPhrase, [
+                    'title.raw' => 10,
+                    'lead.raw' => 3,
+                    'content_substring' => 1,
+                    'authors.raw' => 5,
+                    'columnist.raw' => 5,
+                    'tags.raw' => 5,
+                ]);
+            } else {
+                // Strict token search (no stemming) to avoid false positives like "Грузия" -> "Груз".
+                $strictFields = [
+                    'title.exact^10',
+                    'lead.exact^3',
+                    'content.exact',
+                    'authors.exact^5',
+                    'columnist.exact^5',
+                    'tags.exact^5',
+                ];
+                $lemmaFields = [
+                    'title_lemma^8',
+                    'lead_lemma^2.5',
+                    'content_lemma^1.2',
+                    'authors_lemma^4',
+                    'columnist_lemma^4',
+                    'tags_lemma^4',
+                ];
 
-            $lemmatizedQuery = app(LemmatizerService::class)->lemmatizeText((string) $query, (string) $language_code);
-            $lemmaQuery = $lemmatizedQuery !== '' ? $lemmatizedQuery : (string) $query;
+                $lemmatizedQuery = app(LemmatizerService::class)->lemmatizeText((string) $query, (string) $language_code);
+                $lemmaQuery = $lemmatizedQuery !== '' ? $lemmatizedQuery : (string) $query;
 
-            $ordinarySearchQuery = [
-                'multi_match' => [
-                    'query' => $query,
-                    'fields' => $strictFields,
-                    'type' => 'most_fields',
-                    'operator' => 'and',
-                    'boost' => 1,
-                ],
-            ];
-
-            $lemmaSearchQuery = [
-                'multi_match' => [
-                    'query' => $lemmaQuery,
-                    'fields' => $lemmaFields,
-                    'type' => 'most_fields',
-                    'operator' => 'and',
-                    'boost' => 0.9,
-                ],
-            ];
-
-            $normalizedQuery = trim((string) $query);
-            $queryWords = preg_split('/\s+/u', $normalizedQuery) ?: [];
-            $contentInclusionMust = [];
-
-            foreach ($queryWords as $word) {
-                $word = mb_strtolower(trim((string) $word));
-                if ($word === '') {
-                    continue;
-                }
-                $contentInclusionMust[] = [
-                    'wildcard' => [
-                        'content.exact' => [
-                            'value' => '*'.$word.'*',
-                        ],
+                $ordinarySearchQuery = [
+                    'multi_match' => [
+                        'query' => $query,
+                        'fields' => $strictFields,
+                        'type' => 'most_fields',
+                        'operator' => 'and',
+                        'boost' => 1,
                     ],
                 ];
-            }
 
-            $isRelevanceSort = $sort === 'relevant';
-
-            if ($isRelevanceSort) {
-                $shouldQueries = [
-                    $ordinarySearchQuery,
-                    $lemmaSearchQuery,
+                $lemmaSearchQuery = [
+                    'multi_match' => [
+                        'query' => $lemmaQuery,
+                        'fields' => $lemmaFields,
+                        'type' => 'most_fields',
+                        'operator' => 'and',
+                        'boost' => 0.9,
+                    ],
                 ];
 
-                if (! empty($contentInclusionMust)) {
-                    $shouldQueries[] = [
-                        'bool' => [
-                            'must' => $contentInclusionMust,
-                            'boost' => 5,
+                $normalizedQuery = trim((string) $query);
+                $queryWords = preg_split('/\s+/u', $normalizedQuery) ?: [];
+                $contentInclusionMust = [];
+
+                foreach ($queryWords as $word) {
+                    $word = mb_strtolower(trim((string) $word));
+                    if ($word === '') {
+                        continue;
+                    }
+                    $contentInclusionMust[] = [
+                        'wildcard' => [
+                            'content.exact' => [
+                                'value' => '*'.$word.'*',
+                            ],
                         ],
                     ];
                 }
 
-                $searchMustClause = [
-                    'bool' => [
-                        'should' => $shouldQueries,
-                        'minimum_should_match' => 1,
-                    ],
-                ];
-            } else {
-                // For date/popularity sorts we need stable result sets across inflections,
-                // so use lemma-only matching as the inclusion criterion.
-                $searchMustClause = $lemmaSearchQuery;
+                $isRelevanceSort = $sort === 'relevant';
+
+                if ($isRelevanceSort) {
+                    $shouldQueries = [
+                        $ordinarySearchQuery,
+                        $lemmaSearchQuery,
+                    ];
+
+                    if (! empty($contentInclusionMust)) {
+                        $shouldQueries[] = [
+                            'bool' => [
+                                'must' => $contentInclusionMust,
+                                'boost' => 5,
+                            ],
+                        ];
+                    }
+
+                    $searchMustClause = [
+                        'bool' => [
+                            'should' => $shouldQueries,
+                            'minimum_should_match' => 1,
+                        ],
+                    ];
+                } else {
+                    // For date/popularity sorts we need stable result sets across inflections,
+                    // so use lemma-only matching as the inclusion criterion.
+                    $searchMustClause = $lemmaSearchQuery;
+                }
             }
 
             // Базовый query
-            $baseQuery = [
-                'bool' => [
-                    'must' => [
-                        $searchMustClause,
+            if ($exactPhrase !== null && $sort !== 'relevant') {
+                // Exact match with date/popularity sort does not need scoring.
+                $baseQuery = [
+                    'bool' => [
+                        'filter' => array_merge($filters, [$searchMustClause]),
                     ],
-                    'filter' => $filters,
-                ],
-            ];
+                ];
+            } else {
+                $baseQuery = [
+                    'bool' => [
+                        'must' => [
+                            $searchMustClause,
+                        ],
+                        'filter' => $filters,
+                    ],
+                ];
+            }
 
             // Базовое тело запроса
             $body = [
