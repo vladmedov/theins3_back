@@ -10,7 +10,7 @@ use App\Services\ContentRenderer;
 
 class FeedController extends Controller
 {
-    private const CACHE_TTL = 600; // 10 minutes
+    private const CACHE_TTL = 60; // 1 minute
     private const STANDARD_LIMIT = 50;
     private const YANDEX_NEWS_DAYS = 7;
 
