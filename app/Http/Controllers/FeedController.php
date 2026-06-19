@@ -13,11 +13,16 @@ class FeedController extends Controller
     private const CACHE_TTL = 60; // 1 minute
     private const STANDARD_LIMIT = 50;
     private const YANDEX_NEWS_DAYS = 7;
+    private const RSS_PUBLISH_DELAY_MINUTES = 5;
 
     public function rss(string $language_code = 'ru'): Response
     {
         $content = Cache::remember("feed:rss:{$language_code}", self::CACHE_TTL, function () use ($language_code) {
-            $posts = $this->getLatestPosts($language_code, self::STANDARD_LIMIT);
+            $posts = $this->getLatestPosts(
+                $language_code,
+                self::STANDARD_LIMIT,
+                self::RSS_PUBLISH_DELAY_MINUTES
+            );
 
             return view('feeds.rss', [
                 'posts' => $posts,
@@ -140,10 +145,16 @@ class FeedController extends Controller
         return $this->xmlResponse($content);
     }
 
-    private function getLatestPosts(string $languageCode, int $limit)
+    private function getLatestPosts(string $languageCode, int $limit, ?int $publishedBeforeMinutes = null)
     {
-        return Post::where('status', Post::STATUS_PUBLISHED)
-            ->where('language_code', $languageCode)
+        $query = Post::where('status', Post::STATUS_PUBLISHED)
+            ->where('language_code', $languageCode);
+
+        if ($publishedBeforeMinutes !== null) {
+            $query->where('published_at', '<=', now()->subMinutes($publishedBeforeMinutes));
+        }
+
+        return $query
             ->with(['category', 'authors', 'columnist'])
             ->orderBy('published_at', 'desc')
             ->limit($limit)
