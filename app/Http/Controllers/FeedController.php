@@ -13,16 +13,12 @@ class FeedController extends Controller
     private const CACHE_TTL = 60; // 1 minute
     private const STANDARD_LIMIT = 50;
     private const YANDEX_NEWS_DAYS = 7;
-    private const RSS_PUBLISH_DELAY_MINUTES = 5;
+    private const PUBLISH_DELAY_MINUTES = 1;
 
     public function rss(string $language_code = 'ru'): Response
     {
         $content = Cache::remember("feed:rss:{$language_code}", self::CACHE_TTL, function () use ($language_code) {
-            $posts = $this->getLatestPosts(
-                $language_code,
-                self::STANDARD_LIMIT,
-                self::RSS_PUBLISH_DELAY_MINUTES
-            );
+            $posts = $this->getLatestPosts($language_code, self::STANDARD_LIMIT);
 
             return view('feeds.rss', [
                 'posts' => $posts,
@@ -39,8 +35,7 @@ class FeedController extends Controller
     public function yandexNews(string $language_code = 'ru'): Response
     {
         $content = Cache::remember("feed:yandex-news:{$language_code}", self::CACHE_TTL, function () use ($language_code) {
-            $posts = Post::where('status', Post::STATUS_PUBLISHED)
-                ->where('language_code', $language_code)
+            $posts = $this->publishedPostsQuery($language_code)
                 ->where('published_at', '>=', now()->subDays(self::YANDEX_NEWS_DAYS))
                 ->with(['category', 'authors', 'columnist'])
                 ->orderBy('published_at', 'desc')
@@ -145,16 +140,16 @@ class FeedController extends Controller
         return $this->xmlResponse($content);
     }
 
-    private function getLatestPosts(string $languageCode, int $limit, ?int $publishedBeforeMinutes = null)
+    private function publishedPostsQuery(string $languageCode)
     {
-        $query = Post::where('status', Post::STATUS_PUBLISHED)
-            ->where('language_code', $languageCode);
+        return Post::where('status', Post::STATUS_PUBLISHED)
+            ->where('language_code', $languageCode)
+            ->where('published_at', '<=', now()->subMinutes(self::PUBLISH_DELAY_MINUTES));
+    }
 
-        if ($publishedBeforeMinutes !== null) {
-            $query->where('published_at', '<=', now()->subMinutes($publishedBeforeMinutes));
-        }
-
-        return $query
+    private function getLatestPosts(string $languageCode, int $limit)
+    {
+        return $this->publishedPostsQuery($languageCode)
             ->with(['category', 'authors', 'columnist'])
             ->orderBy('published_at', 'desc')
             ->limit($limit)
@@ -163,8 +158,7 @@ class FeedController extends Controller
 
     private function getExportPosts(string $languageCode, int $page, int $perPage): array
     {
-        $base = Post::where('status', Post::STATUS_PUBLISHED)
-            ->where('language_code', $languageCode);
+        $base = $this->publishedPostsQuery($languageCode);
 
         $total      = (clone $base)->count();
         $totalPages = max(1, (int) ceil($total / $perPage));
