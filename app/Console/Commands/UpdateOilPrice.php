@@ -36,31 +36,16 @@ class UpdateOilPrice extends Command
             if (!$responseToday->successful()) {
                 throw new \Exception('Не удалось получить текущую цену нефти');
             }
-            
-            $responseYesterday = Http::timeout(10)
-                ->withHeaders([
-                    'Authorization' => "Token {$apiToken}",
-                    'Content-Type' => 'application/json',
-                ])
-                ->get('https://api.oilpriceapi.com/v1/prices/past_day?by_code=BRENT_CRUDE_USD');
-            
-            if (!$responseYesterday->successful()) {
-                throw new \Exception('Не удалось получить вчерашнюю цену нефти');
+
+            $priceToday = $responseToday->json('data.price');
+
+            if (!$priceToday) {
+                throw new \Exception('Не удалось извлечь цену из ответа API');
             }
-            
-            $todayData = $responseToday->json();
-            $yesterdayData = $responseYesterday->json();
-            
-            $priceToday = $todayData['data']['price'] ?? null;
-            
-            $yesterdayPrices = $yesterdayData['data']['prices'] ?? [];
-            $priceYesterday = !empty($yesterdayPrices) ? end($yesterdayPrices)['price'] : null;
-            
-            if (!$priceToday || !$priceYesterday) {
-                throw new \Exception('Не удалось извлечь цены из ответа API');
-            }
-            
-            $dynamics = $priceToday > $priceYesterday;
+
+            $previousRate = ExchangeRate::where('currency', 'OIL')->first();
+            $previousPrice = $previousRate ? (float) $previousRate->value : null;
+            $dynamics = $previousPrice === null ? true : $priceToday > $previousPrice;
             
             ExchangeRate::updateRate('OIL', $priceToday, $dynamics);
             
