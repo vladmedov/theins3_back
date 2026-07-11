@@ -29,7 +29,8 @@ import {
     CalendarIcon,
     ListBulletIcon, // Иконка для "Оглавления"
     LinkIcon,
-    QueueListIcon // Иконка для "Аккордеона"
+    QueueListIcon, 
+    MapIcon,
 } from '@heroicons/vue/24/outline'; // Nova использует Heroicons
 
 export default {
@@ -46,7 +47,8 @@ export default {
                 online: CalendarIcon, // Онлайн-событие
                 outline: ListBulletIcon, // Оглавление
                 related: LinkIcon, // Связанные публикации
-                accordion: QueueListIcon // Аккордеон
+                accordion: QueueListIcon, // Аккордеон
+                regions_map: MapIcon, // Карта регионов
             },
         };
     },

@@ -33,6 +33,7 @@ class ContentRenderer
                 'outline' => self::renderOutline($attrs),
                 'related' => self::renderRelated($attrs),
                 'accordion' => self::renderAccordion($attrs, $post),
+                'regions_map' => self::renderRegionsMap($attrs),
                 default => '',
             };
         }
@@ -91,6 +92,10 @@ class ContentRenderer
                         $text .= self::plainTextFromBlockHtml((string) $item['content']) . ' ';
                     }
                 }
+            }
+
+            if (($block['type'] ?? '') === 'regions_map') {
+                $text .= self::plainTextFromRegionsMapAttributes($attrs) . ' ';
             }
         }
 
@@ -390,6 +395,7 @@ class ContentRenderer
                     'images' => self::renderImages($attrs, $post),
                     'video' => self::renderVideo($attrs),
                     'embed' => self::renderEmbed($attrs),
+                    'regions_map' => self::renderRegionsMap($attrs),
                     default => '',
                 };
             }
@@ -397,6 +403,76 @@ class ContentRenderer
         }
 
         return (string) ($item['content'] ?? '');
+    }
+
+    /**
+     * @param array<string, mixed> $attrs
+     */
+    private static function renderRegionsMap(array $attrs): string
+    {
+        $parts = [];
+
+        $title = trim((string) ($attrs['title'] ?? ''));
+        if ($title !== '') {
+            $parts[] = '<h2>' . e($title) . '</h2>';
+        }
+
+        $comment = $attrs['comment'] ?? null;
+        if (is_string($comment) && trim($comment) !== '') {
+            $parts[] = '<p>' . e(trim($comment)) . '</p>';
+        } elseif (is_array($comment)) {
+            foreach ($comment as $line) {
+                if (is_string($line) && trim($line) !== '') {
+                    $parts[] = '<p>' . e(trim($line)) . '</p>';
+                }
+            }
+        }
+
+        $parts[] = '<p><em>' . e(__('Regions map')) . '</em></p>';
+
+        return implode('', $parts);
+    }
+
+    /**
+     * @param array<string, mixed> $attrs
+     */
+    private static function plainTextFromRegionsMapAttributes(array $attrs): string
+    {
+        $parts = [];
+
+        $comment = $attrs['comment'] ?? null;
+        if (is_string($comment) && trim($comment) !== '') {
+            $parts[] = trim($comment);
+        } elseif (is_array($comment)) {
+            foreach ($comment as $line) {
+                if (is_string($line) && trim($line) !== '') {
+                    $parts[] = trim($line);
+                }
+            }
+        }
+
+        $colorLabels = $attrs['color_labels'] ?? null;
+        if (is_array($colorLabels)) {
+            foreach ($colorLabels as $label) {
+                if (is_string($label) && trim($label) !== '') {
+                    $parts[] = trim($label);
+                }
+            }
+        }
+
+        $regions = $attrs['regions'] ?? null;
+        if (is_array($regions)) {
+            foreach ($regions as $region) {
+                if (!is_array($region)) {
+                    continue;
+                }
+                if (!empty($region['comment']) && is_string($region['comment'])) {
+                    $parts[] = trim($region['comment']);
+                }
+            }
+        }
+
+        return trim(implode(' ', $parts));
     }
 
     public static function getAuthorName(Post $post): string

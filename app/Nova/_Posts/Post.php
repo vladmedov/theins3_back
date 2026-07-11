@@ -51,6 +51,7 @@ use Medov\DateTimeSplit\DateTimeSplit;
 use Medov\ImageGallery\ImageGallery;
 use Medov\InsertionCode\InsertionCode;
 use Medov\PostHistory\PostHistory;
+use Medov\RegionsMapEditor\RegionsMapEditor;
 use Mostafaznv\NovaCkEditor\CkEditor;
 use Outl1ne\MultiselectField\Multiselect as EntityMultiselect;
 use Whitecube\NovaFlexibleContent\Flexible;
@@ -548,6 +549,16 @@ abstract class Post extends Resource
                         ->fullWidth()
                         ->stacked()
                         ->rules('nullable'),
+                ])
+
+                ->addLayout(__('Map'), 'regions_map', [
+                    InsertionCode::make(__('insertion_code.label'), 'show_insertion_code')
+                        ->forLayout('regions_map')
+                        ->default(true),
+
+                    RegionsMapEditor::make('', 'regions_map_editor')
+                        ->fullWidth()
+                        ->stacked(),
                 ]),
         ];
 
