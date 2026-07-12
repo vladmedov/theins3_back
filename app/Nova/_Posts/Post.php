@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 // use Spatie\MediaLibrary\MediaCollections\Models\Media;
 // use Ebess\AdvancedNovaMediaLibrary\Fields\Files;
 // use Ebess\AdvancedNovaMediaLibrary\Fields\Images;
@@ -380,17 +381,47 @@ abstract class Post extends Resource
                     'minHeight' => 600,
                 ])
                 ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=900,min_height=600')
-                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 900x600 px.'))
+                ->help(
+                    __('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 900x600 px.')
+                    .(($this->resource instanceof \App\Models\Post && $this->resource->requiresCoverImage())
+                        ? ' '.__('posts.image_replace_only_when_required')
+                        : '')
+                )
+                ->deletable(!($this->resource instanceof \App\Models\Post && $this->resource->requiresCoverImage()))
+                ->delete(function ($request, $model, $disk, $path) {
+                    if ($model instanceof \App\Models\Post && $model->requiresCoverImage()) {
+                        throw ValidationException::withMessages([
+                            'image' => __('posts.image_cannot_be_deleted_when_required'),
+                        ]);
+                    }
+
+                    if ($path) {
+                        Storage::disk($disk)->delete($path);
+                    }
+
+                    return [
+                        'image' => null,
+                    ];
+                })
                 ->dependsOn(
-                    ['ignore_image_dimension_requirements'],
+                    ['ignore_image_dimension_requirements', 'status'],
                     function (ImageCropper $field, NovaRequest $request, FormData $formData) {
+                        $imageRequired = ($formData->status ?? null) === \App\Models\Post::STATUS_PUBLISHED;
+                        $field->deletable(! $imageRequired);
+
                         if ($formData->boolean('ignore_image_dimension_requirements')) {
-                            $field->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480')
-                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.'));
+                            $field->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480');
+                            $help = __('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.');
                         } else {
-                            $field->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=900,min_height=600')
-                                ->help(__('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 900x600 px.'));
+                            $field->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=900,min_height=600');
+                            $help = __('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 900x600 px.');
                         }
+
+                        if ($imageRequired) {
+                            $help .= ' '.__('posts.image_replace_only_when_required');
+                        }
+
+                        $field->help($help);
                     }
                 )
                 ->nullable()

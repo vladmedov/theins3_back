@@ -117,7 +117,7 @@ class Post extends Model { //implements HasMedia {
                 $post->status = self::STATUS_DRAFT;
             }
 
-            if ($post->status === self::STATUS_PUBLISHED && empty($post->image)) {
+            if ($post->requiresCoverImage() && empty($post->image)) {
                 throw ValidationException::withMessages([
                     'image' => __('posts.image_required_for_published'),
                 ]);
@@ -558,6 +558,14 @@ class Post extends Model { //implements HasMedia {
     public function searchableAs(): string
     {
         return 'posts';
+    }
+
+    /**
+     * Cover image is mandatory while the post stays published.
+     */
+    public function requiresCoverImage(): bool
+    {
+        return $this->status === self::STATUS_PUBLISHED;
     }
 
     /**

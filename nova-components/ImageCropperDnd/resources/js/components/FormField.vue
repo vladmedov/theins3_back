@@ -20,7 +20,7 @@
         </div>
 
         <button
-          v-if="!imgSrc && hasExistingImage"
+          v-if="!imgSrc && hasExistingImage && isDeletable"
           type="button"
           class="image-viewer-delete-btn"
           @click="openExistingImageDeleteModal"
@@ -357,6 +357,9 @@ export default {
     },
 
     openExistingImageDeleteModal() {
+      if (!this.isDeletable) {
+        return;
+      }
       this.$refs.existingImageViewer?.confirmRemoval?.();
     },
 
@@ -637,6 +640,10 @@ export default {
     hasExistingImage() {
       if (this.existingImageDeleted) return false;
       return Boolean(this.field?.previewUrl || this.field?.value);
+    },
+
+    isDeletable() {
+      return this.field?.deletable !== false;
     },
 
     cropDimensionsValid() {
