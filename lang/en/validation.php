@@ -193,4 +193,45 @@ return [
 
     'attributes' => [],
 
+    'regions_map' => [
+        'editor' => [
+            'invalid' => 'The map block data must be a valid object.',
+        ],
+        'schema' => [
+            'string' => 'The map schema must be a string.',
+            'invalid' => 'Unknown map schema «:schema».',
+            'locked' => 'The map schema cannot be changed after the block has been created.',
+        ],
+        'title' => [
+            'string' => 'The map block title must be a string.',
+            'max' => 'The map block title must not exceed :max characters.',
+        ],
+        'comment' => [
+            'invalid' => 'The map block comment must be a string or an array of strings.',
+            'max' => 'The map block comment must not exceed :max characters.',
+            'too_many_lines' => 'The map block comment must not have more than :max lines.',
+            'line_string' => 'Comment line :line must be a string.',
+            'line_max' => 'Comment line :line must not exceed :max characters.',
+        ],
+        'color_labels' => [
+            'required' => 'Color labels are required for the map block.',
+            'missing_key' => 'Color label for ":color" is required.',
+            'invalid_key' => 'Unknown color label key ":key".',
+            'string' => 'Color label for ":color" must be a string.',
+            'max' => 'Color label for ":color" must not exceed :max characters.',
+        ],
+        'regions' => [
+            'required' => 'Regions are required for the map block.',
+            'count' => 'The map block must contain exactly :expected regions (found :actual).',
+            'item_array' => 'Each region entry must be an object.',
+            'id_required' => 'Each region must have an id.',
+            'invalid_id' => 'Unknown region id ":id".',
+            'duplicate_id' => 'Duplicate region id ":id".',
+            'missing_id' => 'Missing region id ":id".',
+            'invalid_color' => 'Invalid color ":color" for region ":id".',
+            'comment_string' => 'Region comment for ":id" must be a string.',
+            'comment_max' => 'Region comment for ":id" must not exceed :max characters.',
+        ],
+    ],
+
 ];

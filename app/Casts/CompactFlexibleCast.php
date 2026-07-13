@@ -2,6 +2,7 @@
 
 namespace App\Casts;
 
+use App\Services\RegionsMap\RegionsMapBlockValidator;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Laravel\Nova\NovaServiceProvider;
 
@@ -60,6 +61,10 @@ class CompactFlexibleCast implements CastsAttributes
             // Computed insertion code for Nova (not stored)
             $attributes['_insertion_code'] = '{{ ' . $layout . '_id' . $key . ' }}';
 
+            if ($layout === 'regions_map') {
+                $attributes = app(RegionsMapBlockValidator::class)->packEditorAttributes($attributes);
+            }
+
             $expanded[] = [
                 'layout' => $layout,
                 'key' => $key,
@@ -99,6 +104,8 @@ class CompactFlexibleCast implements CastsAttributes
                 $attributes = static::normalizeImageDimensions($attributes);
             } elseif ($layout === 'accordion') {
                 $attributes = static::normalizeAccordionItems($attributes);
+            } elseif ($layout === 'regions_map') {
+                $attributes = static::normalizeRegionsMapAttributes($attributes);
             }
 
             // Do not persist computed/UI-only attributes (e.g. _insertion_code)
@@ -200,5 +207,23 @@ class CompactFlexibleCast implements CastsAttributes
         $attributes['items'] = $normalized;
 
         return $attributes;
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     * @return array<string, mixed>
+     */
+    private static function normalizeRegionsMapAttributes(array $attributes): array
+    {
+        $showInsertionCode = $attributes['show_insertion_code'] ?? null;
+        $validator = app(RegionsMapBlockValidator::class);
+        $attributes = $validator->unpackEditorAttributes($attributes);
+        $normalized = $validator->normalize($attributes);
+
+        if ($showInsertionCode !== null) {
+            $normalized['show_insertion_code'] = $showInsertionCode;
+        }
+
+        return $normalized;
     }
 }

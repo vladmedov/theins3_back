@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "afcb65642a53439b620d27e93af9f641",
+    "content-hash": "6d7a2b0313e0a8c3c1bcd9931ced326a",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -3664,7 +3664,7 @@
         },
         {
             "name": "medov/accordion-items",
-            "version": "dev-feat/guideon",
+            "version": "dev-feat/map",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/AccordionItems",
@@ -3704,7 +3704,7 @@
         },
         {
             "name": "medov/custom-flexible-menu",
-            "version": "dev-feat/guideon",
+            "version": "dev-feat/map",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/CustomFlexibleMenu",
@@ -3745,7 +3745,7 @@
         },
         {
             "name": "medov/date-time-split",
-            "version": "dev-feat/guideon",
+            "version": "dev-feat/map",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/DateTimeSplit",
@@ -3786,7 +3786,7 @@
         },
         {
             "name": "medov/image-gallery",
-            "version": "dev-feat/guideon",
+            "version": "dev-feat/map",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/ImageGallery",
@@ -3827,7 +3827,7 @@
         },
         {
             "name": "medov/insertion-code",
-            "version": "dev-feat/guideon",
+            "version": "dev-feat/map",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/InsertionCode",
@@ -3868,7 +3868,7 @@
         },
         {
             "name": "medov/news-calendar",
-            "version": "dev-feat/guideon",
+            "version": "dev-feat/map",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/NewsCalendar",
@@ -3909,7 +3909,7 @@
         },
         {
             "name": "medov/post-history",
-            "version": "dev-feat/guideon",
+            "version": "dev-feat/map",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/PostHistory",
@@ -3949,8 +3949,45 @@
             }
         },
         {
+            "name": "medov/regions-map-editor",
+            "version": "dev-feat/map",
+            "dist": {
+                "type": "path",
+                "url": "./nova-components/RegionsMapEditor",
+                "reference": "1bf18f059a77ae6f499f90acbe9a0bcc56793eb6"
+            },
+            "require": {
+                "illuminate/support": "^12.0",
+                "php": "^8.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Medov\\RegionsMapEditor\\FieldServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Medov\\RegionsMapEditor\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A Laravel Nova field for regions_map content blocks.",
+            "keywords": [
+                "laravel",
+                "nova"
+            ],
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "medov/top-users-card",
-            "version": "dev-feat/guideon",
+            "version": "dev-feat/map",
             "dist": {
                 "type": "path",
                 "url": "./nova-components/TopUsersCard",
@@ -12652,6 +12689,7 @@
         "medov/insertion-code": 20,
         "medov/news-calendar": 20,
         "medov/post-history": 20,
+        "medov/regions-map-editor": 20,
         "medov/top-users-card": 20
     },
     "prefer-stable": true,

@@ -21,6 +21,7 @@ use App\Services\FrontendCacheTagService;
 use App\Services\FrontendRevalidationService;
 use App\Services\ImageService;
 use App\Services\LemmatizerService;
+use App\Services\RegionsMap\RegionsMapBlockValidator;
 use App\Services\SearchIndexManager;
 use App\Services\ShareImageService;
 
@@ -130,6 +131,63 @@ class Post extends Model { //implements HasMedia {
             }
             if ($post->published_at->lte(now())) {
                 $post->auto_publish_pending = false;
+            }
+        });
+
+        static::saving(function (Post $post) {
+            if ($post->type === PostTypes::ONLINE) {
+                return;
+            }
+
+            $rawContent = $post->getAttributes()['content'] ?? null;
+            if (!is_string($rawContent) || $rawContent === '') {
+                return;
+            }
+
+            $content = json_decode($rawContent, true);
+            if (!is_array($content) || $content === []) {
+                return;
+            }
+
+            $validator = app(RegionsMapBlockValidator::class);
+            $errors = [];
+
+            $originalContent = [];
+            if ($post->exists) {
+                $originalRaw = $post->getOriginal('content');
+                if (is_string($originalRaw) && $originalRaw !== '') {
+                    $decoded = json_decode($originalRaw, true);
+                    if (is_array($decoded)) {
+                        $originalContent = $decoded;
+                    }
+                }
+            }
+
+            foreach ($content as $blockKey => $block) {
+                if (!is_array($block) || ($block['type'] ?? '') !== 'regions_map') {
+                    continue;
+                }
+
+                $attributes = is_array($block['attributes'] ?? null) ? $block['attributes'] : [];
+
+                $oldBlock = $originalContent[$blockKey] ?? null;
+                if (is_array($oldBlock) && ($oldBlock['type'] ?? '') === 'regions_map') {
+                    $oldAttributes = is_array($oldBlock['attributes'] ?? null) ? $oldBlock['attributes'] : [];
+                    foreach ($validator->validateSchemaImmutable(
+                        $oldAttributes['schema'] ?? null,
+                        $attributes['schema'] ?? null,
+                    ) as $field => $message) {
+                        $errors['content.' . $blockKey . '.' . $field] = $message;
+                    }
+                }
+
+                foreach ($validator->validate($attributes) as $field => $message) {
+                    $errors['content.' . $blockKey . '.' . $field] = $message;
+                }
+            }
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
             }
         });
 
