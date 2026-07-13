@@ -80,10 +80,11 @@
 
       <ImageViewer
         ref="existingImageViewer"
+        :key="existingImageViewerKey"
         @image-deleted="imageDeleted"
         @image-delete-failed="imageDeleteFailed"
         v-show="!imgSrc && !existingImageDeleted"
-        :field="field"
+        :field="effectiveField"
         :resourceId="resourceId"
         :resourceName="resourceName"
         :relatedResourceId="relatedResourceId"
@@ -240,10 +241,58 @@ export default {
     imageSizeError: null,
     isDraggingOverDropzone: false,
     existingImageDeleted: false,
+    existingImageViewerKey: 0,
+    persistedPreviewUrl: null,
+    persistedFieldValue: null,
+    saveSyncTimeout: null,
     ignoreDimensionRequirements: false,
   }),
 
+  mounted() {
+    this.onSaveWithoutReloadSuccess = this.onSaveWithoutReloadSuccess.bind(this);
+    this.onResourceUpdated = this.onResourceUpdated.bind(this);
+    window.addEventListener(
+      "nova:save-without-reload:success",
+      this.onSaveWithoutReloadSuccess
+    );
+    if (typeof Nova !== "undefined" && Nova.$on) {
+      Nova.$on("resource-updated", this.onResourceUpdated);
+    }
+  },
+
+  beforeUnmount() {
+    if (this.onSaveWithoutReloadSuccess) {
+      window.removeEventListener(
+        "nova:save-without-reload:success",
+        this.onSaveWithoutReloadSuccess
+      );
+    }
+    if (typeof Nova !== "undefined" && Nova.$off && this.onResourceUpdated) {
+      Nova.$off("resource-updated", this.onResourceUpdated);
+    }
+    if (this.saveSyncTimeout) {
+      clearTimeout(this.saveSyncTimeout);
+      this.saveSyncTimeout = null;
+    }
+  },
+
   watch: {
+    "field.previewUrl"(next, prev) {
+      if (next === prev || this.file || this.imgSrc) {
+        return;
+      }
+      this.persistedPreviewUrl = null;
+      this.persistedFieldValue = null;
+      this.existingImageViewerKey += 1;
+    },
+    "field.value"(next, prev) {
+      if (next === prev || this.file || this.imgSrc) {
+        return;
+      }
+      this.persistedPreviewUrl = null;
+      this.persistedFieldValue = null;
+      this.existingImageViewerKey += 1;
+    },
     ignoreDimensionRequirements(val, oldVal) {
       const hadSkipCropBeforeApply = this.skipCrop;
       this.applyDimensionRulesToImage();
@@ -328,6 +377,17 @@ export default {
     },
 
     cancel() {
+      this.clearPendingSelection();
+      this.existingImageDeleted = false;
+      if (this.uploadErrors?.clear) {
+        this.uploadErrors.clear(this.fieldAttribute);
+      }
+      if (this.errors?.clear) {
+        this.errors.clear(this.fieldAttribute);
+      }
+    },
+
+    clearPendingSelection() {
       this.imgSrc = "";
       this.file = null;
       this.fileName = "";
@@ -339,16 +399,83 @@ export default {
       this.skipCrop = false;
       this.imageSizeError = null;
       this.isDraggingOverDropzone = false;
-      this.existingImageDeleted = false;
       this.ignoreDimensionRequirements = false;
-      if (this.uploadErrors?.clear) {
-        this.uploadErrors.clear(this.fieldAttribute);
-      }
-      if (this.errors?.clear) {
-        this.errors.clear(this.fieldAttribute);
-      }
       if (this.$refs.fileField) {
         this.$refs.fileField.value = "";
+      }
+    },
+
+    onSaveWithoutReloadSuccess() {
+      if (this.saveSyncTimeout) {
+        clearTimeout(this.saveSyncTimeout);
+      }
+      this.saveSyncTimeout = setTimeout(() => {
+        this.saveSyncTimeout = null;
+        this.syncAfterResourceSave();
+      }, 0);
+    },
+
+    onResourceUpdated(payload) {
+      if (
+        payload?.resourceName !== this.resourceName ||
+        String(payload?.resourceId) !== String(this.resourceId)
+      ) {
+        return;
+      }
+      this.onSaveWithoutReloadSuccess();
+    },
+
+    async syncAfterResourceSave() {
+      if (this.file || this.imgSrc) {
+        this.promotePendingUploadToExisting();
+      }
+      await this.refreshFieldFromServer();
+    },
+
+    promotePendingUploadToExisting() {
+      if (!this.file && !this.imgSrc) {
+        return;
+      }
+
+      this.persistedPreviewUrl = this.imgSrc;
+      this.persistedFieldValue = this.fileName || String(Date.now());
+
+      this.clearPendingSelection();
+      this.existingImageDeleted = false;
+      this.existingImageViewerKey += 1;
+    },
+
+    async refreshFieldFromServer() {
+      if (!this.resourceName || !this.resourceId) {
+        return;
+      }
+
+      try {
+        const params = {
+          editing: true,
+          editMode: "update",
+        };
+
+        const { data } = await Nova.request().get(
+          `/nova-api/${this.resourceName}/${this.resourceId}/update-fields`,
+          { params }
+        );
+
+        const fields = Array.isArray(data?.fields) ? data.fields : [];
+        const imageField = fields.find(
+          (item) => item?.attribute === this.field?.attribute
+        );
+        if (!imageField) {
+          return;
+        }
+
+        this.persistedPreviewUrl = imageField.previewUrl || null;
+        this.persistedFieldValue = imageField.value || null;
+        this.clearPendingSelection();
+        this.existingImageDeleted = false;
+        this.existingImageViewerKey += 1;
+      } catch (error) {
+        // Keep local promote fallback when refetch fails.
       }
     },
 
@@ -478,6 +605,8 @@ export default {
 
     imageDeleted() {
       this.existingImageDeleted = true;
+      this.persistedPreviewUrl = null;
+      this.persistedFieldValue = null;
       if (this.field) {
         this.field.previewUrl = null;
         this.field.thumbnailUrl = null;
@@ -639,11 +768,24 @@ export default {
 
     hasExistingImage() {
       if (this.existingImageDeleted) return false;
-      return Boolean(this.field?.previewUrl || this.field?.value);
+      const field = this.effectiveField;
+      return Boolean(field?.previewUrl || field?.value);
+    },
+
+    effectiveField() {
+      const base = this.field || {};
+      const previewUrl = this.persistedPreviewUrl ?? base.previewUrl ?? null;
+
+      return {
+        ...base,
+        value: this.persistedFieldValue ?? base.value ?? null,
+        previewUrl,
+        thumbnailUrl: previewUrl ?? base.thumbnailUrl ?? null,
+      };
     },
 
     isDeletable() {
-      return this.field?.deletable !== false;
+      return this.effectiveField?.deletable !== false;
     },
 
     cropDimensionsValid() {

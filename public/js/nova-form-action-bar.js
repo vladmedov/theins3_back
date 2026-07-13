@@ -1215,6 +1215,9 @@
                 syncStayButtonsOriginalStatusFromSelect();
                 refreshTogglePublishButtons();
             }, 10);
+            if (resourceUpdate) {
+                window.dispatchEvent(new CustomEvent('nova:save-without-reload:success'));
+            }
             return;
         }
 
@@ -1238,6 +1241,9 @@
             syncStayButtonsOriginalStatusFromSelect();
             refreshTogglePublishButtons();
         }, 0);
+        if (resourceUpdate) {
+            window.dispatchEvent(new CustomEvent('nova:save-without-reload:success'));
+        }
         scheduleSuccessFallback();
     }
 
