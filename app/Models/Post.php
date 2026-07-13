@@ -72,6 +72,7 @@ class Post extends Model { //implements HasMedia {
         'image_description',
         'title_feature',
         'is_super_news',
+        'is_super_author',
         'views_count',
         'auto_publish_pending',
     ];
@@ -87,6 +88,7 @@ class Post extends Model { //implements HasMedia {
         'content' => CompactFlexibleCast::class,
         'author_visibility' => 'string',
         'auto_publish_pending' => 'boolean',
+        'is_super_author' => 'boolean',
     ];
 
     protected $attributes = [
@@ -98,6 +100,14 @@ class Post extends Model { //implements HasMedia {
 
     public static function boot() {
         parent::boot();
+
+        static::saving(function (Post $post) {
+            if ($post->type === PostTypes::OPINION) {
+                $post->is_super_author = true;
+            } elseif ($post->type === PostTypes::ONLINE) {
+                $post->is_super_author = false;
+            }
+        });
 
         static::saving(function (Post $post) {
             if ($post->isDirty('image') && empty($post->image)) {
