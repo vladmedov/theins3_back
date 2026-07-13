@@ -45,6 +45,7 @@ class PostResource extends JsonResource
             'image_height' => $this->image_height !== null ? (int) $this->image_height : null,
             'image_description' => $this->image_description ?? "",
             'is_super_news' => $this->is_super_news,
+            'is_super_author' => $this->is_super_author,
             'language_code' => $this->language_code,
         ]
         + ($this->shouldShowColumnist() ? $this->whenLoaded('columnist', function () use ($request, $language_code) {

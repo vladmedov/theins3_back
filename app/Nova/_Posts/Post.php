@@ -422,6 +422,38 @@ abstract class Post extends Resource
                 ->rules('nullable')
                 ->help(__('Autosave is enabled for this field.'))
                 ->withMeta(['extraAttributes' => ['data-post-autosave-field' => '1']]),
+
+            ...(match (static::getPostType()) {
+                PostTypes::OPINION => [
+                    Hidden::make('is_super_author')->default(true),
+                ],
+                PostTypes::ONLINE => [
+                    Hidden::make('is_super_author')->default(false),
+                ],
+                default => [
+                    Boolean::make(__('Super author'), 'is_super_author')
+                        ->onlyOnForms()
+                        ->hide()
+                        ->help(__('posts.super_author_help'))
+                        ->dependsOn(
+                            ['authors'],
+                            function (Boolean $field, NovaRequest $request, FormData $formData) {
+                                $authors = $formData->authors ?? [];
+                                if (! is_array($authors)) {
+                                    $authors = $authors ? [$authors] : [];
+                                }
+                                count($authors) === 1 ? $field->show() : $field->hide();
+                            }
+                        )
+                        ->fillUsing(function ($request, $model, $attribute, $requestAttribute) {
+                            $authors = $request->authors ?? [];
+                            if (! is_array($authors)) {
+                                $authors = $authors ? [$authors] : [];
+                            }
+                            $model->{$attribute} = count($authors) === 1 && $request->boolean($requestAttribute);
+                        }),
+                ],
+            }),
         ];
 
         if (static::getPostType() == PostTypes::NEWS) {
