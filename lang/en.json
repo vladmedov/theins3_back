@@ -34,5 +34,7 @@
     "User role: Administrator": "Administrator",
     "User role: Editor": "Editor",
     "User role: Journalist": "Journalist",
-    "When the publication time arrives, status becomes Published and this option is cleared automatically.": "When the publication time arrives, status becomes Published and this option is cleared automatically."
+    "When the publication time arrives, status becomes Published and this option is cleared automatically.": "When the publication time arrives, status becomes Published and this option is cleared automatically.",
+    "Map": "Map",
+    "Regions map": "Regions map"
 }

@@ -42,5 +42,7 @@
     "User role: Administrator": "Администратор",
     "User role: Editor": "Редактор",
     "User role: Journalist": "Журналист",
-    "When the publication time arrives, status becomes Published and this option is cleared automatically.": "Когда наступит время публикации, статус станет «Опубликовано», а эта отметка снимется автоматически."
+    "When the publication time arrives, status becomes Published and this option is cleared automatically.": "Когда наступит время публикации, статус станет «Опубликовано», а эта отметка снимется автоматически.",
+    "Map": "Карта",
+    "Regions map": "Карта регионов"
 }

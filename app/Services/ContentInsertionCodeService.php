@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Support\RegionsMap\RegionsMapRegions;
+use App\Support\RegionsMap\RegionsMapSchemas;
+
 /**
  * Expands insertion-code tags in text blocks (e.g. {{ images_idKEY }})
  * and hides blocks with show_insertion_code when they are only referenced in text.
@@ -10,7 +13,7 @@ namespace App\Services;
 class ContentInsertionCodeService
 {
     /** Block types that can be referenced by insertion code and hidden from their position when show_insertion_code is true */
-    private const INSERTION_TYPES = ['images', 'video', 'embed', 'quote', 'related', 'accordion'];
+    private const INSERTION_TYPES = ['images', 'video', 'embed', 'quote', 'related', 'accordion', 'regions_map'];
 
     /**
      * @param array<string, array{type: string, attributes: array}> $content Key => block (type, attributes)
@@ -231,6 +234,13 @@ class ContentInsertionCodeService
             }
 
             return false;
+        }
+
+        if ($type === 'regions_map') {
+            $regions = $attrs['regions'] ?? [];
+            $schema = RegionsMapSchemas::resolve($attrs['schema'] ?? null);
+
+            return is_array($regions) && count($regions) === RegionsMapSchemas::count($schema);
         }
 
         return true;
