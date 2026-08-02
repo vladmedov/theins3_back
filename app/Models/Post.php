@@ -600,6 +600,7 @@ class Post extends Model { //implements HasMedia {
             'title' => $this->title,
             'lead' => $this->lead ?? '',
             'content' => $contentText,
+            'content_substring' => mb_strtolower($contentText),
             'category_id' => $this->category_id,
             'category_title' => $this->category?->title ?? '',
             'category_slug' => $this->category?->slug ?? '',

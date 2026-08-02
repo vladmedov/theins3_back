@@ -1,5 +1,9 @@
 <?php
 
+$substringSubfield = [
+    'type' => 'wildcard',
+];
+
 return [
     /*
      | Custom index mappings for language-aware inflection search.
@@ -14,6 +18,12 @@ return [
                             'filter' => [
                                 'lowercase',
                             ],
+                        ],
+                    ],
+                    'normalizer' => [
+                        'lowercase' => [
+                            'type' => 'custom',
+                            'filter' => ['lowercase'],
                         ],
                     ],
                 ],
@@ -43,6 +53,7 @@ return [
                                 'analyzer' => 'ti_exact_text',
                                 'search_analyzer' => 'ti_exact_text',
                             ],
+                            'raw' => $substringSubfield,
                         ],
                     ],
                     'lead' => [
@@ -63,6 +74,7 @@ return [
                                 'analyzer' => 'ti_exact_text',
                                 'search_analyzer' => 'ti_exact_text',
                             ],
+                            'raw' => $substringSubfield,
                         ],
                     ],
                     'content' => [
@@ -85,6 +97,7 @@ return [
                             ],
                         ],
                     ],
+                    'content_substring' => $substringSubfield,
                     'authors' => [
                         'type' => 'text',
                         'fields' => [
@@ -103,6 +116,7 @@ return [
                                 'analyzer' => 'ti_exact_text',
                                 'search_analyzer' => 'ti_exact_text',
                             ],
+                            'raw' => $substringSubfield,
                         ],
                     ],
                     'columnist' => [
@@ -123,6 +137,7 @@ return [
                                 'analyzer' => 'ti_exact_text',
                                 'search_analyzer' => 'ti_exact_text',
                             ],
+                            'raw' => $substringSubfield,
                         ],
                     ],
                     'tags' => [
@@ -143,6 +158,7 @@ return [
                                 'analyzer' => 'ti_exact_text',
                                 'search_analyzer' => 'ti_exact_text',
                             ],
+                            'raw' => $substringSubfield,
                         ],
                     ],
                     'title_lemma' => [
