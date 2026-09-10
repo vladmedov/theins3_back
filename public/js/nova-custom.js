@@ -103,7 +103,7 @@
 
     document.addEventListener('input', function (e) {
         var t = e.target;
-        if (!t.matches || !t.matches('input[data-char-counter="title"]')) {
+        if (!t.matches || !t.matches('[data-char-counter="title"]')) {
             return;
         }
         if (isRussianInterface()) {
@@ -198,12 +198,18 @@
     }, true);
 }());
 
-// ─── Title character counter ──────────────────────────────────────────────────
+// ─── Title character counter + autosize ───────────────────────────────────────
 (function () {
     var pollTimer = null;
 
+    function autosizeTitle(el) {
+        if (!el || el.tagName !== 'TEXTAREA') return;
+        el.style.height = '0px';
+        el.style.height = el.scrollHeight + 'px';
+    }
+
     function attachCounter() {
-        var input = document.querySelector('input[data-char-counter="title"]');
+        var input = document.querySelector('[data-char-counter="title"]');
         if (!input || input.dataset.counterAttached) return;
         input.dataset.counterAttached = '1';
 
@@ -214,6 +220,7 @@
             counter.textContent = input.value.length + '/140';
             counter.style.color = input.value.length > 140 ? '#dc2626' : '';
             counter.style.borderColor = input.value.length > 140 ? '#fca5a5' : '';
+            autosizeTitle(input);
         }
 
         input.addEventListener('input', update);
@@ -221,13 +228,18 @@
 
         // Create a dedicated row wrapper — avoids touching the parent's Tailwind flex-col
         var row = document.createElement('div');
-        row.style.cssText = 'display:flex;flex-direction:row;align-items:stretch;width:100%;gap:8px;';
+        row.className = 'nova-post-title-row';
+        row.style.cssText = 'display:flex;flex-direction:row;align-items:flex-start;width:100%;gap:8px;';
         input.parentNode.insertBefore(row, input);
         row.appendChild(input);
         row.appendChild(counter);
 
         input.style.flex = '1';
         input.style.minWidth = '0';
+
+        // Re-measure after fonts/layout settle
+        requestAnimationFrame(function () { autosizeTitle(input); });
+        setTimeout(function () { autosizeTitle(input); }, 50);
 
         stopPoll();
     }
@@ -251,6 +263,11 @@
             if (mutations[i].addedNodes.length) { startPoll(); return; }
         }
     }).observe(document.documentElement, { childList: true, subtree: true });
+
+    window.addEventListener('resize', function () {
+        var input = document.querySelector('[data-char-counter="title"]');
+        autosizeTitle(input);
+    });
 
     startPoll();
 }());
