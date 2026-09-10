@@ -8,8 +8,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use App\Services\ImageService;
-use App\Services\ShareImageService;
+use App\Services\Images\ImageIngestService;
+use App\Services\Images\ImageStorageLayout;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageVariant;
+use App\Services\Images\ShareImageService;
 use App\Models\SyncLog;
 use App\Models\Post;
 use App\Models\Termin;
@@ -228,7 +231,7 @@ class LegacyImportMain extends Command
                         $post->id,
                         $post->preview_image ?? $post->detail_image ?? null,
                         'post',
-                        ImageService::TYPE_POST_COVER,
+                        ImageType::PostCover->value,
                         $languageCode
                     );
 
@@ -277,7 +280,7 @@ class LegacyImportMain extends Command
                             $post->id,
                             $post->preview_image ?? $post->detail_image ?? null,
                             'post',
-                            ImageService::TYPE_POST_COVER,
+                            ImageType::PostCover->value,
                             $languageCode
                         );
 
@@ -443,24 +446,18 @@ class LegacyImportMain extends Command
             return;
         }
 
-        $disk = Storage::disk(ImageService::publicDiskForLanguage($languageCode));
+        $disk = ImageStorageLayout::disk($languageCode);
 
         if (empty($imagePath) || !$disk->exists($imagePath)) {
             return;
         }
 
-        $filename = basename($imagePath);
-        $smallPath = ImageService::getImagePath($postId, ImageService::TYPE_POST_COVER, ImageService::SIZE_SMALL)
-            . '/' . $filename;
-        $mediumPath = ImageService::getImagePath($postId, ImageService::TYPE_POST_COVER, ImageService::SIZE_MEDIUM)
-            . '/' . $filename;
-
-        if (
-            !$disk->exists($smallPath)
-            || !$disk->exists($mediumPath)
-        ) {
-            ImageService::createImageVariants($postId, $imagePath, ImageService::TYPE_POST_COVER, $languageCode);
-        }
+        // Ensure display rendition exists for covers (crop unknown for legacy → full-frame JPEG).
+        app(ImageIngestService::class)->renditionFor(
+            $imagePath,
+            ImageType::PostCover,
+            $languageCode,
+        );
 
         if ($this->skipShareImages) {
             return;
@@ -495,10 +492,10 @@ class LegacyImportMain extends Command
             return null;
         }
 
-        $targetPath = ImageService::getImagePath($id, $imageType, ImageService::SIZE_ORIGINAL)
+        $targetPath = ImageStorageLayout::directory($id, ImageType::from($imageType), ImageVariant::Original)
             . '/' . $legacyFilename;
 
-        $disk = Storage::disk(ImageService::publicDiskForLanguage($languageCode));
+        $disk = ImageStorageLayout::disk($languageCode);
 
         if ($disk->exists($targetPath)) {
             return $targetPath;

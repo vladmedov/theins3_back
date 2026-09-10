@@ -10,7 +10,9 @@ use Spatie\EloquentSortable\SortableTrait;
 
 use App\Services\FrontendCacheTagService;
 use App\Services\FrontendRevalidationService;
-use App\Services\ImageService;
+use App\Services\Images\ImageIngestService;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageUrlResolver;
 
 class InvestigationTheme extends Model {
     use HasFactory, SortableTrait;
@@ -73,18 +75,15 @@ class InvestigationTheme extends Model {
                 && ($theme->wasRecentlyCreated || $theme->wasChanged('cover_image'));
 
             if ($shouldProcessCover) {
-                $path = ImageService::relocateOriginalIfNeeded(
+                $stored = app(ImageIngestService::class)->finalizeStored(
                     $theme->id,
                     $theme->cover_image,
-                    ImageService::TYPE_THEME_COVER,
-                    $theme->language_code
+                    ImageType::ThemeCover,
+                    $theme->language_code,
                 );
-                if (!empty($path)) {
-                    if ($path !== $theme->cover_image) {
-                        $theme->cover_image = $path;
-                        $theme->saveQuietly();
-                    }
-                    ImageService::createImageVariants($theme->id, $path, ImageService::TYPE_THEME_COVER, $theme->language_code);
+                if ($stored->originalPath !== $theme->cover_image) {
+                    $theme->cover_image = $stored->originalPath;
+                    $theme->saveQuietly();
                 }
             }
 
@@ -131,7 +130,7 @@ class InvestigationTheme extends Model {
         }
 
         if (str_starts_with($this->cover_image, 'theme/')) {
-            return ImageService::getImageUrl($this->id, $this->cover_image, ImageService::TYPE_THEME_COVER, ImageService::SIZE_ORIGINAL, false);
+            return ImageUrlResolver::relative($this->cover_image, $this->language_code);
         }
 
         return null;

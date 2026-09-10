@@ -23,7 +23,7 @@
         ref="fileInput"
         type="file"
         multiple
-        accept="image/*"
+        :accept="field.acceptedTypes || 'image/*'"
         :disabled="isUploading"
         @change="handleFileUpload"
         class="hidden-file-input"
@@ -269,8 +269,17 @@ export default {
 
       const candidates = Array.from(files).filter((f) => {
         if (!f) return false;
-        if (f.type && f.type.startsWith("image/")) return true;
-        return /\.(png|jpe?g|webp|gif)$/i.test(f.name || "");
+        const fromMeta = Array.isArray(this.field?.acceptedExtensions)
+          ? this.field.acceptedExtensions
+          : ["jpeg", "jpg", "png", "webp", "avif"];
+        const allowed = fromMeta
+          .map((ext) => String(ext).toLowerCase().replace(/^\./, ""))
+          .join("|");
+        const re = new RegExp(`\\.(${allowed})$`, "i");
+        if (f.type && f.type.startsWith("image/") && re.test(f.name || "")) {
+          return true;
+        }
+        return re.test(f.name || "");
       });
 
       this.uploadingCount += candidates.length;

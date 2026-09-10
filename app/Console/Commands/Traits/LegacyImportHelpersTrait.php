@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use App\Services\ImageService;
+use App\Services\Images\ImageStorageLayout;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageVariant;
 use App\Services\TerminDescriptionAttributeCodec;
 use App\Models\SyncLog;
 use App\Models\Category;
@@ -260,7 +262,7 @@ trait LegacyImportHelpersTrait
                     $author->id,
                     $author->image ?? null,
                     'person',
-                    ImageService::TYPE_USER_PHOTO,
+                    ImageType::UserPhoto->value,
                     $languageCode
                 );
 
@@ -340,7 +342,7 @@ trait LegacyImportHelpersTrait
                     $theme->id,
                     $theme->image ?? null,
                     'theme',
-                    ImageService::TYPE_THEME_COVER,
+                    ImageType::ThemeCover->value,
                     $languageCode
                 );
 
@@ -941,7 +943,7 @@ trait LegacyImportHelpersTrait
                 foreach ($images as $image) {
                     $imagePath = $this->downloadLegacyImage(
                         $image->id, $image->image ?? null,
-                        'content_block/image', ImageService::TYPE_CONTENT_IMAGE,
+                        'content_block/image', ImageType::ContentImage->value,
                         $languageCode
                     );
                     $templates[$dbTemplate->human_id]['attributes']['images'][] = [
@@ -1379,7 +1381,7 @@ trait LegacyImportHelpersTrait
                             $online->id,
                             $online->image,
                             'online_item',
-                            ImageService::TYPE_ONLINE_IMAGE,
+                            ImageType::OnlineImage->value,
                             $languageCode
                         ),
                         'author' => '',
@@ -1445,7 +1447,7 @@ trait LegacyImportHelpersTrait
                 $post->id,
                 $post->preview_image ?? $post->detail_image ?? null,
                 'post',
-                ImageService::TYPE_POST_COVER,
+                ImageType::PostCover->value,
                 $languageCode
             );
 
@@ -1523,10 +1525,10 @@ trait LegacyImportHelpersTrait
         $url = 'https://insidertexts.com/storage/' . $legacySlug . '/' . $id . '/' . $legacyFilename;
 
         try {
-            $targetPath = ImageService::getImagePath($id, $imageType, ImageService::SIZE_ORIGINAL)
+            $targetPath = ImageStorageLayout::directory($id, ImageType::from($imageType), ImageVariant::Original)
                 . '/' . $legacyFilename;
 
-            $disk = Storage::disk(ImageService::publicDiskForLanguage($languageCode));
+            $disk = ImageStorageLayout::disk($languageCode);
             $disk->makeDirectory(dirname($targetPath));
 
             $fullPath = $disk->path($targetPath);
@@ -2192,10 +2194,10 @@ trait LegacyImportHelpersTrait
         }
 
         $imageId = 'wpimg_' . $postId . '_' . substr(md5($path), 0, 12);
-        $targetPath = ImageService::getImagePath($imageId, ImageService::TYPE_CONTENT_IMAGE, ImageService::SIZE_ORIGINAL)
+        $targetPath = ImageStorageLayout::directory($imageId, ImageType::ContentImage, ImageVariant::Original)
             . '/' . $filename;
 
-        $disk = Storage::disk(ImageService::publicDiskForLanguage($languageCode));
+        $disk = ImageStorageLayout::disk($languageCode);
 
         if ($disk->exists($targetPath)) {
             return ['id' => $imageId, 'link' => $targetPath];

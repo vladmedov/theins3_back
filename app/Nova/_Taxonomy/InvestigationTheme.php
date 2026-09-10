@@ -23,7 +23,11 @@ use Laravel\Nova\Fields\Hidden;
 use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Panel;
 
-use App\Services\ImageService;
+use App\Services\Images\ImageFormatPolicy;
+use App\Services\Images\ImageStorageLayout;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageUrlResolver;
+use App\Services\Images\ImageVariant;
 use Outl1ne\NovaSortable\Traits\HasSortableRows;
 
 class InvestigationTheme extends Resource
@@ -41,7 +45,7 @@ class InvestigationTheme extends Resource
 
     public function fields(Request $request) {
         $locale = $this->effectiveResourceLanguageCode();
-        $localeDisk = ImageService::publicDiskForLanguage($locale);
+        $localeDisk = ImageStorageLayout::publicDiskForLanguage($locale);
 
         $generalFields = [
             Boolean::make(__('Is it main Insvestigation theme?'), 'is_main')
@@ -59,15 +63,14 @@ class InvestigationTheme extends Resource
             Image::make(__('Image cover'), 'cover_image')
                 ->hideFromIndex()
                 ->disk($localeDisk)
-                ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120')
+                ->rules(array_values(array_filter([
+                    'nullable',
+                    ...ImageFormatPolicy::validationRules(5120),
+                ])))
                 ->nullable()
-                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_THEME_COVER, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value) use ($locale) {
-                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
-                })
-                ->thumbnail(function ($value) use ($locale) {
-                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
-                }),
+                ->path(ImageStorageLayout::directory($this->id, ImageType::ThemeCover, ImageVariant::Original))
+                ->preview(fn ($value) => ImageUrlResolver::relative($value, $locale))
+                ->thumbnail(fn ($value) => ImageUrlResolver::relative($value, $locale)),
 
             Slug::make('Slug', 'slug')
                 ->onlyOnForms()

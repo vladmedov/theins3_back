@@ -19,11 +19,13 @@ use App\Services\ChangeDetectorService;
 use App\Services\ContentRenderer;
 use App\Services\FrontendCacheTagService;
 use App\Services\FrontendRevalidationService;
-use App\Services\ImageService;
+use App\Services\Images\ImageIngestService;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageUrlResolver;
 use App\Services\LemmatizerService;
 use App\Services\RegionsMap\RegionsMapBlockValidator;
 use App\Services\SearchIndexManager;
-use App\Services\ShareImageService;
+use App\Services\Images\ShareImageService;
 
 use Illuminate\Support\Facades\Log;
 use Laravel\Scout\Searchable;
@@ -97,6 +99,9 @@ class Post extends Model { //implements HasMedia {
 
     protected ?array $frontendRevalidationOriginalSnapshot = null;
     protected ?int $frontendRevalidationOriginalTranslationId = null;
+
+    /** @var array{x?: int|float, y?: int|float, width?: int|float, height?: int|float}|null */
+    public ?array $pendingImageCropData = null;
 
     public static function boot() {
         parent::boot();
@@ -297,7 +302,7 @@ class Post extends Model { //implements HasMedia {
                 && ($post->wasRecentlyCreated || $post->wasChanged('image'));
 
             if ($shouldGenerateImages) {
-                $post->createImageVariants();
+                $post->finalizeCoverImage();
             }
 
             // Keep automatic writes and full reindex on the same alias-based scheme.
@@ -430,12 +435,12 @@ class Post extends Model { //implements HasMedia {
         if (empty($this->image)) {
             return null;
         }
-        
+
         if (str_starts_with($this->image, 'post_cover/')) {
-            return $this->getImageUrl(ImageService::SIZE_ORIGINAL, includeDomain: false);
-        } else {
-            return null;
+            return ImageUrlResolver::relative($this->image, $this->language_code);
         }
+
+        return null;
     }
 
     // Проверка доступа
@@ -520,44 +525,38 @@ class Post extends Model { //implements HasMedia {
         $this->timestamps = true;
     }
 
-    public function createImageVariants()
+    public function finalizeCoverImage(): void
     {
-        $imagePath = ImageService::relocateOriginalIfNeeded(
+        $crop = $this->pendingImageCropData;
+        $this->pendingImageCropData = null;
+
+        $stored = app(ImageIngestService::class)->finalizeStored(
             $this->id,
             $this->image,
-            ImageService::TYPE_POST_COVER,
-            $this->language_code
+            ImageType::PostCover,
+            $this->language_code,
+            $crop,
         );
 
-        if (empty($imagePath)) {
-            return;
+        if ($stored->originalPath !== $this->image) {
+            $this->image = $stored->originalPath;
         }
 
-        if ($imagePath !== $this->image) {
-            $this->image = $imagePath;
-            $this->saveQuietly();
-        }
+        $this->image_width = $stored->width > 0 ? $stored->width : null;
+        $this->image_height = $stored->height > 0 ? $stored->height : null;
+        $this->saveQuietly();
 
-        ImageService::createImageVariants($this->id, $imagePath, ImageService::TYPE_POST_COVER, $this->language_code);
         ShareImageService::generate($this);
-
-        $dims = ImageService::getImageDimensions($imagePath, $this->language_code);
-        if ($dims !== null) {
-            $this->image_width = $dims['width'];
-            $this->image_height = $dims['height'];
-            $this->saveQuietly();
-        }
     }
 
-    public function getImageUrl($size = ImageService::SIZE_ORIGINAL, bool $includeDomain = false)
+    public function getImageUrl(bool $includeDomain = false)
     {
-        return ImageService::getImageUrl(
+        return ImageUrlResolver::forStored(
             $this->id,
             $this->image,
-            ImageService::TYPE_POST_COVER,
-            $size,
+            ImageType::PostCover,
+            $this->language_code,
             $includeDomain,
-            $this->language_code
         );
     }
 

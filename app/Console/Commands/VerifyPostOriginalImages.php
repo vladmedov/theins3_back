@@ -4,7 +4,10 @@ namespace App\Console\Commands;
 
 use App\Enums\PostTypes;
 use App\Models\Post;
-use App\Services\ImageService;
+use App\Services\Images\ImageRenditionGenerator;
+use App\Services\Images\ImageStorageLayout;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageVariant;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
@@ -60,7 +63,7 @@ class VerifyPostOriginalImages extends Command
     private function collectMissingForPost(Post $post, bool $scanHtml): array
     {
         $out = [];
-        $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
+        $disk = ImageStorageLayout::disk($post->language_code);
 
         if (!empty($post->image) && !$disk->exists($post->image)) {
             $out[] = (string) $post->id;
@@ -69,7 +72,7 @@ class VerifyPostOriginalImages extends Command
         if ($post->type === PostTypes::ONLINE) {
             foreach ($post->onlineMessages as $message) {
                 foreach ($this->normalizeImagesArray($message->images ?? []) as $img) {
-                    $path = $this->originalPathFromGallery($img, ImageService::TYPE_ONLINE_IMAGE);
+                    $path = $this->originalPathFromGallery($img, ImageType::OnlineImage);
                     if ($path !== null && !$disk->exists($path)) {
                         $out[] = (string) $post->id;
                     }
@@ -101,7 +104,7 @@ class VerifyPostOriginalImages extends Command
 
             if ($type === 'images') {
                 foreach ($this->normalizeImagesArray($attrs['images'] ?? []) as $img) {
-                    $path = $this->originalPathFromGallery($img, ImageService::TYPE_CONTENT_IMAGE);
+                    $path = $this->originalPathFromGallery($img, ImageType::ContentImage);
                     if ($path !== null && !$disk->exists($path)) {
                         $out[] = (string) $post->id;
                     }
@@ -140,7 +143,7 @@ class VerifyPostOriginalImages extends Command
     /**
      * @param  array<string, mixed>  $img
      */
-    private function originalPathFromGallery(array $img, string $imageType): ?string
+    private function originalPathFromGallery(array $img, ImageType $imageType): ?string
     {
         $link = $img['link'] ?? null;
         $imageId = $img['id'] ?? null;
@@ -148,7 +151,7 @@ class VerifyPostOriginalImages extends Command
             return null;
         }
 
-        return ImageService::getImagePath($imageId, $imageType, ImageService::SIZE_ORIGINAL)
+        return ImageStorageLayout::directory($imageId, $imageType, ImageVariant::Original)
             . '/' . basename((string) $link);
     }
 

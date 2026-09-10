@@ -1,28 +1,32 @@
 <?php
 
+use App\Services\Images\ImageFormatPolicy;
+use App\Services\Images\ImageIngestService;
+use App\Services\Images\ImageType;
 use Illuminate\Http\Request;
-use App\Services\ImageService;
 
 Route::post('/upload-image', function (Request $request) {
     $request->validate([
-        'file' => 'required|image|mimes:jpeg,png,jpg,webp|max:20480',
+        'file' => ['required', ...ImageFormatPolicy::validationRules()],
         'storage_disk' => 'required|string|in:ru_public,en_public',
         'image_type' => 'nullable|string|in:content_image,online_image',
     ]);
 
-    $imageId = uniqid('', true);
     $file = $request->file('file');
     $disk = (string) $request->input('storage_disk');
     $languageCode = $disk === 'en_public' ? 'en' : 'ru';
-    $imageType = (string) $request->input('image_type', ImageService::TYPE_CONTENT_IMAGE);
+    $imageTypeValue = (string) $request->input('image_type', ImageType::ContentImage->value);
+    $imageType = ImageType::from($imageTypeValue);
+    $imageId = uniqid('', true);
 
-    $targetDir = ImageService::getImagePath($imageId, $imageType, ImageService::SIZE_ORIGINAL);
-    $path = $file->store($targetDir, $disk);
+    $stored = app(ImageIngestService::class)->ingest(
+        $file,
+        $imageType,
+        $languageCode,
+        $imageId,
+    );
 
-    ImageService::createImageVariants($imageId, $path, $imageType, $languageCode);
-
-    $dimensions = ImageService::getImageDimensions($path, $languageCode);
-    if ($dimensions === null) {
+    if ($stored->width <= 0 || $stored->height <= 0) {
         return response()->json([
             'message' => 'Unable to determine image dimensions.',
         ], 422);
@@ -30,8 +34,8 @@ Route::post('/upload-image', function (Request $request) {
 
     return response()->json([
         'id' => $imageId,
-        'link' => $path,
-        'width' => (int) $dimensions['width'],
-        'height' => (int) $dimensions['height'],
+        'link' => $stored->originalPath,
+        'width' => $stored->width,
+        'height' => $stored->height,
     ]);
 });

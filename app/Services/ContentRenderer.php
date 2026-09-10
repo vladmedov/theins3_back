@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Post;
+use App\Services\Images\ImageUrlResolver;
 
 class ContentRenderer
 {
@@ -172,14 +173,7 @@ class ContentRenderer
             $description = $image['description'] ?? '';
 
             if ($link && $imageId) {
-                $url = ImageService::getImageUrl(
-                    $imageId,
-                    $link,
-                    ImageService::TYPE_CONTENT_IMAGE,
-                    ImageService::SIZE_ORIGINAL,
-                    true,
-                    $post->language_code
-                );
+                $url = ImageUrlResolver::absolute($link, $post->language_code, canonicalHost: true);
             } elseif ($link) {
                 $url = $link;
             } else {

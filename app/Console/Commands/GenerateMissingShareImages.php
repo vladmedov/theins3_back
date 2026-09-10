@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Post;
-use App\Services\ImageService;
-use App\Services\ShareImageService;
+use App\Services\Images\ImageStorageLayout;
+use App\Services\Images\ShareImageService;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
@@ -17,10 +17,10 @@ class GenerateMissingShareImages extends Command
                             {--id-from= : Process posts with id >= value}
                             {--id-to= : Process posts with id <= value}
                             {--rebuild-share : Force rebuild share images and delete stale share files}
-                            {--share-only : Process only share images (skip small/medium checks)}
+                            {--share-only : Kept for compatibility (share is always the only target)}
                             {--cleanup-legacy-flat-share : After generation, remove legacy share/{prefix}/*.png files}';
 
-    protected $description = 'Generate missing post images (small, medium, share) for local posts';
+    protected $description = 'Generate missing post share images';
 
     public function handle(): int
     {
@@ -29,7 +29,6 @@ class GenerateMissingShareImages extends Command
         $idFrom = $this->option('id-from');
         $idTo = $this->option('id-to');
         $rebuildShare = (bool) $this->option('rebuild-share');
-        $shareOnly = (bool) $this->option('share-only');
         $cleanupLegacyFlatShare = (bool) $this->option('cleanup-legacy-flat-share');
 
         $idFrom = ($idFrom === null || $idFrom === '') ? null : (int) $idFrom;
@@ -63,11 +62,7 @@ class GenerateMissingShareImages extends Command
         }
 
         $processed = 0;
-        $generatedSmall = 0;
-        $generatedMedium = 0;
         $generatedShare = 0;
-        $existsSmall = 0;
-        $existsMedium = 0;
         $existsShare = 0;
         $failed = 0;
         $missingOriginal = 0;
@@ -88,41 +83,14 @@ class GenerateMissingShareImages extends Command
 
             $processed++;
 
-            $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
+            $disk = ImageStorageLayout::disk($post->language_code);
 
-            if (!$disk->exists($post->image)) {
+            if (! $disk->exists($post->image)) {
                 $missingOriginal++;
                 $failed++;
-                $bar->setMessage((string) ($generatedSmall + $generatedMedium + $generatedShare));
+                $bar->setMessage((string) $generatedShare);
                 $bar->advance();
                 continue;
-            }
-
-            if (!$shareOnly) {
-                $filename = basename($post->image);
-                $smallPath = ImageService::getImagePath($post->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_SMALL)
-                    . '/' . $filename;
-                $mediumPath = ImageService::getImagePath($post->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_MEDIUM)
-                    . '/' . $filename;
-
-                $needSmall = !$disk->exists($smallPath);
-                $needMedium = !$disk->exists($mediumPath);
-
-                if ($needSmall || $needMedium) {
-                    ImageService::createImageVariants($post->id, $post->image, ImageService::TYPE_POST_COVER, $post->language_code);
-                }
-
-                if ($disk->exists($smallPath)) {
-                    $needSmall ? $generatedSmall++ : $existsSmall++;
-                } else {
-                    $failed++;
-                }
-
-                if ($disk->exists($mediumPath)) {
-                    $needMedium ? $generatedMedium++ : $existsMedium++;
-                } else {
-                    $failed++;
-                }
             }
 
             $sharePath = ShareImageService::getShareImagePath($post);
@@ -132,7 +100,7 @@ class GenerateMissingShareImages extends Command
                 $result = ShareImageService::generate($post);
                 if ($result !== null && $disk->exists($result)) {
                     $generatedShare++;
-                    $diskName = ImageService::publicDiskForLanguage($post->language_code);
+                    $diskName = ImageStorageLayout::publicDiskForLanguage($post->language_code);
                     $prefix = (string) intdiv((int) $post->id, 1000);
                     $prefixesWithGeneratedShareByDisk[$diskName][$prefix] = true;
                 } else {
@@ -144,7 +112,7 @@ class GenerateMissingShareImages extends Command
                 $existsShare++;
             }
 
-            $bar->setMessage((string) ($generatedSmall + $generatedMedium + $generatedShare));
+            $bar->setMessage((string) $generatedShare);
             $bar->advance();
         }
 
@@ -159,11 +127,7 @@ class GenerateMissingShareImages extends Command
         }
 
         $this->info("Done. Processed: {$processed}");
-        $this->line("Generated small: {$generatedSmall}");
-        $this->line("Generated medium: {$generatedMedium}");
         $this->line("Generated share: {$generatedShare}");
-        $this->line("Already exists small: {$existsSmall}");
-        $this->line("Already exists medium: {$existsMedium}");
         $this->line("Already exists share: {$existsShare}");
         $this->line("Missing original image: {$missingOriginal}");
         $this->line("Deleted legacy flat share files: {$deletedLegacyFlatShare}");

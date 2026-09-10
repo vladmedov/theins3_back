@@ -27,7 +27,11 @@ use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\BelongsTo;
 
 use App\Nova\_Users\User as NovaUser;
-use App\Services\ImageService;
+use App\Services\Images\ImageFormatPolicy;
+use App\Services\Images\ImageStorageLayout;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageUrlResolver;
+use App\Services\Images\ImageVariant;
 use App\Enums\PostTypes;
 class Author extends Resource
 {
@@ -40,7 +44,7 @@ class Author extends Resource
 
     public function fields(Request $request) {
         $locale = $this->effectiveResourceLanguageCode();
-        $localeDisk = ImageService::publicDiskForLanguage($locale);
+        $localeDisk = ImageStorageLayout::publicDiskForLanguage($locale);
 
         $generalFields = [
             Slug::make('Slug', 'slug')
@@ -58,14 +62,13 @@ class Author extends Resource
 
             Avatar::make(__('Photo'), 'avatar')
                 ->disk($localeDisk)
-                ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120')
-                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value) use ($locale) {
-                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
-                })
-                ->thumbnail(function ($value) use ($locale) {
-                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
-                })
+                ->rules(array_values(array_filter([
+                    'nullable',
+                    ...ImageFormatPolicy::validationRules(5120),
+                ])))
+                ->path(ImageStorageLayout::directory($this->id, ImageType::UserPhoto, ImageVariant::Original))
+                ->preview(fn ($value) => ImageUrlResolver::relative($value, $locale))
+                ->thumbnail(fn ($value) => ImageUrlResolver::relative($value, $locale))
                 ->prunable()
                 ->onlyOnForms(),
         ];
@@ -109,14 +112,13 @@ class Author extends Resource
             Avatar::make(__('Photo'), 'avatar')
                 ->disk($localeDisk)
                 ->onlyOnIndex()
-                ->preview(function ($value, $disk) {
+                ->preview(function ($value) {
                     $model = $this->resource ?? null;
-                    if (!$model || !$value) return null;
-                    $url = $model->avatar_url;
-                    if (!$url) return null;
-                    return str_starts_with($url, 'http')
-                        ? $url
-                        : ImageService::publicUrlForPath(ltrim($url, '/'), $model->language_code);
+                    if (! $model || ! $value) {
+                        return null;
+                    }
+
+                    return ImageUrlResolver::relative($value, $model->language_code);
                 }),
 
             Panel::make(__('General'), $generalFields),

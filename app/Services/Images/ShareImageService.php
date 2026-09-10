@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Images;
 
 use App\Models\Post;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Imagick;
 use ImagickDraw;
@@ -21,7 +20,7 @@ class ShareImageService
     public static function generate(Post $post): ?string
     {
         try {
-            $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
+            $disk = ImageStorageLayout::disk($post->language_code);
             $canvas = new Imagick();
             $canvas->newImage(self::WIDTH, self::HEIGHT, new ImagickPixel('#000000'));
             $canvas->setImageFormat('png');
@@ -45,7 +44,7 @@ class ShareImageService
 
     public static function getShareImageUrl(Post $post): ?string
     {
-        $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
+        $disk = ImageStorageLayout::disk($post->language_code);
         $path = self::resolveExistingShareImagePath($post, $disk);
         if ($path === null) {
             return null;
@@ -102,8 +101,12 @@ class ShareImageService
             return;
         }
 
-        $disk = Storage::disk(ImageService::publicDiskForLanguage($post->language_code));
-        $coverPath = $disk->path($post->image);
+        $disk = ImageStorageLayout::disk($post->language_code);
+        $servedRelative = ImageUrlResolver::servedRelativePath($post->image, $post->language_code);
+        if ($servedRelative === null) {
+            return;
+        }
+        $coverPath = $disk->path($servedRelative);
         if (!file_exists($coverPath)) {
             return;
         }

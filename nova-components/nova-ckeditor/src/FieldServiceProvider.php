@@ -13,10 +13,6 @@ class FieldServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        if (!$this->app->bound('ckeditor-image-storage')) {
-            $this->app->bind('ckeditor-image-storage', ImageStorage::class);
-        }
-
         if (!$this->app->bound('ckeditor-audio-storage')) {
             $this->app->bind('ckeditor-audio-storage', AudioStorage::class);
         }

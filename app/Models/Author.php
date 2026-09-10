@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use App\Enums\PostTypes;
 use App\Services\FrontendCacheTagService;
 use App\Services\FrontendRevalidationService;
-use App\Services\ImageService;
+use App\Services\Images\ImageIngestService;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageUrlResolver;
 
 class Author extends Model {
     use HasFactory;
@@ -59,18 +61,15 @@ class Author extends Model {
                 && ($author->wasRecentlyCreated || $author->wasChanged('avatar'));
 
             if ($shouldProcessAvatar) {
-                $path = ImageService::relocateOriginalIfNeeded(
+                $stored = app(ImageIngestService::class)->finalizeStored(
                     $author->id,
                     $author->avatar,
-                    ImageService::TYPE_USER_PHOTO,
-                    $author->language_code
+                    ImageType::UserPhoto,
+                    $author->language_code,
                 );
-                if (!empty($path)) {
-                    if ($path !== $author->avatar) {
-                        $author->avatar = $path;
-                        $author->saveQuietly();
-                    }
-                    ImageService::createImageVariants($author->id, $path, ImageService::TYPE_USER_PHOTO, $author->language_code);
+                if ($stored->originalPath !== $author->avatar) {
+                    $author->avatar = $stored->originalPath;
+                    $author->saveQuietly();
                 }
             }
 
@@ -116,10 +115,10 @@ class Author extends Model {
         }
         // Новый формат: avatar = user_photo/original/hash1/hash2/filename
         if (str_starts_with($this->avatar, 'user_photo/')) {
-            return ImageService::getImageUrl($this->id, $this->avatar, ImageService::TYPE_USER_PHOTO, ImageService::SIZE_ORIGINAL, false);
-        } else {
-            return null;
+            return ImageUrlResolver::relative($this->avatar, $this->language_code);
         }
+
+        return null;
     }
 
     public function posts() {

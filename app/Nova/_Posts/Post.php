@@ -13,8 +13,13 @@ use App\Nova\_Users\User;
 use App\Nova\Fields\ImageCropperDnd as ImageCropper;
 use App\Nova\Metrics\PostsPerDay;
 use App\Nova\Resource;
-use App\Services\ImageService;
-use App\Services\ShareImageService;
+use App\Rules\ImageDimensions;
+use App\Services\Images\ImageFormatPolicy;
+use App\Services\Images\ImageStorageLayout;
+use App\Services\Images\ImageType;
+use App\Services\Images\ImageUrlResolver;
+use App\Services\Images\ImageVariant;
+use App\Services\Images\ShareImageService;
 use App\Services\Nova\PostEditLockService;
 use App\Services\PostPreviewTokenService;
 use App\Support\Nova\FormActionBar;
@@ -148,7 +153,7 @@ abstract class Post extends Resource
     public function fields(Request $request)
     {
         $locale = $this->effectiveResourceLanguageCode();
-        $localeDisk = ImageService::publicDiskForLanguage($locale);
+        $localeDisk = ImageStorageLayout::publicDiskForLanguage($locale);
 
         $previewBaseUrl = $locale === 'ru'
             ? config('app.ru_edition_host')
@@ -377,13 +382,18 @@ abstract class Post extends Resource
                 ->disk($localeDisk)
                 ->croppable(3 / 2)
                 ->withMeta([
-                    'acceptedTypes' => '.jpeg,.jpg,.png,.webp',
+                    'acceptedTypes' => ImageFormatPolicy::acceptAttribute(),
+                    'acceptedExtensions' => ImageFormatPolicy::acceptedExtensions(),
                     'minWidth' => 900,
                     'minHeight' => 600,
                 ])
-                ->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=900,min_height=600')
+                ->rules(array_filter([
+                    'nullable',
+                    ...ImageFormatPolicy::validationRules(),
+                    new ImageDimensions(minWidth: 900, minHeight: 600),
+                ]))
                 ->help(
-                    __('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 900x600 px.')
+                    __('Allowed formats: jpeg, jpg, png, webp, avif. Max size: 20 MB. Minimum dimensions: 900x600 px.')
                     .(($this->resource instanceof \App\Models\Post && $this->resource->requiresCoverImage())
                         ? ' '.__('posts.image_replace_only_when_required')
                         : '')
@@ -398,6 +408,10 @@ abstract class Post extends Resource
 
                     if ($path) {
                         Storage::disk($disk)->delete($path);
+                        $display = ImageStorageLayout::displayPathFor($path);
+                        if ($display !== $path) {
+                            Storage::disk($disk)->delete($display);
+                        }
                     }
 
                     return [
@@ -411,11 +425,18 @@ abstract class Post extends Resource
                         $field->deletable(! $imageRequired);
 
                         if ($formData->boolean('ignore_image_dimension_requirements')) {
-                            $field->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480');
-                            $help = __('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions are ignored.');
+                            $field->rules(array_filter([
+                                'nullable',
+                                ...ImageFormatPolicy::validationRules(),
+                            ]));
+                            $help = __('Allowed formats: jpeg, jpg, png, webp, avif. Max size: 20 MB. Minimum dimensions are ignored.');
                         } else {
-                            $field->rules('nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:20480', 'dimensions:min_width=900,min_height=600');
-                            $help = __('Allowed formats: jpeg, jpg, png, webp. Max size: 20 MB. Minimum dimensions: 900x600 px.');
+                            $field->rules(array_filter([
+                                'nullable',
+                                ...ImageFormatPolicy::validationRules(),
+                                new ImageDimensions(minWidth: 900, minHeight: 600),
+                            ]));
+                            $help = __('Allowed formats: jpeg, jpg, png, webp, avif. Max size: 20 MB. Minimum dimensions: 900x600 px.');
                         }
 
                         if ($imageRequired) {
@@ -426,13 +447,9 @@ abstract class Post extends Resource
                     }
                 )
                 ->nullable()
-                ->path(ImageService::getImagePath($this->id, ImageService::TYPE_POST_COVER, ImageService::SIZE_ORIGINAL))
-                ->preview(function ($value) use ($locale) {
-                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
-                })
-                ->thumbnail(function ($value) use ($locale) {
-                    return $value ? ImageService::publicUrlForPath($value, $locale) : null;
-                }),
+                ->path(ImageStorageLayout::directory($this->id, ImageType::PostCover, ImageVariant::Original))
+                ->preview(fn ($value) => ImageUrlResolver::relative($value, $locale))
+                ->thumbnail(fn ($value) => ImageUrlResolver::relative($value, $locale)),
 
             Text::make(__('Image description'), 'image_description')
                 ->hideFromDetail()
@@ -521,7 +538,11 @@ abstract class Post extends Resource
                         ->default(true),
                     ImageGallery::make(__('Image list'), 'images')
                         ->storageDisk($localeDisk)
-                        ->withMeta(['imageType' => ImageService::TYPE_CONTENT_IMAGE])
+                        ->withMeta([
+                            'imageType' => ImageType::ContentImage->value,
+                            'acceptedTypes' => ImageFormatPolicy::acceptAttribute(),
+                            'acceptedExtensions' => ImageFormatPolicy::acceptedExtensions(),
+                        ])
                         ->fullWidth()
                         ->stacked()
                         ->rules('nullable'),
@@ -871,7 +892,7 @@ abstract class Post extends Resource
                         return null;
                     }
 
-                    $url = ImageService::publicUrlForPath($this->image, $this->language_code);
+                    $url = ImageUrlResolver::absolute($this->image, $this->language_code);
 
                     return '<img src="'.e($url).'" style="max-width: 512px; height: auto; display:block;" />';
                 })->asHtml(),

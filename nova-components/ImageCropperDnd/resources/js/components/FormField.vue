@@ -631,7 +631,15 @@ export default {
       if (lastDotIndex === -1) return false;
 
       const extension = fileName.slice(lastDotIndex + 1);
-      const allowedExtensions = new Set(["jpeg", "jpg", "png", "webp"]);
+      const fromMeta = Array.isArray(this.field?.acceptedExtensions)
+        ? this.field.acceptedExtensions
+        : null;
+      const allowedExtensions = new Set(
+        (fromMeta && fromMeta.length
+          ? fromMeta
+          : ["jpeg", "jpg", "png", "webp", "avif"]
+        ).map((ext) => String(ext).toLowerCase().replace(/^\./, ""))
+      );
 
       return allowedExtensions.has(extension);
     },

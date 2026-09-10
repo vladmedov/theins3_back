@@ -3,7 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Enums\PostTypes;
-use App\Services\ImageService;
+use App\Services\Images\ImageRenditionGenerator;
+use App\Services\Images\ImageStorageLayout;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -214,7 +215,7 @@ class FillGalleryImageDimensions extends Command
             foreach ($rows as $row) {
                 try {
                     $languageCode = $row->language_code ?? 'ru';
-                    $dims = ImageService::getImageDimensions($row->image, $languageCode);
+                    $dims = $this->readImageDimensions($row->image, $languageCode);
                     if ($dims === null) {
                         $coversSkipped++;
                         $unreadableCoverPostIds[] = (int) $row->id;
@@ -305,7 +306,7 @@ class FillGalleryImageDimensions extends Command
                 continue;
             }
 
-            $dims = ImageService::getImageDimensions($link, $languageCode);
+            $dims = $this->readImageDimensions($link, $languageCode);
             if ($dims === null) {
                 continue;
             }
@@ -316,5 +317,22 @@ class FillGalleryImageDimensions extends Command
         }
 
         return $list;
+    }
+
+    /**
+     * @return array{width: int, height: int}|null
+     */
+    private function readImageDimensions(?string $relativePath, ?string $languageCode): ?array
+    {
+        if ($relativePath === null || $relativePath === '') {
+            return null;
+        }
+
+        $disk = ImageStorageLayout::disk($languageCode);
+        if (! $disk->exists($relativePath)) {
+            return null;
+        }
+
+        return ImageRenditionGenerator::dimensions($disk->path($relativePath));
     }
 }

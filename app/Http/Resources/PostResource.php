@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use App\Enums\PostTypes;
 use App\Models\Post;
 use App\Services\ContentInsertionCodeService;
-use App\Services\ImageService;
+use App\Services\Images\ImageUrlResolver;
 use App\Services\TerminSpanPublicTransformer;
 
 use App\Traits\HasWidgets;
@@ -75,7 +75,7 @@ class PostResource extends JsonResource
             'seo_title' => $this->seo_title ?? "",
             'seo_description' => $this->seo_description ?? "",
             'seo_keywords' => $this->seo_keywords ?? "",
-            'share_image' => \App\Services\ShareImageService::getShareImageUrl($this->resource) ?? "",
+            'share_image' => \App\Services\Images\ShareImageService::getShareImageUrl($this->resource) ?? "",
             'widgets' => $this->getWidgets(),
         ]);
     }
@@ -123,12 +123,7 @@ class PostResource extends JsonResource
                 $imageId = $image['id'] ?? null;
                 $link = $image['link'] ?? null;
                 if ($link && $imageId) {
-                    $imageType = $type === 'online'
-                        ? ImageService::TYPE_ONLINE_IMAGE
-                        : ImageService::TYPE_CONTENT_IMAGE;
-                    $images[$i]['link'] = ImageService::getImageUrl(
-                        $imageId, $link, $imageType, ImageService::SIZE_ORIGINAL, false
-                    );
+                    $images[$i]['link'] = ImageUrlResolver::relative($link, $this->language_code);
                 }
                 if (isset($image['width']) && is_numeric($image['width'])) {
                     $images[$i]['width'] = (int) $image['width'];

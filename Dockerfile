@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo-dev \
     libpng-dev \
     libwebp-dev \
+    libheif-dev \
     libmagickwand-dev \
     && docker-php-ext-configure zip \
     && docker-php-ext-install -j"$(nproc)" pdo pdo_pgsql zip exif opcache \

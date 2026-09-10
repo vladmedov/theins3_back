@@ -28,7 +28,9 @@ use Medov\ImageGallery\ImageGallery;
 use Medov\DateTimeSplit\DateTimeSplit;
 
 use App\Nova\_Users\User;
-use App\Services\ImageService;
+use App\Services\Images\ImageFormatPolicy;
+use App\Services\Images\ImageStorageLayout;
+use App\Services\Images\ImageType;
 
 class OnlineMessage extends Resource
 {
@@ -42,7 +44,7 @@ class OnlineMessage extends Resource
     public function fields(NovaRequest $request): array
     {
         $locale = $this->effectiveResourceLanguageCode();
-        $localeDisk = ImageService::publicDiskForLanguage($locale);
+        $localeDisk = ImageStorageLayout::publicDiskForLanguage($locale);
 
         $generalFields = [
             BelongsTo::make(__('Online'), 'online', PostOnline::class)
@@ -180,7 +182,11 @@ class OnlineMessage extends Resource
             Panel::make(__('Images'), [
                 ImageGallery::make(__('Image list'), 'images')
                     ->storageDisk($localeDisk)
-                    ->withMeta(['imageType' => ImageService::TYPE_ONLINE_IMAGE])
+                    ->withMeta([
+                        'imageType' => ImageType::OnlineImage->value,
+                        'acceptedTypes' => ImageFormatPolicy::acceptAttribute(),
+                        'acceptedExtensions' => ImageFormatPolicy::acceptedExtensions(),
+                    ])
                     ->onlyOnForms()
                     ->fullWidth()
                     ->stacked()
