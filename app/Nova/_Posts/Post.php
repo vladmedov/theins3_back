@@ -448,8 +448,8 @@ abstract class Post extends Resource
                 )
                 ->nullable()
                 ->path(ImageStorageLayout::directory($this->id, ImageType::PostCover, ImageVariant::Original))
-                ->preview(fn ($value) => ImageUrlResolver::relative($value, $locale))
-                ->thumbnail(fn ($value) => ImageUrlResolver::relative($value, $locale)),
+                ->preview(fn ($value) => ImageUrlResolver::absolute($value, $locale))
+                ->thumbnail(fn ($value) => ImageUrlResolver::absolute($value, $locale)),
 
             Text::make(__('Image description'), 'image_description')
                 ->hideFromDetail()

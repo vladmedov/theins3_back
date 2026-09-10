@@ -69,8 +69,8 @@ class InvestigationTheme extends Resource
                 ])))
                 ->nullable()
                 ->path(ImageStorageLayout::directory($this->id, ImageType::ThemeCover, ImageVariant::Original))
-                ->preview(fn ($value) => ImageUrlResolver::relative($value, $locale))
-                ->thumbnail(fn ($value) => ImageUrlResolver::relative($value, $locale)),
+                ->preview(fn ($value) => ImageUrlResolver::absolute($value, $locale))
+                ->thumbnail(fn ($value) => ImageUrlResolver::absolute($value, $locale)),
 
             Slug::make('Slug', 'slug')
                 ->onlyOnForms()

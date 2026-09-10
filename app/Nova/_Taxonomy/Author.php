@@ -67,8 +67,8 @@ class Author extends Resource
                     ...ImageFormatPolicy::validationRules(5120),
                 ])))
                 ->path(ImageStorageLayout::directory($this->id, ImageType::UserPhoto, ImageVariant::Original))
-                ->preview(fn ($value) => ImageUrlResolver::relative($value, $locale))
-                ->thumbnail(fn ($value) => ImageUrlResolver::relative($value, $locale))
+                ->preview(fn ($value) => ImageUrlResolver::absolute($value, $locale))
+                ->thumbnail(fn ($value) => ImageUrlResolver::absolute($value, $locale))
                 ->prunable()
                 ->onlyOnForms(),
         ];
@@ -118,7 +118,7 @@ class Author extends Resource
                         return null;
                     }
 
-                    return ImageUrlResolver::relative($value, $model->language_code);
+                    return ImageUrlResolver::absolute($value, $model->language_code);
                 }),
 
             Panel::make(__('General'), $generalFields),
