@@ -293,12 +293,7 @@ abstract class Post extends Resource
                 ->asHtml(),
 
             Text::make(__('Title'), 'title')
-                ->rules('required', 'max:140')
-                ->help(__('Autosave is enabled for this field.'))
-                ->withMeta(['extraAttributes' => [
-                    'data-char-counter' => 'title',
-                    'data-post-autosave-field' => '1',
-                ]])
+                ->onlyOnIndex()
                 ->displayUsing(function ($title, $resource) use ($request) {
                     $url = config('nova.path').static::redirectAfterUpdate($request, $this);
 
@@ -307,6 +302,17 @@ abstract class Post extends Resource
                         : "<a href='{$url}'><div class='nova_view_post_title'>{$title}</div></a>";
                 })
                 ->asHtml(),
+
+            Textarea::make(__('Title'), 'title')
+                ->onlyOnForms()
+                ->rows(1)
+                ->alwaysShow()
+                ->rules('required', 'max:140')
+                ->help(__('Autosave is enabled for this field.'))
+                ->withMeta(['extraAttributes' => [
+                    'data-char-counter' => 'title',
+                    'data-post-autosave-field' => '1',
+                ]]),
 
             \App\Models\Category::where('type', CategoryTypes::getCategoryTypeByPostType(static::getPostType()))
                 ->where('language_code', $locale)

@@ -6,6 +6,7 @@
     justify-content: center;
     flex-shrink: 0;
     min-width: 52px;
+    min-height: 36px;
     padding: 0 10px;
     font-size: 12px;
     font-weight: 600;
@@ -15,6 +16,15 @@
     border: 1px solid #d1d5db;
     border-radius: 6px;
     background: #f9fafb;
+}
+
+/* Compact auto-growing post title on forms */
+textarea[data-char-counter="title"] {
+    resize: none !important;
+    overflow: hidden !important;
+    min-height: 36px;
+    line-height: 1.4;
+    field-sizing: content;
 }
 
 .nova_view_post_title {
