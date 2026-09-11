@@ -5,6 +5,7 @@ namespace App\Nova\_Taxonomy;
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\PageTitle;
 use App\Support\Nova\PanelWithoutHeader;
+use App\Support\Nova\SlugField;
 use App\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -18,7 +19,6 @@ use Laravel\Nova\Panel;
 use Laravel\Nova\Fields\Hidden;
 
 use Laravel\Nova\Fields\ID;
-use Laravel\Nova\Fields\Slug;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\Textarea;
 use Laravel\Nova\Fields\Avatar;
@@ -43,10 +43,7 @@ class Author extends Resource
         $localeDisk = ImageService::publicDiskForLanguage($locale);
 
         $generalFields = [
-            Slug::make('Slug', 'slug')
-                ->from('last_name', 'last_name')
-                ->sortable()
-                ->rules('required', 'max:255'),
+            SlugField::make('authors', from: 'last_name'),
 
             Text::make(__('First name'), 'first_name')
                 ->sortable()

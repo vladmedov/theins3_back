@@ -178,6 +178,10 @@ return [
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],
+        'slug' => [
+            'unique' => 'This URL slug is already taken.',
+            'regex' => 'The slug may only contain lowercase Latin letters, numbers and hyphens, without spaces.',
+        ],
     ],
 
     /*

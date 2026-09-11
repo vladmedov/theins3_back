@@ -20,6 +20,7 @@ use App\Services\PostPreviewTokenService;
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\PageTitle;
 use App\Support\Nova\PanelWithoutHeader;
+use App\Support\Nova\SlugField;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -713,11 +714,9 @@ abstract class Post extends Resource
                 ->hideFromDetail()
                 ->asHtml(),
 
-            Text::make('Slug (URL)', 'slug')
+            SlugField::make('posts', max: 140, required: false, name: 'Slug (URL)', asText: true)
                 ->onlyOnForms()
-                ->sortable()
-                ->fullWidth()
-                ->rules('max:140'),
+                ->fullWidth(),
 
             Text::make(__('Page title'), 'seo_title')
                 ->hideFromIndex()

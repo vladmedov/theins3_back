@@ -5,6 +5,7 @@ namespace App\Nova\_Taxonomy;
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\PageTitle;
 use App\Support\Nova\PanelWithoutHeader;
+use App\Support\Nova\SlugField;
 use App\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -15,7 +16,6 @@ use Laravel\Nova\Resource as NovaResource;
 
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
-use Laravel\Nova\Fields\Slug;
 use Laravel\Nova\Fields\Textarea;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Image;
@@ -69,11 +69,8 @@ class InvestigationTheme extends Resource
                     return $value ? ImageService::publicUrlForPath($value, $locale) : null;
                 }),
 
-            Slug::make('Slug', 'slug')
-                ->onlyOnForms()
-                ->from('title')
-                ->sortable()
-                ->rules('required', 'max:255'),
+            SlugField::make('investigation_themes', from: 'title')
+                ->onlyOnForms(),
 
             Number::make(__('Position'), 'position')
                 ->onlyOnForms()

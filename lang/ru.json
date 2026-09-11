@@ -8,6 +8,7 @@
     "Auto-queue": "Авто-очередь",
     "Auto-queue marker": "А",
     "Autosave is enabled for this field.": "Включено автосохранение поля.",
+    "Slug is the short URL part of the page. Use only lowercase Latin letters, numbers and hyphens. Spaces are not allowed.": "Slug — короткая часть URL страницы. Используйте только строчные латинские буквы, цифры и дефисы. Пробелы недопустимы.",
     "Cancel image selection": "Отменить выбор изображения",
     "Choose image": "Выбрать изображение",
     "Could not delete the image. Please try again.": "Не удалось удалить изображение. Попробуйте еще раз.",

@@ -5,6 +5,7 @@ namespace App\Nova\_Taxonomy;
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\PageTitle;
 use App\Support\Nova\PanelWithoutHeader;
+use App\Support\Nova\SlugField;
 use App\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -15,7 +16,6 @@ use Laravel\Nova\Resource as NovaResource;
 
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
-use Laravel\Nova\Fields\Slug;
 use Laravel\Nova\Fields\Hidden;
 use Laravel\Nova\Panel;
 
@@ -36,10 +36,7 @@ class Tag extends Resource
                 ->sortable()
                 ->rules('required', 'max:255'),
 
-            Slug::make('Slug', 'slug')
-                ->from('title')
-                ->sortable()
-                ->rules('required', 'max:255'),
+            SlugField::make('tags', from: 'title'),
 
             Text::make(__('Posts count'), function () {
                 return $this->posts()->count();

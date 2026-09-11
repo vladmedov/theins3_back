@@ -5,6 +5,7 @@ namespace App\Nova\_Taxonomy;
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\PageTitle;
 use App\Support\Nova\PanelWithoutHeader;
+use App\Support\Nova\SlugField;
 use App\Nova\Resource;
 
 use Illuminate\Http\Request;
@@ -49,9 +50,7 @@ class Category extends Resource
                 ->sortable()
                 ->rules('required', 'max:255'),
     
-            Text::make(__('Slug'), 'slug')
-                ->sortable()
-                ->rules('required', 'max:255'),
+            SlugField::make('categories', name: __('Slug')),
     
             Select::make(__('Category type'), 'type')
                 ->options(CategoryTypes::all())
