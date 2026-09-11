@@ -1603,9 +1603,16 @@
      *
      * Решение: ловим pointerdown (до blur/re-render), захватываем режим кнопки,
      * выполняем действие через setTimeout(0) — после того как Vue закончит ре-рендер.
+     *
+     * Важно: Nova Slug (Customize / keypress) часто вызывает ре-рендер между
+     * pointerdown и click. Тогда timeout уже выполнил save и обнулил pendingAction,
+     * а click по отсоединённой кнопке запускал save второй раз. Дедуп по token жеста.
      */
     (function installFormActionBarClickDelegation() {
         var pendingAction = null;
+        var gestureSeq = 0;
+        var executedGestureToken = 0;
+        var lastPointerGesture = null;
 
         function findNovaSubmit() {
             var form = findNovaResourceForm();
@@ -1613,7 +1620,14 @@
             return (form && form.querySelector(sel)) || document.querySelector(sel);
         }
 
-        function executeFabAction(mode, originButton) {
+        function executeFabAction(mode, originButton, gestureToken) {
+            if (gestureToken != null) {
+                if (executedGestureToken === gestureToken) {
+                    return;
+                }
+                executedGestureToken = gestureToken;
+            }
+
             if (mode === 'native') {
                 var b = findNovaSubmit();
                 if (b) b.click();
@@ -1631,12 +1645,17 @@
             if (!btn || btn.tagName !== 'BUTTON') return;
             var mode = btn.getAttribute('data-nova-form-action-bar-click');
             if (!mode) return;
-            pendingAction = { mode: mode, button: btn };
+
+            gestureSeq += 1;
+            var token = gestureSeq;
+            lastPointerGesture = { token: token, at: Date.now() };
+            pendingAction = { mode: mode, button: btn, token: token };
+
             setTimeout(function () {
-                if (!pendingAction) return;
+                if (!pendingAction || pendingAction.token !== token) return;
                 var action = pendingAction;
                 pendingAction = null;
-                executeFabAction(action.mode, action.button);
+                executeFabAction(action.mode, action.button, action.token);
             }, 0);
         }, true);
 
@@ -1646,9 +1665,28 @@
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            if (pendingAction) return;
+
+            if (pendingAction) {
+                var action = pendingAction;
+                pendingAction = null;
+                executeFabAction(action.mode, action.button, action.token);
+                return;
+            }
+
+            // Timeout уже отработал после blur/re-render slug — не повторять save.
+            if (
+                lastPointerGesture
+                && executedGestureToken === lastPointerGesture.token
+                && Date.now() - lastPointerGesture.at < 1000
+            ) {
+                return;
+            }
+
             var mode = btn.getAttribute('data-nova-form-action-bar-click');
-            if (mode) executeFabAction(mode, btn);
+            if (mode) {
+                gestureSeq += 1;
+                executeFabAction(mode, btn, gestureSeq);
+            }
         }, true);
     })();
 
