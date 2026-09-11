@@ -1,30 +1,48 @@
 /* App-specific Nova widgets */
 
+.nova-post-title-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+}
+
 .nova-title-counter {
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    min-width: 52px;
-    min-height: 36px;
-    padding: 0 10px;
+    align-self: stretch;
+    box-sizing: border-box;
+    margin: 0;
+    width: 3.75rem; /* fits "140/140" */
+    min-width: 3.75rem;
+    max-width: 3.75rem;
+    padding: 0;
     font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     color: #6b7280;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background: #f9fafb;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+}
+
+.nova-title-counter.is-over {
+    color: #dc2626;
+    background: #fee2e2;
 }
 
 /* Compact auto-growing post title on forms */
 textarea[data-char-counter="title"] {
+    box-sizing: border-box;
+    margin: 0;
+    width: 100%;
     resize: none !important;
     overflow: hidden !important;
-    min-height: 36px;
-    line-height: 1.4;
-    field-sizing: content;
+    line-height: 1.5;
 }
 
 .nova_view_post_title {

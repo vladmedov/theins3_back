@@ -208,6 +208,12 @@
         el.style.height = el.scrollHeight + 'px';
     }
 
+    function syncCounterToField(input, counter) {
+        autosizeTitle(input);
+        // Exact match to field height so tops/bottoms stay aligned
+        counter.style.height = input.offsetHeight + 'px';
+    }
+
     function attachCounter() {
         var input = document.querySelector('[data-char-counter="title"]');
         if (!input || input.dataset.counterAttached) return;
@@ -218,18 +224,14 @@
 
         function update() {
             counter.textContent = input.value.length + '/140';
-            counter.style.color = input.value.length > 140 ? '#dc2626' : '';
-            counter.style.borderColor = input.value.length > 140 ? '#fca5a5' : '';
-            autosizeTitle(input);
+            counter.classList.toggle('is-over', input.value.length > 140);
+            syncCounterToField(input, counter);
         }
 
         input.addEventListener('input', update);
-        update();
 
-        // Create a dedicated row wrapper — avoids touching the parent's Tailwind flex-col
         var row = document.createElement('div');
         row.className = 'nova-post-title-row';
-        row.style.cssText = 'display:flex;flex-direction:row;align-items:flex-start;width:100%;gap:8px;';
         input.parentNode.insertBefore(row, input);
         row.appendChild(input);
         row.appendChild(counter);
@@ -237,9 +239,9 @@
         input.style.flex = '1';
         input.style.minWidth = '0';
 
-        // Re-measure after fonts/layout settle
-        requestAnimationFrame(function () { autosizeTitle(input); });
-        setTimeout(function () { autosizeTitle(input); }, 50);
+        update();
+        requestAnimationFrame(function () { syncCounterToField(input, counter); });
+        setTimeout(function () { syncCounterToField(input, counter); }, 50);
 
         stopPoll();
     }
@@ -266,7 +268,8 @@
 
     window.addEventListener('resize', function () {
         var input = document.querySelector('[data-char-counter="title"]');
-        autosizeTitle(input);
+        var counter = document.querySelector('.nova-title-counter');
+        if (input && counter) syncCounterToField(input, counter);
     });
 
     startPoll();
