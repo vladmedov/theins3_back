@@ -10,7 +10,7 @@ final class ImageFormatPolicy
 
     public const DISPLAY_EXTENSION = 'jpg';
 
-    public const JPEG_QUALITY = 100;
+    public const JPEG_QUALITY = 90;
 
     public const MAX_KILOBYTES = 20480;
 
