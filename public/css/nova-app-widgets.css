@@ -1,24 +1,47 @@
 /* App-specific Nova widgets */
 
+/*
+ * Reserve counter gutter from first paint (before JS wraps the field),
+ * so the title width does not jump when the counter mounts.
+ */
+textarea[data-char-counter="title"] {
+    --nova-title-counter-w: 3.75rem;
+    --nova-title-counter-gap: 8px;
+    box-sizing: border-box;
+    display: block;
+    margin: 0;
+    width: calc(100% - var(--nova-title-counter-w) - var(--nova-title-counter-gap)) !important;
+    max-width: calc(100% - var(--nova-title-counter-w) - var(--nova-title-counter-gap));
+    min-height: 2.5rem;
+    resize: none !important;
+    overflow: hidden !important;
+    line-height: 1.5;
+}
+
 .nova-post-title-row {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
+    position: relative;
+    display: block;
     width: 100%;
-    gap: 8px;
+}
+
+.nova-post-title-row textarea[data-char-counter="title"] {
+    /* Same reserved width as before wrap — no layout jump */
+    width: calc(100% - var(--nova-title-counter-w) - var(--nova-title-counter-gap)) !important;
+    max-width: calc(100% - var(--nova-title-counter-w) - var(--nova-title-counter-gap));
 }
 
 .nova-title-counter {
+    position: absolute;
+    top: 0;
+    right: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    align-self: stretch;
     box-sizing: border-box;
     margin: 0;
-    width: 3.75rem; /* fits "140/140" */
-    min-width: 3.75rem;
-    max-width: 3.75rem;
+    width: var(--nova-title-counter-w, 3.75rem);
+    min-width: var(--nova-title-counter-w, 3.75rem);
+    max-width: var(--nova-title-counter-w, 3.75rem);
     padding: 0;
     font-size: 12px;
     font-weight: 600;
@@ -28,21 +51,12 @@
     border: none;
     border-radius: 4px;
     background: transparent;
+    pointer-events: none;
 }
 
 .nova-title-counter.is-over {
     color: #dc2626;
     background: #fee2e2;
-}
-
-/* Compact auto-growing post title on forms */
-textarea[data-char-counter="title"] {
-    box-sizing: border-box;
-    margin: 0;
-    width: 100%;
-    resize: none !important;
-    overflow: hidden !important;
-    line-height: 1.5;
 }
 
 .nova_view_post_title {
