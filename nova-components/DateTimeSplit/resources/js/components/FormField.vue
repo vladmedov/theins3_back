@@ -10,7 +10,7 @@
         <Datepicker
           v-model="dateTimeValue"
           :enable-time-picker="true"
-          text-input
+          :text-input="textInputOptions"
           :format="formatDateTimeForDisplay"
           :disabled="currentlyIsReadonly"
           :clearable="!field.required"
@@ -45,7 +45,12 @@ export default {
 
   data() {
     return {
-      dateTimeValue: null
+      dateTimeValue: null,
+      textInputOptions: {
+        format: 'dd.MM.yyyy HH:mm:ss',
+        enterSubmit: true,
+        tabSubmit: true,
+      },
     }
   },
 
@@ -53,7 +58,6 @@ export default {
     if (this.field.value) {
       this.value = this.field.value;
       this.dateTimeValue = new Date(this.field.value);
-      console.log('Инициализировано значение:', this.dateTimeValue);
     }
   },
 
