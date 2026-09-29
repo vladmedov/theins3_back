@@ -16,7 +16,6 @@ use App\Nova\Resource;
 use App\Services\ImageService;
 use App\Services\ShareImageService;
 use App\Services\Nova\PostEditLockService;
-use App\Services\PostPreviewTokenService;
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\PageTitle;
 use App\Support\Nova\PanelWithoutHeader;
@@ -159,18 +158,9 @@ abstract class Post extends Resource
             : null;
 
         $isDraft = $this->exists && $this->status === 'draft';
+        $previewHref = null;
         if ($postUrl && $isDraft) {
-            $token = app(PostPreviewTokenService::class)->createToken($this->resource);
-            $postUrl .= (str_contains($postUrl, '?') ? '&' : '?').'preview='.$token;
-        }
-
-        $previewNotice = '';
-        $previewNoticeExpiresAt = null;
-        if ($isDraft && $postUrl) {
-            $expiresAt = Carbon::now()->addMinutes(PostPreviewTokenService::TTL_MINUTES);
-            $previewNoticeExpiresAt = $expiresAt->copy()->toIso8601String();
-            $previewNotice = __('Preview valid until').' ...';
-            $previewNotice .= ' · '.__('To refresh the token, reload the page.');
+            $previewHref = route('nova.post-preview', ['post' => $this->resource->getKey()]);
         }
 
         // Form Action Bars
@@ -182,13 +172,10 @@ abstract class Post extends Resource
             'toggle_publish' => $this->exists ? [
                 'status' => $this->status,
             ] : null,
-            'url' => $postUrl ? [
+            'url' => $postUrl ? array_filter([
                 'url' => $postUrl,
-                'notice' => $previewNotice ?: null,
-                'noticeExpiresAt' => $previewNoticeExpiresAt,
-                'noticePrefix' => __('Preview valid until'),
-                'noticeSuffix' => __('To refresh the token, reload the page.'),
-            ] : null,
+                'href' => $previewHref,
+            ]) : null,
             'autosave' => $this->exists ? [
                 'enabled' => $isDraft,
                 'updated_at' => $this->updated_at,

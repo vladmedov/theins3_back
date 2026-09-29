@@ -30,6 +30,7 @@ Route::prefix('{language_code}')->where(['language_code' => 'en|ru'])->group(fun
     Route::get('/columnist/{slug}', [UserController::class, 'getColumnist']);
 
     Route::get('/post/{category_slug}/{slug}', [PostController::class, 'getPost']);
+    Route::get('/post-preview/exchange', [PostController::class, 'exchangePostPreview']);
     Route::get('/post-preview', [PostController::class, 'getPostPreview']);
     
     Route::post('/track-view', [TrackingPixelController::class, 'trackView']);

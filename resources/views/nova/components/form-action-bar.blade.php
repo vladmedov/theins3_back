@@ -70,7 +70,7 @@
                     <span class="nova-form-action-bar__url-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                         <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;">{{ $linkBlock['eyebrow'] }}</span>
                         <span class="nova-form-action-bar__url-chip">
-                            <a href="{{ $linkBlock['url'] }}" target="_blank" class="nova-form-action-bar__url-link">{{ $linkBlock['url'] }}</a>
+                            <a href="{{ $linkBlock['href'] ?? $linkBlock['url'] }}" target="_blank" class="nova-form-action-bar__url-link">{{ $linkBlock['url'] }}</a>
                             @if (!empty($linkBlock['copyable']))
                                 <button
                                     type="button"
@@ -103,7 +103,7 @@
             <span class="nova-form-action-bar__url-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:#9ca3af;text-transform:uppercase;white-space:nowrap;">{{ $linkBlock['eyebrow'] }}</span>
                 <span class="nova-form-action-bar__url-chip">
-                    <a href="{{ $linkBlock['url'] }}" target="_blank" class="nova-form-action-bar__url-link">{{ $linkBlock['url'] }}</a>
+                    <a href="{{ $linkBlock['href'] ?? $linkBlock['url'] }}" target="_blank" class="nova-form-action-bar__url-link">{{ $linkBlock['url'] }}</a>
                     @if (!empty($linkBlock['copyable']))
                         <button
                             type="button"

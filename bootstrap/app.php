@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: '*');
         $middleware->append(EncryptCookies::class);
         $middleware->append(AddQueuedCookiesToResponse::class);
         $middleware->append(StartSession::class);
