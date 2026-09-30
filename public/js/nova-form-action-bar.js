@@ -1029,7 +1029,11 @@
         state.validationScrollLockUntil = Date.now() + 8000;
     }
 
-    function findNovaComponentInstance(predicate) {
+    function findNovaComponentInstance(predicate, options) {
+        const collectAll = !!(options && options.all);
+        const quiet = !!(options && options.quiet);
+        const matches = [];
+
         try {
             const app = window.Nova && window.Nova.app;
             const root = app && (
@@ -1038,14 +1042,16 @@
             );
 
             if (!root) {
-                console.log('[NovaCustomSave] resetErrors: Nova root instance not found', {
-                    hasNova: !!window.Nova,
-                    hasApp: !!app,
-                    appKeys: app ? Object.keys(app) : [],
-                    hasContainer: !!(app && app._container),
-                    hasContainerVNode: !!(app && app._container && app._container._vnode),
-                });
-                return null;
+                if (!quiet) {
+                    console.log('[NovaCustomSave] resetErrors: Nova root instance not found', {
+                        hasNova: !!window.Nova,
+                        hasApp: !!app,
+                        appKeys: app ? Object.keys(app) : [],
+                        hasContainer: !!(app && app._container),
+                        hasContainerVNode: !!(app && app._container && app._container._vnode),
+                    });
+                }
+                return collectAll ? matches : null;
             }
 
             const seen = new Set();
@@ -1062,15 +1068,23 @@
                     scanned++;
                     try {
                         if (predicate(proxy, node)) {
-                            console.log('[NovaCustomSave] resetErrors: matched component', {
-                                componentName: proxy.$options && proxy.$options.name,
-                                formUniqueId: proxy.formUniqueId || (proxy.$props && proxy.$props.formUniqueId) || null,
-                                scanned: scanned,
-                            });
-                            return proxy;
+                            if (!quiet) {
+                                console.log('[NovaCustomSave] resetErrors: matched component', {
+                                    componentName: proxy.$options && proxy.$options.name,
+                                    formUniqueId: proxy.formUniqueId || (proxy.$props && proxy.$props.formUniqueId) || null,
+                                    scanned: scanned,
+                                });
+                            }
+                            if (collectAll) {
+                                matches.push(proxy);
+                            } else {
+                                return proxy;
+                            }
                         }
                     } catch (e) {
-                        console.log('[NovaCustomSave] resetErrors: predicate error', e);
+                        if (!quiet) {
+                            console.log('[NovaCustomSave] resetErrors: predicate error', e);
+                        }
                     }
                 }
 
@@ -1097,14 +1111,106 @@
                     node.dynamicChildren.forEach(function (child) { if (child) stack.push(child); });
                 }
             }
-            console.log('[NovaCustomSave] resetErrors: no matching component found', {
-                scanned: scanned,
-            });
+            if (!collectAll && !quiet) {
+                console.log('[NovaCustomSave] resetErrors: no matching component found', {
+                    scanned: scanned,
+                });
+            }
         } catch (e) {
-            console.log('[NovaCustomSave] resetErrors: component search crashed', e);
+            if (!quiet) {
+                console.log('[NovaCustomSave] resetErrors: component search crashed', e);
+            }
         }
 
-        return null;
+        return collectAll ? matches : null;
+    }
+
+    function parseJsonResponse(text) {
+        if (!text || typeof text !== 'string') return null;
+
+        try {
+            const data = JSON.parse(text);
+            return data && typeof data === 'object' ? data : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function serverUpdatedAtFromPayload(payload) {
+        if (!payload || payload.updated_at == null || payload.updated_at === '') return null;
+
+        const seconds = Number(payload.updated_at);
+        if (!Number.isFinite(seconds) || seconds <= 0) return null;
+
+        return Math.floor(seconds);
+    }
+
+    function isUpdateFieldsRequest(method, url) {
+        if (String(method || '').toLowerCase() !== 'get') return false;
+
+        try {
+            const parsedUrl = new URL(String(url || ''), window.location.origin);
+            return /\/nova-api\/[^/]+\/[^/]+\/update-fields$/.test(parsedUrl.pathname);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /** PUT /nova-api/{resource}/{id} — не update-fields и не вложенные field-запросы */
+    function isExactResourceUpdateEndpoint(url) {
+        const resourceKey = currentResourceKey();
+        const resourceId = currentResourceId();
+
+        if (!resourceKey || !resourceId || resourceId === 'new') return false;
+
+        try {
+            const parsedUrl = new URL(String(url || ''), window.location.origin);
+            const idBase = '/nova-api/' + resourceKey + '/' + resourceId;
+            return parsedUrl.pathname === idBase || parsedUrl.pathname === idBase + '/';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function novaApiResourceFromUrl(url) {
+        try {
+            const parsedUrl = new URL(String(url || ''), window.location.origin);
+            const match = parsedUrl.pathname.match(/\/nova-api\/([^/]+)\/([^/]+)(?:\/|$)/);
+            if (!match) return null;
+
+            return {
+                name: decodeURIComponent(match[1]),
+                id: decodeURIComponent(match[2]),
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /**
+     * Nova после ответа сама ставит lastRetrievedAt = Date.now().
+     * Откладываем запись серверного updated_at, чтобы она шла следом и не зависела от часов браузера.
+     */
+    function applyServerRetrievedAt(unixSeconds, resourceName, resourceId) {
+        const seconds = Math.floor(Number(unixSeconds));
+        if (!Number.isFinite(seconds) || seconds <= 0) return;
+        if (!resourceName || resourceId == null || resourceId === '') return;
+
+        setTimeout(function () {
+            const instances = findNovaComponentInstance(function (proxy) {
+                if (!proxy || typeof proxy.updateLastRetrievedAtTimestamp !== 'function') return false;
+                if (proxy.relatedResourceName) return false;
+                if (!proxy.resourceName || String(proxy.resourceName) !== String(resourceName)) return false;
+                if (proxy.resourceId == null || String(proxy.resourceId) !== String(resourceId)) return false;
+                return true;
+            }, { all: true, quiet: true });
+
+            if (!instances || !instances.length) return;
+
+            instances.forEach(function (instance) {
+                instance.lastRetrievedAt = seconds;
+            });
+        }, 0);
     }
 
     function resetNovaValidationErrorsForCurrentForm() {
@@ -1176,7 +1282,7 @@
         }
     }
 
-    function markRequestResult(status, method, url) {
+    function markRequestResult(status, method, url, payload) {
         if (state.simpleSubmitLocked && saveEndpointMatchesCurrent(url) && status >= 200) {
             unlockSimpleSubmitButton();
         }
@@ -1207,10 +1313,17 @@
 
         const statusStripPresent = getAutosaveStatusRoots().length > 0;
         const resourceUpdate = isExistingResource() && saveEndpointMatchesCurrent(url);
+        const serverUpdatedAt = isExactResourceUpdateEndpoint(url) ? serverUpdatedAtFromPayload(payload) : null;
+        const savedAtDate = serverUpdatedAt ? new Date(serverUpdatedAt * 1000) : new Date();
+        const updatedResource = novaApiResourceFromUrl(url);
+
+        if (serverUpdatedAt && updatedResource) {
+            applyServerRetrievedAt(serverUpdatedAt, updatedResource.name, updatedResource.id);
+        }
 
         // Обычное сохранение Nova (не через saveWithoutReload): обновить «Сохранено …» у опубликованных и др.
         if (!state.active && statusStripPresent && resourceUpdate && !state.currentAttemptHad422) {
-            updateAutosaveSavedAt(new Date());
+            updateAutosaveSavedAt(savedAtDate);
             setTimeout(function () {
                 syncStayButtonsOriginalStatusFromSelect();
                 refreshTogglePublishButtons();
@@ -1235,7 +1348,7 @@
         state.hadValidationError = false;
         state.requestSucceeded = true;
         if (isExistingResource()) {
-            updateAutosaveSavedAt(new Date());
+            updateAutosaveSavedAt(savedAtDate);
         }
         setTimeout(function () {
             syncStayButtonsOriginalStatusFromSelect();
@@ -1260,16 +1373,28 @@
         };
 
         XMLHttpRequest.prototype.send = function () {
-            if (isNovaSaveRequest(this.__novaSilentSaveMethod, this.__novaSilentSaveUrl) && state.publishToggleActionPending) {
+            const method = this.__novaSilentSaveMethod;
+            const url = this.__novaSilentSaveUrl;
+            const isSaveRequest = isNovaSaveRequest(method, url);
+            const isFieldsRequest = isUpdateFieldsRequest(method, url);
+
+            if (isSaveRequest && state.publishToggleActionPending) {
                 try {
                     this.setRequestHeader('X-Nova-Post-Publish-Click', state.publishToggleActionPending);
                 } catch (e) {}
                 state.publishToggleActionPending = null;
             }
 
-            if (isNovaSaveRequest(this.__novaSilentSaveMethod, this.__novaSilentSaveUrl)) {
+            if (isSaveRequest || isFieldsRequest) {
                 this.addEventListener('loadend', function () {
-                    markRequestResult(this.status, this.__novaSilentSaveMethod, this.__novaSilentSaveUrl);
+                    const body = parseJsonResponse(this.responseText);
+                    if (isFieldsRequest) {
+                        const seconds = serverUpdatedAtFromPayload(body);
+                        const resource = novaApiResourceFromUrl(url);
+                        if (seconds && resource) applyServerRetrievedAt(seconds, resource.name, resource.id);
+                        return;
+                    }
+                    markRequestResult(this.status, method, url, body);
                 });
             }
 
@@ -1289,6 +1414,7 @@
                 ? input
                 : (input && input.url ? input.url : '');
             const isSaveRequest = isNovaSaveRequest(method, url);
+            const isFieldsRequest = isUpdateFieldsRequest(method, url);
             const shouldSendPublishHeader = isSaveRequest && !!state.publishToggleActionPending;
             const publishAction = state.publishToggleActionPending;
             const nextInit = shouldSendPublishHeader
@@ -1305,7 +1431,19 @@
 
             return originalFetch.call(this, input, nextInit).then(function (response) {
                 if (isSaveRequest) {
-                    markRequestResult(response.status, method, url);
+                    markRequestResult(response.status, method, url, null);
+                }
+
+                if ((isSaveRequest && isExactResourceUpdateEndpoint(url)) || isFieldsRequest) {
+                    response.clone().text().then(function (text) {
+                        const seconds = serverUpdatedAtFromPayload(parseJsonResponse(text));
+                        const resource = novaApiResourceFromUrl(url);
+                        if (!seconds || !resource) return;
+                        applyServerRetrievedAt(seconds, resource.name, resource.id);
+                        if (isSaveRequest) {
+                            updateAutosaveSavedAt(new Date(seconds * 1000));
+                        }
+                    }).catch(function () {});
                 }
 
                 return response;
