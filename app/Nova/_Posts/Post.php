@@ -161,6 +161,7 @@ abstract class Post extends Resource
         $previewHref = null;
         if ($postUrl && $isDraft) {
             $previewHref = route('nova.post-preview', ['post' => $this->resource->getKey()]);
+            $postUrl .= (str_contains($postUrl, '?') ? '&' : '?').'preview=1';
         }
 
         // Form Action Bars
