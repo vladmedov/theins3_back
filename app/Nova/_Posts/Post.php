@@ -164,6 +164,16 @@ abstract class Post extends Resource
             $postUrl .= (str_contains($postUrl, '?') ? '&' : '?').'preview=1';
         }
 
+        $urlBlock = null;
+        if ($postUrl) {
+            $urlBlock = ['url' => $postUrl];
+            if ($previewHref) {
+                $urlBlock['href'] = $previewHref;
+                $urlBlock['copyable'] = false;
+                $urlBlock['infoHint'] = __('form_action_bar.preview_click_hint');
+            }
+        }
+
         // Form Action Bars
         $infoBarOptions = [
             'stay' => [
@@ -173,10 +183,7 @@ abstract class Post extends Resource
             'toggle_publish' => $this->exists ? [
                 'status' => $this->status,
             ] : null,
-            'url' => $postUrl ? array_filter([
-                'url' => $postUrl,
-                'href' => $previewHref,
-            ]) : null,
+            'url' => $urlBlock,
             'autosave' => $this->exists ? [
                 'enabled' => $isDraft,
                 'updated_at' => $this->updated_at,

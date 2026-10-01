@@ -6,6 +6,7 @@
     ];
     $saveButtonStyle = 'display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;font-size:14px;font-weight:700;border-radius:4px;border:1px solid #1f2937;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:pointer;white-space:nowrap;line-height:1;background:#111827;color:#fff;box-sizing:border-box;';
     $copyIcon = "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>";
+    $infoIcon = "<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>";
     $hasSaveStatusRow = isset($autosave) && is_array($autosave);
     $hasScrollNav = !empty($scrollNav['direction']) && in_array($scrollNav['direction'], ['up', 'down'], true);
     $postEditLockEnabled = !empty($postEditLockEnabled);
@@ -82,6 +83,13 @@
                                     onmouseout='this.style.background="#fff";this.style.color="#64748b"'
                                 >{!! $copyIcon !!}</button>
                             @endif
+                            @if (!empty($linkBlock['infoHint']))
+                                <span
+                                    title="{{ $linkBlock['infoHint'] }}"
+                                    aria-label="{{ $linkBlock['infoHint'] }}"
+                                    style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:#fff;color:#64748b;cursor:help;box-shadow:0 1px 1px rgba(0,0,0,.06);"
+                                >{!! $infoIcon !!}</span>
+                            @endif
                         </span>
                     </span>
                     @if (!empty($linkBlock['notice']))
@@ -114,6 +122,13 @@
                             onmouseover='this.style.background="#e2e8f0";this.style.color="#334155"'
                             onmouseout='this.style.background="#fff";this.style.color="#64748b"'
                         >{!! $copyIcon !!}</button>
+                    @endif
+                    @if (!empty($linkBlock['infoHint']))
+                        <span
+                            title="{{ $linkBlock['infoHint'] }}"
+                            aria-label="{{ $linkBlock['infoHint'] }}"
+                            style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:3px;background:#fff;color:#64748b;cursor:help;box-shadow:0 1px 1px rgba(0,0,0,.06);"
+                        >{!! $infoIcon !!}</span>
                     @endif
                 </span>
             </span>

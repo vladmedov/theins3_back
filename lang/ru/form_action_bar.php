@@ -3,6 +3,7 @@
 return [
     'url' => 'URL',
     'copy_link' => 'Скопировать ссылку',
+    'preview_click_hint' => 'Чтобы открыть превью, нажмите на ссылку',
     'autosave' => 'Автосохранение',
     'autosave_idle' => '...',
     'autosave_failed' => 'Не удалось сохранить',
