@@ -7,7 +7,8 @@
 # Локально: в dev/docker-compose.dev.xml для app/scheduler настроен secrets.composer_auth (dev/auth.json).
 
 # ——— Базовый образ: PHP-FPM + расширения (то, что нужно в рантайме) ———
-FROM php:8.3-fpm-bookworm AS php-base
+# Pin 8.3.36+: CVE-2026-109618 / CVE-2026-109619 (PHP2Shell, Oct 2026).
+FROM php:8.3.36-fpm-bookworm AS php-base
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

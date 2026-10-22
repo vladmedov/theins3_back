@@ -62,6 +62,7 @@ class FormActionBar
                 'notice' => null,
                 'copyable' => true,
                 'copyTitle' => __('form_action_bar.copy_link'),
+                'infoHint' => null,
             ], $linkBlock);
         }
 

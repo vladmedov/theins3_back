@@ -103,7 +103,7 @@
 
     document.addEventListener('input', function (e) {
         var t = e.target;
-        if (!t.matches || !t.matches('input[data-char-counter="title"]')) {
+        if (!t.matches || !t.matches('[data-char-counter="title"]')) {
             return;
         }
         if (isRussianInterface()) {
@@ -198,12 +198,65 @@
     }, true);
 }());
 
-// ─── Title character counter ──────────────────────────────────────────────────
+// ─── Title character counter + autosize ───────────────────────────────────────
 (function () {
     var pollTimer = null;
+    var resyncTimer = null;
+
+    function isLaidOut(el) {
+        // Hidden tab panels (display:none) report 0 — autosize would lock height to 0.
+        return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
+    }
+
+    function autosizeTitle(el) {
+        if (!el || el.tagName !== 'TEXTAREA') return false;
+        if (!isLaidOut(el)) return false;
+
+        var prev = el.style.height;
+        el.style.height = '0px';
+        var next = el.scrollHeight;
+        if (!next) {
+            el.style.height = prev || '';
+            return false;
+        }
+        el.style.height = next + 'px';
+        return true;
+    }
+
+    function findTitlePair() {
+        var input = document.querySelector('[data-char-counter="title"]');
+        if (!input) return null;
+        var row = input.closest('.nova-post-title-row');
+        var counter = row ? row.querySelector('.nova-title-counter') : null;
+        if (!counter) return null;
+        return { input: input, counter: counter };
+    }
+
+    function syncCounterToField(input, counter) {
+        if (!autosizeTitle(input)) return;
+        counter.style.height = input.offsetHeight + 'px';
+    }
+
+    function resyncTitleField() {
+        var pair = findTitlePair();
+        if (!pair) return;
+        syncCounterToField(pair.input, pair.counter);
+    }
+
+    function scheduleResync() {
+        clearTimeout(resyncTimer);
+        // Tab panels often become visible a tick after the click / inertia paint.
+        requestAnimationFrame(function () {
+            resyncTitleField();
+            resyncTimer = setTimeout(function () {
+                resyncTitleField();
+                setTimeout(resyncTitleField, 100);
+            }, 0);
+        });
+    }
 
     function attachCounter() {
-        var input = document.querySelector('input[data-char-counter="title"]');
+        var input = document.querySelector('[data-char-counter="title"]');
         if (!input || input.dataset.counterAttached) return;
         input.dataset.counterAttached = '1';
 
@@ -212,28 +265,26 @@
 
         function update() {
             counter.textContent = input.value.length + '/140';
-            counter.style.color = input.value.length > 140 ? '#dc2626' : '';
-            counter.style.borderColor = input.value.length > 140 ? '#fca5a5' : '';
+            counter.classList.toggle('is-over', input.value.length > 140);
+            syncCounterToField(input, counter);
         }
 
         input.addEventListener('input', update);
-        update();
 
-        // Create a dedicated row wrapper — avoids touching the parent's Tailwind flex-col
         var row = document.createElement('div');
-        row.style.cssText = 'display:flex;flex-direction:row;align-items:stretch;width:100%;gap:8px;';
+        row.className = 'nova-post-title-row';
         input.parentNode.insertBefore(row, input);
         row.appendChild(input);
         row.appendChild(counter);
 
-        input.style.flex = '1';
-        input.style.minWidth = '0';
-
+        update();
+        scheduleResync();
         stopPoll();
     }
 
     function startPoll() {
         if (pollTimer) return;
+        attachCounter(); // immediately — avoid ~200ms width/layout delay
         var attempts = 0;
         pollTimer = setInterval(function () {
             attempts++;
@@ -251,6 +302,15 @@
             if (mutations[i].addedNodes.length) { startPoll(); return; }
         }
     }).observe(document.documentElement, { childList: true, subtree: true });
+
+    window.addEventListener('resize', scheduleResync);
+    document.addEventListener('inertia:finish', scheduleResync);
+
+    // Nova tabs: returning to "Основное" must remeasure after the panel is shown.
+    document.addEventListener('click', function (e) {
+        var t = e.target && e.target.closest && e.target.closest('[dusk$="-tab-trigger"]');
+        if (t) scheduleResync();
+    }, true);
 
     startPoll();
 }());
