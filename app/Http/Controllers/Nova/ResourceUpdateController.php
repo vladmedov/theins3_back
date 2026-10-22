@@ -2,14 +2,27 @@
 
 namespace App\Http\Controllers\Nova;
 
+use App\Http\Controllers\Nova\Concerns\AppendsServerUpdatedAt;
 use App\Http\Controllers\Nova\Concerns\AppliesTrafficCopTolerance;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Laravel\Nova\Http\Controllers\ResourceUpdateController as NovaResourceUpdateController;
 use Laravel\Nova\Http\Requests\UpdateResourceRequest;
 
 class ResourceUpdateController extends NovaResourceUpdateController
 {
+    use AppendsServerUpdatedAt;
     use AppliesTrafficCopTolerance;
+
+    /**
+     * Include the saved updated_at so the form can refresh Traffic Cop from the server clock.
+     */
+    public function __invoke(UpdateResourceRequest $request): JsonResponse
+    {
+        $response = parent::__invoke($request);
+
+        return $this->withServerUpdatedAt($response, $request->findModelQuery()->first());
+    }
 
     /**
      * Post edit lock is enforced in {@see \App\Nova\_Posts\Post::authorizeToUpdate} for {@see UpdateResourceRequest} only,

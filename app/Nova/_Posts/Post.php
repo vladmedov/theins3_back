@@ -16,7 +16,6 @@ use App\Nova\Resource;
 use App\Services\ImageService;
 use App\Services\ShareImageService;
 use App\Services\Nova\PostEditLockService;
-use App\Services\PostPreviewTokenService;
 use App\Support\Nova\FormActionBar;
 use App\Support\Nova\PageTitle;
 use App\Support\Nova\PanelWithoutHeader;
@@ -160,18 +159,20 @@ abstract class Post extends Resource
             : null;
 
         $isDraft = $this->exists && $this->status === 'draft';
+        $previewHref = null;
         if ($postUrl && $isDraft) {
-            $token = app(PostPreviewTokenService::class)->createToken($this->resource);
-            $postUrl .= (str_contains($postUrl, '?') ? '&' : '?').'preview='.$token;
+            $previewHref = route('nova.post-preview', ['post' => $this->resource->getKey()]);
+            $postUrl .= (str_contains($postUrl, '?') ? '&' : '?').'preview=1';
         }
 
-        $previewNotice = '';
-        $previewNoticeExpiresAt = null;
-        if ($isDraft && $postUrl) {
-            $expiresAt = Carbon::now()->addMinutes(PostPreviewTokenService::TTL_MINUTES);
-            $previewNoticeExpiresAt = $expiresAt->copy()->toIso8601String();
-            $previewNotice = __('Preview valid until').' ...';
-            $previewNotice .= ' · '.__('To refresh the token, reload the page.');
+        $urlBlock = null;
+        if ($postUrl) {
+            $urlBlock = ['url' => $postUrl];
+            if ($previewHref) {
+                $urlBlock['href'] = $previewHref;
+                $urlBlock['copyable'] = false;
+                $urlBlock['infoHint'] = __('form_action_bar.preview_click_hint');
+            }
         }
 
         // Form Action Bars
@@ -183,13 +184,7 @@ abstract class Post extends Resource
             'toggle_publish' => $this->exists ? [
                 'status' => $this->status,
             ] : null,
-            'url' => $postUrl ? [
-                'url' => $postUrl,
-                'notice' => $previewNotice ?: null,
-                'noticeExpiresAt' => $previewNoticeExpiresAt,
-                'noticePrefix' => __('Preview valid until'),
-                'noticeSuffix' => __('To refresh the token, reload the page.'),
-            ] : null,
+            'url' => $urlBlock,
             'autosave' => $this->exists ? [
                 'enabled' => $isDraft,
                 'updated_at' => $this->updated_at,
@@ -294,12 +289,7 @@ abstract class Post extends Resource
                 ->asHtml(),
 
             Text::make(__('Title'), 'title')
-                ->rules('required', 'max:140')
-                ->help(__('Autosave is enabled for this field.'))
-                ->withMeta(['extraAttributes' => [
-                    'data-char-counter' => 'title',
-                    'data-post-autosave-field' => '1',
-                ]])
+                ->onlyOnIndex()
                 ->displayUsing(function ($title, $resource) use ($request) {
                     $url = config('nova.path').static::redirectAfterUpdate($request, $this);
 
@@ -308,6 +298,17 @@ abstract class Post extends Resource
                         : "<a href='{$url}'><div class='nova_view_post_title'>{$title}</div></a>";
                 })
                 ->asHtml(),
+
+            Textarea::make(__('Title'), 'title')
+                ->onlyOnForms()
+                ->rows(1)
+                ->alwaysShow()
+                ->rules('required', 'max:140')
+                ->help(__('Autosave is enabled for this field.'))
+                ->withMeta(['extraAttributes' => [
+                    'data-char-counter' => 'title',
+                    'data-post-autosave-field' => '1',
+                ]]),
 
             \App\Models\Category::where('type', CategoryTypes::getCategoryTypeByPostType(static::getPostType()))
                 ->where('language_code', $locale)

@@ -38,34 +38,77 @@ class PostController extends Controller
     }
 
     /**
-     * Preview a draft post by temporary token (valid 1 hour).
-     * Frontend calls this when URL contains ?preview=TOKEN.
+     * Exchange one-time preview_code for an access_token.
      */
-    public function getPostPreview($language_code, PostPreviewTokenService $previewTokens)
+    public function exchangePostPreview($language_code, PostPreviewTokenService $previewTokens)
     {
-        $token = request()->query('token');
+        $code = request()->query('code');
+        if (!$code) {
+            abort(404);
+        }
+
+        $exchanged = $previewTokens->exchangeCode($code);
+        if (!$exchanged) {
+            abort(404);
+        }
+
+        $post = Post::with('category')->find($exchanged['post_id']);
+        if (!$post || $post->language_code !== $language_code || $post->status !== Post::STATUS_DRAFT) {
+            abort(404);
+        }
+
+        return response()
+            ->json([
+                'ok' => true,
+                'access_token' => $exchanged['token'],
+                'path' => $post->getPath(),
+                'expires_in' => $exchanged['expires_in'],
+            ])
+            ->header('Cache-Control', 'private, no-store')
+            ->header('X-Robots-Tag', 'noindex');
+    }
+
+    /**
+     * Preview a draft post via X-Post-Preview-Token header.
+     * Same lookup as getPost, but draft-only and gated by token post_id.
+     */
+    public function getPostPreview($language_code, $category_slug, $slug, PostPreviewTokenService $previewTokens)
+    {
+        $token = request()->header('X-Post-Preview-Token');
         if (!$token) {
             abort(404);
         }
-        $postId = $previewTokens->validateToken($token);
-        if (!$postId) {
+
+        $tokenPostId = $previewTokens->validateAccessToken($token);
+        if (!$tokenPostId) {
             abort(404);
         }
-        $post = Post::with([
-            'category',
-            'investigationTheme',
-            'translation',
-            'translation.category',
-            'translation.authors',
-            'translation.columnist',
-            'tags',
-            'authors',
-            'columnist',
-        ])->find($postId);
-        if (!$post || $post->language_code !== $language_code) {
+
+        $post = Post
+            ::with([
+                'category',
+                'investigationTheme',
+                'translation',
+                'translation.category',
+                'translation.authors',
+                'translation.columnist',
+                'tags',
+                'authors',
+                'columnist',
+            ])
+            ->where('slug', $slug)
+            ->where('language_code', $language_code)
+            ->where('status', Post::STATUS_DRAFT)
+            ->firstOrFail();
+
+        if ((int) $post->id !== (int) $tokenPostId) {
             abort(404);
         }
-        return new PostResource($post, false);
+
+        return (new PostResource($post, false))
+            ->response()
+            ->header('Cache-Control', 'private, no-store')
+            ->header('X-Robots-Tag', 'noindex');
     }
 
     public function getAllExceptOpinions($language_code = 'ru')

@@ -3,6 +3,7 @@
 return [
     'url' => 'URL',
     'copy_link' => 'Copy link',
+    'preview_click_hint' => 'Click the link to open the preview',
     'autosave' => 'Autosave',
     'autosave_idle' => '...',
     'autosave_failed' => 'Failed to save',

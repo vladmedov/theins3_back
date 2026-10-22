@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Http\Controllers\Nova\AttachedResourceUpdateController as AppAttachedResourceUpdateController;
 use App\Http\Controllers\Nova\ResourceUpdateController as AppResourceUpdateController;
+use App\Http\Controllers\Nova\UpdateFieldController as AppUpdateFieldController;
 use App\Models\User;
 use App\Support\Nova\SidebarMenuGroup;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Laravel\Nova\Http\Controllers\AttachedResourceUpdateController as NovaAttachedResourceUpdateController;
 use Laravel\Nova\Http\Controllers\ResourceUpdateController as NovaResourceUpdateController;
+use Laravel\Nova\Http\Controllers\UpdateFieldController as NovaUpdateFieldController;
 use Laravel\Nova\Menu\Menu;
 use Laravel\Nova\Menu\MenuItem;
 use Laravel\Nova\Nova;
@@ -232,5 +234,6 @@ class NovaServiceProvider extends NovaApplicationServiceProvider
 
         $this->app->bind(NovaResourceUpdateController::class, AppResourceUpdateController::class);
         $this->app->bind(NovaAttachedResourceUpdateController::class, AppAttachedResourceUpdateController::class);
+        $this->app->bind(NovaUpdateFieldController::class, AppUpdateFieldController::class);
     }
 }
