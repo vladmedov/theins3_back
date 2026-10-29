@@ -33,7 +33,8 @@ final class ImageRenditionGenerator
             }
 
             $imagick = new Imagick($absoluteOriginalPath);
-            $imagick->setImageColorspace(Imagick::COLORSPACE_SRGB);
+            // transform* converts pixels; setImageColorspace only relabels and can scramble colors.
+            $imagick->transformImageColorspace(Imagick::COLORSPACE_SRGB);
 
             if (method_exists($imagick, 'autoOrient')) {
                 $imagick->autoOrient();
