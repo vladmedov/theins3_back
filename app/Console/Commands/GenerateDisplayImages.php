@@ -15,6 +15,7 @@ use Illuminate\Console\Command;
 /**
  * Create display JPEG renditions for existing originals that need conversion (webp/avif),
  * and for all post covers. Does not rewrite DB paths.
+ * Post covers use stored image_crop when present.
  */
 class GenerateDisplayImages extends Command
 {
@@ -36,7 +37,14 @@ class GenerateDisplayImages extends Command
         $skipped = 0;
         $failed = 0;
 
-        $runType = function (string $label, ImageType $type, iterable $items, callable $pathGetter, callable $langGetter) use ($dryRun, $limit, $ingest, &$created, &$skipped, &$failed) {
+        $runType = function (
+            string $label,
+            ImageType $type,
+            iterable $items,
+            callable $pathGetter,
+            callable $langGetter,
+            ?callable $cropGetter = null,
+        ) use ($dryRun, $limit, $ingest, &$created, &$skipped, &$failed) {
             $this->info("=== {$label} ===");
             $n = 0;
             foreach ($items as $item) {
@@ -64,13 +72,16 @@ class GenerateDisplayImages extends Command
                     continue;
                 }
 
+                $crop = $cropGetter !== null ? $cropGetter($item) : null;
+
                 if ($dryRun) {
-                    $this->line("[dry-run] would create {$display} from {$path}");
+                    $cropNote = $crop ? ' (with crop)' : '';
+                    $this->line("[dry-run] would create {$display} from {$path}{$cropNote}");
                     $created++;
                     continue;
                 }
 
-                $result = $ingest->renditionFor($path, $type, $lang);
+                $result = $ingest->renditionFor($path, $type, $lang, $crop);
                 if ($result) {
                     $created++;
                 } else {
@@ -88,6 +99,7 @@ class GenerateDisplayImages extends Command
                 $query->lazyById(),
                 fn ($p) => $p->image,
                 fn ($p) => $p->language_code,
+                fn (Post $p) => Post::normalizeImageCrop(is_array($p->image_crop) ? $p->image_crop : null),
             );
         }
 

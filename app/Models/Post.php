@@ -71,6 +71,7 @@ class Post extends Model { //implements HasMedia {
         'image',
         'image_width',
         'image_height',
+        'image_crop',
         'image_description',
         'title_feature',
         'is_super_news',
@@ -87,6 +88,7 @@ class Post extends Model { //implements HasMedia {
         'views_count' => 'integer',
         'image_width' => 'integer',
         'image_height' => 'integer',
+        'image_crop' => 'array',
         'content' => CompactFlexibleCast::class,
         'author_visibility' => 'string',
         'auto_publish_pending' => 'boolean',
@@ -118,6 +120,7 @@ class Post extends Model { //implements HasMedia {
             if ($post->isDirty('image') && empty($post->image)) {
                 $post->image_width = null;
                 $post->image_height = null;
+                $post->image_crop = null;
             }
         });
 
@@ -527,7 +530,7 @@ class Post extends Model { //implements HasMedia {
 
     public function finalizeCoverImage(): void
     {
-        $crop = $this->pendingImageCropData;
+        $crop = self::normalizeImageCrop($this->pendingImageCropData);
         $this->pendingImageCropData = null;
 
         $stored = app(ImageIngestService::class)->finalizeStored(
@@ -544,9 +547,34 @@ class Post extends Model { //implements HasMedia {
 
         $this->image_width = $stored->width > 0 ? $stored->width : null;
         $this->image_height = $stored->height > 0 ? $stored->height : null;
+        $this->image_crop = $crop;
         $this->saveQuietly();
 
         ShareImageService::generate($this);
+    }
+
+    /**
+     * @param  array{x?: int|float, y?: int|float, width?: int|float, height?: int|float}|null  $crop
+     * @return array{x: float, y: float, width: float, height: float}|null
+     */
+    public static function normalizeImageCrop(?array $crop): ?array
+    {
+        if ($crop === null) {
+            return null;
+        }
+
+        $width = (float) ($crop['width'] ?? 0);
+        $height = (float) ($crop['height'] ?? 0);
+        if ($width <= 0 || $height <= 0) {
+            return null;
+        }
+
+        return [
+            'x' => (float) ($crop['x'] ?? 0),
+            'y' => (float) ($crop['y'] ?? 0),
+            'width' => $width,
+            'height' => $height,
+        ];
     }
 
     public function getImageUrl(bool $includeDomain = false)
