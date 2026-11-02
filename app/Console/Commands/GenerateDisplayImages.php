@@ -22,7 +22,8 @@ class GenerateDisplayImages extends Command
     protected $signature = 'images:generate-display
                             {--dry-run : Report only}
                             {--limit=0 : Max entities per type (0 = all)}
-                            {--type= : post_cover|content_image|online_image|user_photo|theme}';
+                            {--type= : post_cover|content_image|online_image|user_photo|theme}
+                            {--force : Rebuild display even when the file already exists}';
 
     protected $description = 'Generate display JPEG renditions without changing DB image paths';
 
@@ -31,6 +32,7 @@ class GenerateDisplayImages extends Command
         $dryRun = (bool) $this->option('dry-run');
         $limit = max(0, (int) $this->option('limit'));
         $typeFilter = $this->option('type');
+        $force = (bool) $this->option('force');
 
         $ingest = app(ImageIngestService::class);
         $created = 0;
@@ -44,7 +46,7 @@ class GenerateDisplayImages extends Command
             callable $pathGetter,
             callable $langGetter,
             ?callable $cropGetter = null,
-        ) use ($dryRun, $limit, $ingest, &$created, &$skipped, &$failed) {
+        ) use ($dryRun, $limit, $force, $ingest, &$created, &$skipped, &$failed) {
             $this->info("=== {$label} ===");
             $n = 0;
             foreach ($items as $item) {
@@ -67,7 +69,7 @@ class GenerateDisplayImages extends Command
                 }
 
                 $display = ImageStorageLayout::displayPathFor($path);
-                if (ImageStorageLayout::exists($display, $lang)) {
+                if (!$force && ImageStorageLayout::exists($display, $lang)) {
                     $skipped++;
                     continue;
                 }

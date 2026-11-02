@@ -5,13 +5,10 @@ namespace App\Services\Images;
 final class ImageFormatPolicy
 {
     public const ACCEPTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'avif'];
-
     public const CONVERT_FROM = ['webp', 'avif'];
-
     public const DISPLAY_EXTENSION = 'jpg';
-
     public const JPEG_QUALITY = 90;
-
+    public const DISPLAY_MAX_LONG_EDGE = 2560;
     public const MAX_KILOBYTES = 20480;
 
     /**

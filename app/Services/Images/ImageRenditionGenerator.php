@@ -62,6 +62,8 @@ final class ImageRenditionGenerator
                 }
             }
 
+            self::downscaleToDisplayMaxLongEdge($imagick);
+
             // Flatten transparency onto white before JPEG encode.
             if ($imagick->getImageAlphaChannel()) {
                 $flattened = new Imagick();
@@ -128,5 +130,27 @@ final class ImageRenditionGenerator
         } catch (Exception) {
             return false;
         }
+    }
+
+    private static function downscaleToDisplayMaxLongEdge(Imagick $imagick): void
+    {
+        $maxEdge = ImageFormatPolicy::DISPLAY_MAX_LONG_EDGE;
+        if ($maxEdge <= 0) {
+            return;
+        }
+
+        $width = $imagick->getImageWidth();
+        $height = $imagick->getImageHeight();
+        $longEdge = max($width, $height);
+        if ($longEdge <= $maxEdge) {
+            return;
+        }
+
+        $scale = $maxEdge / $longEdge;
+        $newWidth = max(1, (int) round($width * $scale));
+        $newHeight = max(1, (int) round($height * $scale));
+
+        $imagick->resizeImage($newWidth, $newHeight, Imagick::FILTER_LANCZOS, 1);
+        $imagick->setImagePage(0, 0, 0, 0);
     }
 }
