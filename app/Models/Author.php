@@ -132,6 +132,7 @@ class Author extends Model {
     public function news() {
         return $this
             ->posts()
+            ->inVisibleCategories()
             ->where('type', PostTypes::NEWS)
             ->orderBy('published_at', 'desc')
             ->limit(36);
@@ -140,6 +141,7 @@ class Author extends Model {
     public function articles() {
         return $this
             ->posts()
+            ->inVisibleCategories()
             ->whereIn('type', [PostTypes::ARTICLE, PostTypes::ONLINE])
             ->orderBy('published_at', 'desc')
             ->limit(36);
@@ -151,6 +153,7 @@ class Author extends Model {
             ->where('language_code', $this->language_code)
             ->where('type', PostTypes::OPINION)
             ->where('status', Post::STATUS_PUBLISHED)
+            ->inVisibleCategories()
             ->orderBy('published_at', 'desc')
             ->limit(36);
     }
@@ -158,6 +161,7 @@ class Author extends Model {
     public function notOpinions() {
         return $this
             ->posts()
+            ->inVisibleCategories()
             ->whereNot('type', PostTypes::OPINION)
             ->where('status', Post::STATUS_PUBLISHED)
             ->orderBy('published_at', 'desc')

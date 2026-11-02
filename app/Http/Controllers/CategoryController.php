@@ -14,7 +14,10 @@ class CategoryController extends Controller
 {
     public function getCategories($language_code)
     {
-        $categories = Category::where('language_code', $language_code)->get();
+        $categories = Category::where('language_code', $language_code)
+            ->where('is_show_in_menu', true)
+            ->get();
+
         return CategoryResource::collection($categories);
     }
 
@@ -26,6 +29,7 @@ class CategoryController extends Controller
             }])
             ->where('language_code', $language_code)
             ->where('slug', $slug)
+            ->where('is_show_in_menu', true)
             ->firstOrFail();
 
         return new CategoryResource($category, false);

@@ -16,6 +16,7 @@ class TagController extends Controller
             ::with(['posts' => function($query) {
                 $query->with(['category', 'authors', 'columnist'])
                     ->where('status', Post::STATUS_PUBLISHED)
+                    ->inVisibleCategories()
                     ->orderBy('published_at', 'desc')
                     ->paginate(36);
             }])
@@ -31,7 +32,7 @@ class TagController extends Controller
         $tags = Tag
             ::where('language_code', $language_code)
             ->withCount(['posts' => function($query) {
-                $query->where('status', Post::STATUS_PUBLISHED);
+                $query->where('status', Post::STATUS_PUBLISHED)->inVisibleCategories();
             }])
             ->get()
             ->filter(function($tag) {

@@ -144,7 +144,8 @@ class FeedController extends Controller
     {
         return Post::where('status', Post::STATUS_PUBLISHED)
             ->where('language_code', $languageCode)
-            ->where('published_at', '<=', now()->subMinutes(self::PUBLISH_DELAY_MINUTES));
+            ->where('published_at', '<=', now()->subMinutes(self::PUBLISH_DELAY_MINUTES))
+            ->inVisibleCategories();
     }
 
     private function getLatestPosts(string $languageCode, int $limit)
