@@ -302,7 +302,12 @@ class Post extends Model { //implements HasMedia {
             }
 
             $shouldGenerateImages = !empty($post->image)
-                && ($post->wasRecentlyCreated || $post->wasChanged('image'));
+                && (
+                    $post->wasRecentlyCreated
+                    || $post->wasChanged('image')
+                    || $post->wasChanged('image_crop')
+                    || $post->pendingImageCropData !== null
+                );
 
             if ($shouldGenerateImages) {
                 $post->finalizeCoverImage();

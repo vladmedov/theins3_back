@@ -3,6 +3,8 @@
 namespace App\Services\Images;
 
 use App\Models\Post;
+use App\Services\FrontendRevalidationService;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Log;
 use Imagick;
 use ImagickDraw;
@@ -16,6 +18,7 @@ class ShareImageService
     private const IMAGE_OPACITY = 0.6;
     private const LOGO_TOP = 47;
     private const LOGO_LEFT = 235;
+    private const JPEG_QUALITY = 88;
 
     public static function generate(Post $post): ?string
     {
@@ -23,17 +26,26 @@ class ShareImageService
             $disk = ImageStorageLayout::disk($post->language_code);
             $canvas = new Imagick();
             $canvas->newImage(self::WIDTH, self::HEIGHT, new ImagickPixel('#000000'));
-            $canvas->setImageFormat('png');
+            $canvas->setImageFormat('jpeg');
 
             self::drawBackgroundImage($canvas, $post);
             self::drawRedLine($canvas);
             self::drawLogo($canvas, $post->language_code);
+            $canvas = self::flattenForJpeg($canvas);
 
             $path = self::getShareImagePath($post);
             $disk->makeDirectory(dirname($path));
             $fullPath = $disk->path($path);
+            $canvas->setImageCompression(Imagick::COMPRESSION_JPEG);
+            $canvas->setImageCompressionQuality(self::JPEG_QUALITY);
+            $canvas->stripImage();
             $canvas->writeImage($fullPath);
             $canvas->destroy();
+
+            self::cleanupStaleShareFiles($post, $disk, $path);
+
+            app(FrontendRevalidationService::class)->queuePostChange((int) $post->id);
+            app(FrontendRevalidationService::class)->flush();
 
             return $path;
         } catch (\Exception $e) {
@@ -53,30 +65,28 @@ class ShareImageService
         $siteUrl = $post->language_code === 'ru'
             ? rtrim((string) config('app.ru_edition_host'), '/')
             : rtrim((string) config('app.en_edition_host'), '/');
-        return $siteUrl . '/storage/' . $path;
+
+        $url = $siteUrl . '/storage/' . $path;
+        $version = self::shareVersion($disk, $path);
+
+        return $version !== null ? $url . '?v=' . $version : $url;
     }
 
+    /**
+     * Stable share path per post (cover changes overwrite the same file).
+     */
     public static function getShareImagePath(Post $post): string
     {
         $prefix = (string) intdiv((int) $post->id, 1000);
-        $imageToken = self::shareNameTokenFromImage($post);
-        return "share/{$prefix}/{$post->id}/{$imageToken}.png";
+
+        return "share/{$prefix}/{$post->id}/{$post->id}.jpg";
     }
 
-    private static function shareNameTokenFromImage(Post $post): string
+    private static function resolveExistingShareImagePath(Post $post, Filesystem $disk): ?string
     {
-        $filename = pathinfo((string) $post->image, PATHINFO_FILENAME);
-        $filename = preg_replace('/[^A-Za-z0-9_-]+/', '-', $filename) ?? '';
-        $filename = trim($filename, '-_');
-
-        return $filename !== '' ? $filename : 'image';
-    }
-
-    private static function resolveExistingShareImagePath(Post $post, $disk): ?string
-    {
-        $currentPath = self::getShareImagePath($post);
-        if ($disk->exists($currentPath)) {
-            return $currentPath;
+        $canonicalPath = self::getShareImagePath($post);
+        if ($disk->exists($canonicalPath)) {
+            return $canonicalPath;
         }
 
         $prefix = (string) intdiv((int) $post->id, 1000);
@@ -86,13 +96,78 @@ class ShareImageService
         }
 
         $postDirectory = "share/{$prefix}/{$post->id}";
+        if (! $disk->exists($postDirectory)) {
+            return null;
+        }
+
+        $candidates = [];
         foreach ($disk->files($postDirectory) as $path) {
-            if (str_ends_with(strtolower($path), '.png')) {
-                return $path;
+            $lower = strtolower($path);
+            if (str_ends_with($lower, '.jpg') || str_ends_with($lower, '.jpeg') || str_ends_with($lower, '.png')) {
+                $candidates[] = $path;
             }
         }
 
-        return null;
+        if ($candidates === []) {
+            return null;
+        }
+
+        usort($candidates, function (string $a, string $b) use ($disk): int {
+            return $disk->lastModified($b) <=> $disk->lastModified($a);
+        });
+
+        return $candidates[0];
+    }
+
+    private static function shareVersion(Filesystem $disk, string $path): ?int
+    {
+        try {
+            return $disk->lastModified($path);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private static function cleanupStaleShareFiles(Post $post, Filesystem $disk, string $keepPath): void
+    {
+        $prefix = (string) intdiv((int) $post->id, 1000);
+        $legacyFlatPath = "share/{$prefix}/{$post->id}.png";
+        if ($legacyFlatPath !== $keepPath && $disk->exists($legacyFlatPath)) {
+            $disk->delete($legacyFlatPath);
+        }
+
+        $postDirectory = "share/{$prefix}/{$post->id}";
+        if (! $disk->exists($postDirectory)) {
+            return;
+        }
+
+        foreach ($disk->files($postDirectory) as $path) {
+            if ($path !== $keepPath) {
+                $disk->delete($path);
+            }
+        }
+    }
+
+    private static function flattenForJpeg(Imagick $canvas): Imagick
+    {
+        $canvas->setImageBackgroundColor(new ImagickPixel('#000000'));
+        if (method_exists($canvas, 'mergeImageLayers')) {
+            $flattened = $canvas->mergeImageLayers(Imagick::LAYERMETHOD_FLATTEN);
+            if ($flattened instanceof Imagick) {
+                $canvas->clear();
+                $canvas->destroy();
+
+                $flattened->setImageColorspace(Imagick::COLORSPACE_SRGB);
+
+                return $flattened;
+            }
+        } elseif ($canvas->getImageAlphaChannel()) {
+            $canvas->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
+        }
+
+        $canvas->setImageColorspace(Imagick::COLORSPACE_SRGB);
+
+        return $canvas;
     }
 
     private static function drawBackgroundImage(Imagick $canvas, Post $post): void
