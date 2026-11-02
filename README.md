@@ -165,8 +165,11 @@ npm run scout:info
 | `update:currencies` | каждые 4 часа | Обновляет курсы валют |
 | `update:oil` | каждые 4 часа | Обновляет данные по цене нефти |
 | `generate:sitemap` | каждый час | Пересобирает sitemap |
+| `scout:import "App\\Models\\Post"` | ежедневно в 00:00 | Полная переиндексация поиска (matchish) |
 
 Для всех задач включен `withoutOverlapping()`, поэтому Laravel не запускает новый экземпляр команды, пока не завершился предыдущий.
+
+На production при `SCOUT_QUEUE=true` нужен сервис `backend-queue-worker`. Размер bulk при import задаётся `SCOUT_CHUNK_SEARCHABLE` в `.env` (см. `config/scout.php`); при нехватке памяти Elasticsearch увеличь `ES_JAVA_OPTS` у контейнера `elasticsearch`.
 
 Есть также заготовка для `sync:legacy`, но сейчас она закомментирована и по расписанию не выполняется.
 

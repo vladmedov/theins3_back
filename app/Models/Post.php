@@ -316,14 +316,21 @@ class Post extends Model { //implements HasMedia {
             $searchIndexManager = app(SearchIndexManager::class);
             $searchIndexName = $post->searchableAs();
 
-            if ($post->shouldBeSearchable()) {
-                $searchIndexManager->ensureWriteTarget($post);
-                $post->searchable();
-            } elseif (
-                $searchIndexManager->aliasExists($searchIndexName)
-                || $searchIndexManager->indexExists($searchIndexName)
-            ) {
-                $post->unsearchable();
+            try {
+                if ($post->shouldBeSearchable()) {
+                    $searchIndexManager->ensureWriteTarget($post);
+                    $post->searchable();
+                } elseif (
+                    $searchIndexManager->aliasExists($searchIndexName)
+                    || $searchIndexManager->indexExists($searchIndexName)
+                ) {
+                    $post->unsearchable();
+                }
+            } catch (\Throwable $e) {
+                Log::error('Post search index sync failed', [
+                    'post_id' => $post->getKey(),
+                    'exception' => $e->getMessage(),
+                ]);
             }
 
             // Sync post_termins pivot based on <span data-id="X"> tags in content.
