@@ -117,6 +117,7 @@ class PostController extends Controller
             ::where('language_code', $language_code)
             ->where('status', Post::STATUS_PUBLISHED)
             ->whereNot('type', PostTypes::OPINION)
+            ->inVisibleCategories()
             ->orderBy('published_at', 'desc')
             ->simplePaginate(36);
             

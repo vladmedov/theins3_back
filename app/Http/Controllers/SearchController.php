@@ -239,6 +239,7 @@ class SearchController extends Controller
             // Получаем полные данные постов из БД
             $posts = Post::with(['category', 'authors', 'columnist'])
                 ->whereIn('id', $postIds)
+                ->inVisibleCategories()
                 ->get()
                 ->sortBy(function ($post) use ($postIds) {
                     return array_search($post->id, $postIds);

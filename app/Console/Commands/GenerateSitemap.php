@@ -54,7 +54,8 @@ class GenerateSitemap extends Command
     {
         $query = Post::where('status', Post::STATUS_PUBLISHED)
             ->where('language_code', $lang)
-            ->whereNot('type', PostTypes::NEWS);
+            ->whereNot('type', PostTypes::NEWS)
+            ->inVisibleCategories();
 
         $this->generateChunkedPostSitemaps($query, $lang, 'posts');
     }
@@ -63,7 +64,8 @@ class GenerateSitemap extends Command
     {
         $query = Post::where('status', Post::STATUS_PUBLISHED)
             ->where('language_code', $lang)
-            ->where('type', PostTypes::NEWS);
+            ->where('type', PostTypes::NEWS)
+            ->inVisibleCategories();
 
         $this->generateChunkedPostSitemaps($query, $lang, 'news');
     }
@@ -206,10 +208,12 @@ class GenerateSitemap extends Command
             ->whereExists(function ($query) use ($lang) {
                 $query->select(\DB::raw(1))
                     ->from('posts')
+                    ->join('categories', 'posts.category_id', '=', 'categories.id')
                     ->join('post_authors', 'posts.id', '=', 'post_authors.post_id')
                     ->whereColumn('post_authors.author_id', 'authors.id')
                     ->where('posts.status', Post::STATUS_PUBLISHED)
                     ->where('posts.language_code', $lang)
+                    ->where('categories.is_show_in_menu', true)
                     ->whereIn('posts.type', [PostTypes::ARTICLE, PostTypes::NEWS, PostTypes::ONLINE]);
             })
             ->get();
@@ -252,10 +256,12 @@ class GenerateSitemap extends Command
             ->whereExists(function ($query) use ($lang) {
                 $query->select(\DB::raw(1))
                     ->from('posts')
+                    ->join('categories', 'posts.category_id', '=', 'categories.id')
                     ->whereColumn('posts.columnist_id', 'authors.id')
                     ->where('posts.status', Post::STATUS_PUBLISHED)
                     ->where('posts.type', PostTypes::OPINION)
-                    ->where('posts.language_code', $lang);
+                    ->where('posts.language_code', $lang)
+                    ->where('categories.is_show_in_menu', true);
             })
             ->get();
 

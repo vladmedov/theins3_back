@@ -496,7 +496,7 @@ class Post extends Model { //implements HasMedia {
         bool $excludeAntifake = false,
         bool $excludeConfession = false,
     ) {
-        $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('is_show_in_menu', true));
+        $query->inVisibleCategories();
 
         if ($languageCode === null) {
             return $query;
@@ -517,6 +517,11 @@ class Post extends Model { //implements HasMedia {
         }
 
         return $query;
+    }
+
+    public function scopeInVisibleCategories($query)
+    {
+        return $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('is_show_in_menu', true));
     }
 
     public function investigationTheme() {
@@ -702,7 +707,13 @@ class Post extends Model { //implements HasMedia {
      */
     public function shouldBeSearchable(): bool
     {
-        return $this->status === self::STATUS_PUBLISHED;
+        if ($this->status !== self::STATUS_PUBLISHED) {
+            return false;
+        }
+
+        $this->loadMissing('category');
+
+        return (bool) ($this->category?->is_show_in_menu ?? false);
     }
 
     /**
