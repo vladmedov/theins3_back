@@ -478,6 +478,35 @@ class Post extends Model { //implements HasMedia {
         return $this->belongsTo(Category::class);
     }
 
+    public function scopeInMenuCategories(
+        $query,
+        ?string $languageCode = null,
+        bool $excludeAntifake = false,
+        bool $excludeConfession = false,
+    ) {
+        $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('is_show_in_menu', true));
+
+        if ($languageCode === null) {
+            return $query;
+        }
+
+        if ($excludeAntifake) {
+            $antifakeCategoryId = Category::getAntifakeCategoryId($languageCode);
+            if ($antifakeCategoryId !== null) {
+                $query->where('category_id', '!=', $antifakeCategoryId);
+            }
+        }
+
+        if ($excludeConfession) {
+            $confessionCategoryId = Category::getConfessionCategoryId($languageCode);
+            if ($confessionCategoryId !== null) {
+                $query->where('category_id', '!=', $confessionCategoryId);
+            }
+        }
+
+        return $query;
+    }
+
     public function investigationTheme() {
         return $this->belongsTo(InvestigationTheme::class);
     }
