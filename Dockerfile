@@ -32,7 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" gd \
     && pecl config-set preferred_state beta \
-    && pecl install imagick redis \
+    && pecl install imagick \
+    && pecl install https://pecl.php.net/get/redis-6.3.0.tgz \
     && docker-php-ext-enable imagick redis \
     && python3 -m venv /opt/pymorphy-venv \
     && /opt/pymorphy-venv/bin/pip install --no-cache-dir --upgrade pip \
