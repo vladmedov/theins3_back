@@ -178,7 +178,7 @@ class MainPageController extends Controller
                 ->where('status', Post::STATUS_PUBLISHED)
                 ->whereNotIn('type', [PostTypes::OPINION, PostTypes::NEWS])
                 ->whereNotIn('id', $this->excludedIds)
-                ->where('category_id', '!=', 12)
+                ->inMenuCategories($language_code, excludeAntifake: true, excludeConfession: true)
                 ->orderBy('published_at', 'DESC')
                 ->simplePaginate(36)
         )->toArray(request());

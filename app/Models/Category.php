@@ -22,9 +22,19 @@ class Category extends Model {
         'en' => 60,
     ];
 
-    public static function getConfessionCategoryId(string $language_code): int
+    public const ANTIFAKE_BY_LANGUAGE = [
+        'ru' => 12,
+        'en' => 57,
+    ];
+
+    public static function getConfessionCategoryId(string $language_code): ?int
     {
-        return self::CONFESSION_BY_LANGUAGE[$language_code] ?? self::CONFESSION_BY_LANGUAGE['ru'];
+        return self::CONFESSION_BY_LANGUAGE[$language_code] ?? null;
+    }
+
+    public static function getAntifakeCategoryId(string $language_code): ?int
+    {
+        return self::ANTIFAKE_BY_LANGUAGE[$language_code] ?? null;
     }
 
     public $table = 'categories';
