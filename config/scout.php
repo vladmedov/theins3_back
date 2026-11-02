@@ -63,14 +63,15 @@ return [
     |--------------------------------------------------------------------------
     |
     | These options allow you to control the maximum chunk size when you are
-    | mass importing data into the search engine. This allows you to fine
-    | tune each of these chunk sizes based on the power of the servers.
+    | mass importing data into the search engine. Post documents include full
+    | plain-text content; large chunks can exceed Elasticsearch's in-flight
+    | request limit (circuit breaker) during scout:import bulk updates.
     |
     */
 
     'chunk' => [
-        'searchable' => 500,
-        'unsearchable' => 500,
+        'searchable' => (int) env('SCOUT_CHUNK_SEARCHABLE', 100),
+        'unsearchable' => (int) env('SCOUT_CHUNK_UNSEARCHABLE', 100),
     ],
 
     /*
