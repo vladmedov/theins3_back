@@ -306,7 +306,6 @@ class Post extends Model { //implements HasMedia {
                     $post->wasRecentlyCreated
                     || $post->wasChanged('image')
                     || $post->wasChanged('image_crop')
-                    || $post->pendingImageCropData !== null
                 );
 
             if ($shouldGenerateImages) {

@@ -18,7 +18,8 @@ class ShareImageService
     private const IMAGE_OPACITY = 0.6;
     private const LOGO_TOP = 47;
     private const LOGO_LEFT = 235;
-    private const JPEG_QUALITY = 88;
+
+    private const SHARE_HASH_LENGTH = 12;
 
     public static function generate(Post $post): ?string
     {
@@ -26,26 +27,21 @@ class ShareImageService
             $disk = ImageStorageLayout::disk($post->language_code);
             $canvas = new Imagick();
             $canvas->newImage(self::WIDTH, self::HEIGHT, new ImagickPixel('#000000'));
-            $canvas->setImageFormat('jpeg');
+            $canvas->setImageFormat('png');
 
             self::drawBackgroundImage($canvas, $post);
             self::drawRedLine($canvas);
             self::drawLogo($canvas, $post->language_code);
-            $canvas = self::flattenForJpeg($canvas);
 
             $path = self::getShareImagePath($post);
             $disk->makeDirectory(dirname($path));
             $fullPath = $disk->path($path);
-            $canvas->setImageCompression(Imagick::COMPRESSION_JPEG);
-            $canvas->setImageCompressionQuality(self::JPEG_QUALITY);
-            $canvas->stripImage();
             $canvas->writeImage($fullPath);
             $canvas->destroy();
 
             self::cleanupStaleShareFiles($post, $disk, $path);
 
             app(FrontendRevalidationService::class)->queuePostChange((int) $post->id);
-            app(FrontendRevalidationService::class)->flush();
 
             return $path;
         } catch (\Exception $e) {
@@ -66,20 +62,34 @@ class ShareImageService
             ? rtrim((string) config('app.ru_edition_host'), '/')
             : rtrim((string) config('app.en_edition_host'), '/');
 
-        $url = $siteUrl . '/storage/' . $path;
-        $version = self::shareVersion($disk, $path);
-
-        return $version !== null ? $url . '?v=' . $version : $url;
+        return $siteUrl . '/storage/' . $path;
     }
 
     /**
-     * Stable share path per post (cover changes overwrite the same file).
+     * Share path for the current cover (filename is a short content hash, not post id).
      */
     public static function getShareImagePath(Post $post): string
     {
         $prefix = (string) intdiv((int) $post->id, 1000);
+        $filename = self::shareFileName($post);
 
-        return "share/{$prefix}/{$post->id}/{$post->id}.jpg";
+        return "share/{$prefix}/{$post->id}/{$filename}";
+    }
+
+    /**
+     * Short stable hash from cover path + crop (changes when cover or crop changes).
+     */
+    public static function shareContentHash(Post $post): string
+    {
+        $crop = Post::normalizeImageCrop(is_array($post->image_crop) ? $post->image_crop : null);
+        $payload = (string) $post->image.'|'.json_encode($crop ?? [], JSON_THROW_ON_ERROR);
+
+        return substr(hash('sha256', $payload), 0, self::SHARE_HASH_LENGTH);
+    }
+
+    private static function shareFileName(Post $post): string
+    {
+        return self::shareContentHash($post).'.png';
     }
 
     private static function resolveExistingShareImagePath(Post $post, Filesystem $disk): ?string
@@ -93,6 +103,16 @@ class ShareImageService
         $legacyFlatPath = "share/{$prefix}/{$post->id}.png";
         if ($disk->exists($legacyFlatPath)) {
             return $legacyFlatPath;
+        }
+
+        $legacyPostIdJpeg = "share/{$prefix}/{$post->id}/{$post->id}.jpg";
+        if ($disk->exists($legacyPostIdJpeg)) {
+            return $legacyPostIdJpeg;
+        }
+
+        $legacyPostIdPng = "share/{$prefix}/{$post->id}/{$post->id}.png";
+        if ($disk->exists($legacyPostIdPng)) {
+            return $legacyPostIdPng;
         }
 
         $postDirectory = "share/{$prefix}/{$post->id}";
@@ -119,15 +139,6 @@ class ShareImageService
         return $candidates[0];
     }
 
-    private static function shareVersion(Filesystem $disk, string $path): ?int
-    {
-        try {
-            return $disk->lastModified($path);
-        } catch (\Throwable) {
-            return null;
-        }
-    }
-
     private static function cleanupStaleShareFiles(Post $post, Filesystem $disk, string $keepPath): void
     {
         $prefix = (string) intdiv((int) $post->id, 1000);
@@ -146,28 +157,6 @@ class ShareImageService
                 $disk->delete($path);
             }
         }
-    }
-
-    private static function flattenForJpeg(Imagick $canvas): Imagick
-    {
-        $canvas->setImageBackgroundColor(new ImagickPixel('#000000'));
-        if (method_exists($canvas, 'mergeImageLayers')) {
-            $flattened = $canvas->mergeImageLayers(Imagick::LAYERMETHOD_FLATTEN);
-            if ($flattened instanceof Imagick) {
-                $canvas->clear();
-                $canvas->destroy();
-
-                $flattened->setImageColorspace(Imagick::COLORSPACE_SRGB);
-
-                return $flattened;
-            }
-        } elseif ($canvas->getImageAlphaChannel()) {
-            $canvas->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
-        }
-
-        $canvas->setImageColorspace(Imagick::COLORSPACE_SRGB);
-
-        return $canvas;
     }
 
     private static function drawBackgroundImage(Imagick $canvas, Post $post): void
