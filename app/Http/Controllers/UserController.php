@@ -22,10 +22,12 @@ class UserController extends Controller
             ->whereExists(function ($query) use ($language_code) {
                 $query->select(DB::raw(1))
                     ->from('posts')
+                    ->join('categories', 'posts.category_id', '=', 'categories.id')
                     ->join('post_authors', 'posts.id', '=', 'post_authors.post_id')
                     ->whereColumn('post_authors.author_id', 'authors.id')
                     ->where('posts.status', Post::STATUS_PUBLISHED)
                     ->where('posts.language_code', $language_code)
+                    ->where('categories.is_show_in_menu', true)
                     ->whereIn('posts.type', [PostTypes::ARTICLE, PostTypes::NEWS, PostTypes::ONLINE]);
             })
             ->firstOrFail();
@@ -41,10 +43,12 @@ class UserController extends Controller
             ->whereExists(function ($query) use ($language_code) {
                 $query->select(DB::raw(1))
                     ->from('posts')
+                    ->join('categories', 'posts.category_id', '=', 'categories.id')
                     ->whereColumn('posts.columnist_id', 'authors.id')
                     ->where('posts.status', Post::STATUS_PUBLISHED)
                     ->where('posts.type', PostTypes::OPINION)
-                    ->where('posts.language_code', $language_code);
+                    ->where('posts.language_code', $language_code)
+                    ->where('categories.is_show_in_menu', true);
             })
             ->firstOrFail();
 

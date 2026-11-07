@@ -92,6 +92,7 @@ class MainPageController extends Controller
                 ::where('language_code', $language_code)
                 ->where('status', Post::STATUS_PUBLISHED)
                 ->where('type', PostTypes::NEWS)
+                ->inVisibleCategories()
                 ->orderBy('published_at', 'desc')
                 ->limit(15)
                 ->get()
@@ -129,6 +130,8 @@ class MainPageController extends Controller
             } elseif ($post_types) {
                 $additionalQuery->where('type', $post_types);
             }
+
+            $additionalQuery->inVisibleCategories();
 
             $additionalPosts = $additionalQuery
                 ->orderBy($sort_by, 'desc')
@@ -178,7 +181,7 @@ class MainPageController extends Controller
                 ->where('status', Post::STATUS_PUBLISHED)
                 ->whereNotIn('type', [PostTypes::OPINION, PostTypes::NEWS])
                 ->whereNotIn('id', $this->excludedIds)
-                ->inMenuCategories($language_code, excludeAntifake: true, excludeConfession: true)
+                ->inMenuCategories($language_code, excludeAntifake: true)
                 ->orderBy('published_at', 'DESC')
                 ->simplePaginate(36)
         )->toArray(request());
@@ -217,6 +220,7 @@ class MainPageController extends Controller
                         ->where('status', Post::STATUS_PUBLISHED)
                         ->where('published_at', '>=', now()->subMonth())
                         ->whereNotIn('id', $forcedPosts)
+                        ->inVisibleCategories()
                         ->with(['category', 'authors', 'columnist'])
                         ->orderBy('views_count', 'desc')
                         ->limit($limit - $forcedPostsCollection->count())

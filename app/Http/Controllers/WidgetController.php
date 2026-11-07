@@ -51,6 +51,7 @@ class WidgetController extends Controller
                         ->where('type', PostTypes::NEWS)
                         ->where('published_at', '>=', now()->subWeek()) // За последнюю неделю
                         ->whereNotIn('id', $forcedPosts)
+                        ->inVisibleCategories()
                         ->with(['category', 'authors'])
                         ->orderBy('views_count', 'desc')
                         ->limit($limit - $forcedPostsCollection->count())
@@ -101,6 +102,7 @@ class WidgetController extends Controller
                         ->where('type', PostTypes::ARTICLE)
                         ->where('published_at', '>=', now()->subWeeks(2))
                         ->whereNotIn('id', $forcedPosts)
+                        ->inVisibleCategories()
                         ->with(['category', 'authors', 'columnist'])
                         ->orderBy('views_count', 'desc')
                         ->limit($limit - $forcedPostsCollection->count())
@@ -147,6 +149,7 @@ class WidgetController extends Controller
                 ->where('type', PostTypes::OPINION)
                 ->with(['category', 'columnist'])
                 ->whereNotIn('id', $forcedPosts)
+                ->inVisibleCategories()
                 ->orderBy('published_at', 'desc')
                 ->limit($limit - $forcedPostsCollection->count())
                 ->get();
@@ -163,11 +166,13 @@ class WidgetController extends Controller
     {
         $columnistsData = DB::table('authors')
             ->join('posts', 'authors.id', '=', 'posts.columnist_id')
+            ->join('categories', 'posts.category_id', '=', 'categories.id')
             ->where('authors.language_code', $language_code)
             ->where('authors.slug', '!=', 'the-insider')
             ->where('posts.language_code', $language_code)
             ->where('posts.type', PostTypes::OPINION)
             ->where('posts.status', Post::STATUS_PUBLISHED)
+            ->where('categories.is_show_in_menu', true)
             ->select('authors.id')
             ->selectRaw('COUNT(posts.id) as opinions_count')
             ->groupBy('authors.id')
