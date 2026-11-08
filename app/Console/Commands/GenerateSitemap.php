@@ -122,7 +122,7 @@ class GenerateSitemap extends Command
 
     private function generateCategorySitemap(string $lang): void
     {
-        $homePath = $lang === 'ru' ? '/' : "/{$lang}";
+        $homePath = $this->homePathForLanguage($lang);
         $baseUrl = $this->baseUrlForLanguage($lang);
         $newestPostAt = Post::where('status', Post::STATUS_PUBLISHED)
             ->where('language_code', $lang)
@@ -561,5 +561,17 @@ class GenerateSitemap extends Command
             : config('app.ru_canonical_host');
 
         return rtrim((string) $host, '/');
+    }
+
+    private function homePathForLanguage(string $lang): string
+    {
+        if ($lang === 'ru') {
+            return '/';
+        }
+
+        $ruHost = parse_url((string) config('app.ru_canonical_host'), PHP_URL_HOST);
+        $enHost = parse_url((string) config('app.en_canonical_host'), PHP_URL_HOST);
+
+        return $ruHost && $enHost && strcasecmp($ruHost, $enHost) !== 0 ? '/' : '/en';
     }
 }
