@@ -36,7 +36,19 @@ Schedule::command('update:currencies')
     });
 
 Schedule::command('update:oil')
-    ->cron('0 */8 * * *')
+    ->weekdays()
+    ->dailyAt('12:00')
+    ->withoutOverlapping()
+    ->onFailure(function () {
+        \Log::error('UpdateOilPrice scheduled task failed');
+    })
+    ->onSuccess(function () {
+        \Log::info('UpdateOilPrice scheduled task completed successfully');
+    });
+
+Schedule::command('update:oil')
+    ->weekdays()
+    ->dailyAt('21:15')
     ->withoutOverlapping()
     ->onFailure(function () {
         \Log::error('UpdateOilPrice scheduled task failed');
