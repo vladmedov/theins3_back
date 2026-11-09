@@ -43,13 +43,13 @@ class UpdateOilPrice extends Command
                 throw new \Exception('Не удалось извлечь цену из ответа API');
             }
 
-            $previousRate = ExchangeRate::where('currency', 'OIL')->first();
+            $previousRate = ExchangeRate::where('currency', 'BRENT')->first();
             $previousPrice = $previousRate ? (float) $previousRate->value : null;
             $dynamics = $previousPrice === null ? true : $priceToday > $previousPrice;
-            
-            ExchangeRate::updateRate('OIL', $priceToday, $dynamics);
-            
-            $this->info("OIL: {$priceToday} (" . ($dynamics ? '↑' : '↓') . ")");
+
+            ExchangeRate::updateRate('BRENT', $priceToday, $dynamics);
+
+            $this->info("BRENT: {$priceToday} (" . ($dynamics ? '↑' : '↓') . ")");
             
             Log::info('Oil price updated successfully', [
                 'price' => $priceToday,
